@@ -1,0 +1,283 @@
+import React, { useEffect, useState } from 'react';
+import { FormControl, InputLabel, Select, MenuItem } from '@mui/material';
+const imgno = './icon/ui/cancel.png';
+const imgyes = './icon/ui/confirm.png';
+const imgrdy = './icon/ui/expression_alerted.png';
+const imgsfl = './icon/res/sfltoken.png';
+const imgcoins = './icon/res/coins.png';
+const imggems = './icon/res/gem.webp';
+const imgna = './icon/nft/na.png';
+//const imgtkt = './icon/res/' + imgtktname;
+
+function ModalDlvr({ onClose, tableData, imgtkt, coinsRatio }) {
+  const closeModal = () => {
+    onClose();
+  };
+  const [Delivery, setDelivery] = useState(tableData);
+  const [selectedCost, setSelectedCost] = useState('trader');
+  const [tableDeliveries, settableDeliveries] = useState([]);
+  const [tableChores, settableChores] = useState([]);
+  const [tableBounties, settableBounties] = useState([]);
+  const ximgno = <img src={imgno} alt="" />;
+  const ximgyes = <img src={imgyes} alt="" />;
+  const ximgrdy = <img src={imgrdy} alt="" />;
+  const imgtktname = imgtkt.split('/').pop();
+  const imgbtkt = <img src={imgtkt} alt="" title="TKT" style={{ width: '15px', height: '15px' }} />;
+  const imgbsfl = <img src={imgsfl} alt="" title="SFL" style={{ width: '15px', height: '15px' }} />;
+  const imgbcoins = <img src={imgcoins} alt="" title="Coins" style={{ width: '15px', height: '15px' }} />;
+  const imgbgems = <img src={imggems} alt="" title="Coins" style={{ width: '15px', height: '15px' }} />;
+  const handleChangeCost = (event) => {
+    const selectedValue = event.target.value;
+    setSelectedCost(selectedValue);
+  }
+  function setDeliveries() {
+    const inventoryEntries = Object.entries(tableData.orders);
+    let totCost = 0;
+    let totCostp2p = 0;
+    let totCmp = 0;
+    let totSkp = 0;
+    let totSFL = 0;
+    let totTKT = 0;
+    let totCoins = 0;
+    const inventoryItems = inventoryEntries.map(([item], index) => {
+      //Object.values(tableData.orders).map((order, index) => (
+      //const OrderItem = item[1];
+      const OrderItem = tableData.orders[item];
+      var xfrom = "";
+      const ofrom = item;
+      //const xtentacle = ofrom === "shelly" ? " (" + tableData.wklcth + "/8)" : "";
+      xfrom = "./icon/pnj/" + ofrom + ".png";
+      if (ofrom === "pumpkin' pete") { xfrom = "./icon/pnj/pumpkinpete.png" }
+      let patterntkn = /res\/(.*?)\ alt=/g;
+      let correspondancetkn = patterntkn.exec(OrderItem.reward);
+      let pattern = /(.*?)<img/g;
+      let correspondance = pattern.exec(OrderItem.reward);
+      const istkt = correspondancetkn && correspondancetkn[1] === imgtktname;
+      const issfl = correspondancetkn && correspondancetkn[1] === "sfltoken.png";
+      const iscoins = correspondancetkn && correspondancetkn[1] === "coins.png";
+      const isgems = correspondancetkn && correspondancetkn[1] === "gems.png";
+      const quantreward = correspondance && Number(correspondance[1]);
+      //const coinrewardconvertsfl = iscoins && quantreward + imgbcoins + '(' + quantreward / 320 + imgbsfl + ')';
+      //const textReward = iscoins ? coinrewardconvertsfl : issfl ? quantreward + imgbsfl : quantreward + imgbtkt;
+      const txtcoinsconv = '(' + frmtNb(quantreward / coinsRatio);
+      const txtendcoinsconv = ')';
+      const textReward = iscoins ?
+        (<>{quantreward}{imgbcoins}{txtcoinsconv}{imgbsfl}{txtendcoinsconv}</>) :
+        issfl ?
+          (<>{quantreward}{imgbsfl}</>) :
+          (<>{quantreward}{imgbtkt}</>);
+      const costp2p = selectedCost === "shop" ? frmtNb(OrderItem.costs) : selectedCost === "trader" ? frmtNb(OrderItem.costt) : selectedCost === "nifty" ? frmtNb(OrderItem.costn) : selectedCost === "opensea" ? frmtNb(OrderItem.costo) : 0;
+      if (OrderItem.completed) {
+        totCost += (OrderItem.cost / coinsRatio);
+        totCostp2p += Number(costp2p);
+        if (istkt) { totTKT += quantreward }
+        if (issfl) { totSFL += quantreward }
+        if (iscoins) { totCoins += quantreward }
+      }
+      if (OrderItem.nbcompleted > 0) { totCmp += OrderItem.nbcompleted }
+      if (OrderItem.nbskipped > 0) { totSkp += OrderItem.nbskipped }
+      return (
+        <tr key={index}>
+          <td id="iccolumn" className="tdcenter"><img src={xfrom} alt="" title={ofrom} style={{ width: '25px', height: '25px' }} /></td>
+          <td className="tdcenter" dangerouslySetInnerHTML={{ __html: OrderItem.items }}></td>
+          <td className="tdcenter">{OrderItem.completed ? ximgyes : ximgno}</td>
+          {/* <td className="tdcenter" dangerouslySetInnerHTML={{ __html: OrderItem.reward }}>{coinrewardconvertsfl}</td> */}
+          <td className="tdcenter" >{textReward}</td>
+          <td className="tdcenter">{frmtNb(OrderItem.cost / coinsRatio)}</td>
+          <td className="tdcenter">{costp2p}</td>
+          <td className="tdcenter">{frmtNb(OrderItem.costtkt / coinsRatio)}</td>
+          <td className="tdcenter">{OrderItem.readyAt}</td>
+          <td className="tdcenter">{OrderItem.nbcompleted}</td>
+          <td className="tdcenter">{OrderItem.nbskipped}</td>
+        </tr>
+      )
+      //))
+    });
+    const tableContent = (
+      <>
+        <table>
+          <thead>
+            <tr>
+              <th>From</th>
+              <th>Items</th>
+              <th> </th>
+              <th>Reward</th>
+              <th>Cost</th>
+              <th>
+                <div className="selectquantback" style={{ top: `4px` }}><FormControl variant="standard" id="formselectquant" className="selectquant" size="small">
+                  <InputLabel>Cost</InputLabel>
+                  <Select value={selectedCost} onChange={handleChangeCost}>
+                    <MenuItem value="shop">Shop</MenuItem>
+                    <MenuItem value="trader">Trader</MenuItem>
+                    <MenuItem value="nifty">Niftyswap</MenuItem>
+                    <MenuItem value="opensea">OpenSea</MenuItem>
+                  </Select></FormControl></div></th>
+              <th>Cost/tkt</th>
+              <th>Since</th>
+              <th>Completed</th>
+              <th>Skipped</th>
+            </tr>
+            <tr>
+              <td>TOTAL</td>
+              <td></td>
+              <td></td>
+              <td>{frmtNb(totSFL)}{imgbsfl} {totTKT}{imgbtkt} {frmtNb(totCoins)}{imgbcoins}</td>
+              <td className="tdcenter">{frmtNb(totCost)}</td>
+              <td className="tdcenter">{frmtNb(totCostp2p)}</td>
+              <td></td>
+              <td></td>
+              <td className="tdcenter">{totCmp}</td>
+              <td className="tdcenter">{totSkp}</td>
+            </tr>
+          </thead>
+          <tbody>
+            {inventoryItems}
+          </tbody>
+        </table>
+      </>
+    )
+    settableDeliveries(tableContent);
+    const chores = tableData.chores;
+    const choreEntries = Object.entries(chores);
+    const choreItems = choreEntries.map((item, index) => {
+      //const costp2p = selectedCost === "shop" ? frmtNb(item[1].costs) : selectedCost === "trader" ? frmtNb(item[1].costt) : selectedCost === "nifty" ? frmtNb(item[1].costn) : selectedCost === "opensea" ? frmtNb(item[1].costo) : 0;
+      const imgRew = <img src={item[1].rewardimg} alt="" title={item[1].rewarditem} style={{ width: '15px', height: '15px' }} />;
+      return (
+        <tr key={index}>
+          <td className="tdcenter">{item[1].description}</td>
+          <td className="tdcenter">{PBar(item[1].progress, item[1].progressstart, item[1].requirement)}</td>
+          <td className="tdcenter">{item[1].completed ? item[1].completedAt === undefined ? ximgrdy : ximgyes : ximgno}</td>
+          <td className="tdcenter">{item[1].reward}{imgRew}</td>
+          <td className="tdcenter">{item[1].createdAt}</td>
+        </tr>
+      )
+    });
+    const choreContent = (
+      <>
+        <table>
+          <thead>
+            <tr>
+              <th>Activity</th>
+              <th> </th>
+              <th> </th>
+              <th>Reward</th>
+              <th>Since</th>
+            </tr>
+          </thead>
+          <tbody>
+            {choreItems}
+          </tbody>
+        </table>
+      </>
+    )
+    settableChores(choreContent);
+    const bounties = tableData.bounties;
+    const bountyEntries = Object.entries(bounties);
+    const bountyItems = bountyEntries.map((item, index) => {
+      //const costp2p = selectedCost === "shop" ? frmtNb(item[1].costs) : selectedCost === "trader" ? frmtNb(item[1].costt) : selectedCost === "nifty" ? frmtNb(item[1].costn) : selectedCost === "opensea" ? frmtNb(item[1].costo) : 0;
+      const imgRew = <img src={item[1].rewardimg} alt="" title={item[1].rewarditem} style={{ width: '15px', height: '15px' }} />;
+      const imgitem = item[1].itemimg !== imgna && <img src={item[1].itemimg} alt="" title={item[1].item} style={{ width: '20px', height: '20px' }} />;
+      return (
+        <tr key={index}>
+          <td className="tdcenter">{imgitem ? imgitem : item[1].item}</td>
+          <td className="tdcenter">{item[1].lvl}</td>
+          <td className="tdcenter">{item[1].reward}{imgRew}</td>
+          <td className="tdcenter">{item[1].completed ? item[1].completedAt === 0 ? ximgrdy : ximgyes : ximgno}</td>
+        </tr>
+      )
+    });
+    const bountyContent = (
+      <>
+        <table>
+          <thead>
+            <tr>
+              <th>Item</th>
+              <th>Lvl</th>
+              <th>Reward</th>
+              <th>Sold</th>
+            </tr>
+          </thead>
+          <tbody>
+            {bountyItems}
+          </tbody>
+        </table>
+      </>
+    )
+    settableBounties(bountyContent);
+  }
+  useEffect(() => {
+    setDeliveries();
+  }, []);
+  useEffect(() => {
+    setDeliveries();
+  }, [Delivery, selectedCost, tableData]);
+  return (
+    <div className="modal">
+      <div className="modal-content">
+        <h2>Deliveries</h2>
+        <button onClick={closeModal}>Close</button>
+        {tableDeliveries}
+        <h2>Chores</h2>
+        {tableChores}
+        <h2>Bounties</h2>
+        {tableBounties}
+      </div>
+    </div>
+  );
+}
+function frmtNb(nombre) {
+  const nombreNumerique = parseFloat(nombre);
+  var nombreStr = nombreNumerique.toString();
+  const positionE = nombreStr.indexOf("e");
+  if (positionE !== -1) {
+    const nombreNumeriqueCorr = Number(nombreStr).toFixed(20);
+    nombreStr = nombreNumeriqueCorr.toString();
+  }
+  if (isNaN(nombreNumerique)) {
+    return "0";
+  }
+  const positionVirgule = nombreStr.indexOf(".");
+  if (positionVirgule !== -1) {
+    let chiffreSupZero = null;
+    for (let i = positionVirgule + 1; i < nombreStr.length; i++) {
+      if (nombreStr[i] !== '0') {
+        chiffreSupZero = i;
+        break;
+      }
+    }
+    if (chiffreSupZero === null) { return nombreNumerique.toFixed(2) }
+    if (Math.abs(Math.floor(nombre)) > 0) {
+      if (Math.abs(Math.floor(nombre)) < 5) {
+        return nombreNumerique.toFixed(3);
+      } else {
+        return nombreNumerique.toFixed(2);
+      }
+    } else {
+      return nombreStr.slice(0, chiffreSupZero + 3);
+    }
+  } else {
+    return nombreStr;
+  }
+}
+function PBar(val, pval, max) {
+  const maxh = max;
+  const previousQuantity = pval;
+  const Quantity = val;
+  const difference = Quantity - previousQuantity;
+  const absDifference = Math.abs(difference);
+  const isNegativeDifference = difference < 0;
+  const hoardPercentage = Math.floor((absDifference / maxh) * 100);
+  return (
+    hoardPercentage > 0 && (
+      <div className={`progress-barb ${isNegativeDifference ? 'negative' : ''}`}>
+        <div className="progress" style={{ width: `${hoardPercentage}%` }}>
+          <span className="progress-text">
+            {isNegativeDifference ? frmtNb(absDifference) : `${frmtNb(difference)}/${frmtNb(maxh)}`}
+          </span>
+        </div>
+      </div>
+    )
+  );
+}
+
+export default ModalDlvr;
