@@ -19,18 +19,11 @@ function ModalTNFT({ onClose, it, food, fish, bounty, buildng, bTrynft, bnft, bT
   const Refresh = async () => {
     try {
       //supCoinsRatio (it, coinsRatio);
-      const bTrynftArray = Object.entries(bTrynft).map(([key, value]) => ({ name: key, value }));
+      /* const bTrynftArray = Object.entries(bTrynft).map(([key, value]) => ({ name: key, value }));
       const bTrynftwArray = Object.entries(bTrynftw).map(([key, value]) => ({ name: key, value }));
       const bTrybuildArray = Object.entries(bTrybuild).map(([key, value]) => ({ name: key, value }));
       const bTryskillArray = Object.entries(bTryskill).map(([key, value]) => ({ name: key, value }));
       const bTrybudArray = Object.entries(bTrybud).map(([key, value]) => ({ name: key, value }));
-      /* const bnftArray = Object.entries(bnft).map(([key, value]) => ({ name: key, value }));
-      const bnftwArray = Object.entries(bnftw).map(([key, value]) => ({ name: key, value }));
-      const bbuildArray = Object.entries(bbuild).map(([key, value]) => ({ name: key, value }));
-      const bskillArray = Object.entries(bskill).map(([key, value]) => ({ name: key, value }));
-      const bbudArray = Object.entries(bbud).map(([key, value]) => ({ name: key, value }));
-      const fruitPlantedArray = Object.entries(fruitPlanted).map(([key, value]) => ({ name: key, value }));
-      const FishingArray = Object.entries(fishingDetails).map(([key, value]) => ({ name: key, value })); */
       const requestBody = JSON.stringify({
         frmid: frmid,
         coinsRatio: coinsRatio,
@@ -40,26 +33,28 @@ function ModalTNFT({ onClose, it, food, fish, bounty, buildng, bTrynft, bnft, bT
         bTrybuild: bTrybuildArray,
         bTryskill: bTryskillArray,
         bTrybud: bTrybudArray,
-        //bnft: bnftArray,
-        //bnftw: bnftwArray,
-        //bbuild: bbuildArray,
-        //bskill: bskillArray,
-        //bbud: bbudArray,
-        //spot,
-        //it: it,
-        //food: food,
-        //fish: fish,
-        //bounty: "", //bounty,
-        //buildng: buildng,
-        //fruitplanted: fruitPlantedArray,
-        //fishingDetails: FishingArray,
-      });
-      const response = await fetch(API_URL + "/settry", {
+      }); */
+      const headers = {
+        frmid: frmid,
+        coinsRatio: coinsRatio,
+        inputKeep: 0,
+        xtrynft: JSON.stringify(bTrynft),
+        xtrynftw: JSON.stringify(bTrynftw),
+        xtrybuild: JSON.stringify(bTrybuild),
+        xtryskill: JSON.stringify(bTryskill),
+        xtrybud: JSON.stringify(bTrybud),
+      };
+      /* const response = await fetch(API_URL + "/settry", {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
         body: requestBody
+      }); */
+      const response = await fetch(API_URL + "/settry", {
+        method: 'GET',
+        //body: requestBody
+        headers: headers
       });
       if (response.ok) {
         const responseData = await response.json();
