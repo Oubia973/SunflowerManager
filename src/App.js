@@ -13,8 +13,8 @@ import { FormControl, InputLabel, Select, MenuItem } from '@mui/material';
 //import xrespPrice from './respPrice.json';
 //import xrespBumpkin from './respBumpkin.json';
 
-//const API_URL = "";
-const API_URL = process.env.REACT_APP_API_URL;
+const testLocal = true;
+const API_URL = testLocal ? "" : process.env.REACT_APP_API_URL;
 
 var vversion = 1.02;
 
@@ -2545,7 +2545,7 @@ function App() {
       let minYield = 500;
       let minRdyAt = 0;
       let maxRdyAt = 0;
-      const imgbee = <img src="./icon/ui/bee.webp" alt={''} title="Bee swarm" style={{ position: 'absolute', transform: 'translate(-60%, -75%)', width: '14px', height: '14px' }} />;
+      const imgbee = <img src="./icon/ui/bee.webp" alt={''} title="Bee swarm" style={{ position: 'absolute', transform: 'translate(20%, -110%)', width: '14px', height: '14px' }} />;
       const minX = Math.min(...Object.keys(isleMap).map(x => parseInt(x)));
       const minY = Math.min(...Object.values(isleMap).flatMap(row => Object.keys(row).map(y => parseInt(y))));
       const maxX = Math.max(...Object.keys(isleMap).map(x => parseInt(x)));

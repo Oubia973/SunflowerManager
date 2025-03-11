@@ -1,13 +1,9 @@
 {
   "name": "frontend",
   "version": "1.0.0",
-  "description": "",
-  "main": "index.js",
-  "type": "module",
   "scripts": {
     "start": "react-scripts start",
-    "build": "react-scripts build",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "build": "react-scripts build"
   },
   "keywords": [],
   "author": "",
@@ -16,16 +12,22 @@
     "@emotion/react": "^11.14.0",
     "@emotion/styled": "^11.14.0",
     "@mui/material": "^6.4.7",
+    "axios": "^1.8.2",
     "chart.js": "^4.4.8",
     "chartjs-adapter-date-fns": "^3.0.0",
+    "colors": "^1.4.0",
     "crypto-browserify": "^3.12.1",
     "date-fns": "^4.1.0",
     "dotenv": "^16.4.7",
+    "helmet": "^8.0.0",
+    "moment": "^2.30.1",
+    "morgan": "^1.10.0",
     "os-browserify": "^0.3.0",
     "path-browserify": "^1.0.1",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
     "react-scripts": "^5.0.1",
+    "rotating-file-stream": "^3.2.6",
     "web-vitals": "^4.2.4"
   },
   "browserslist": {
