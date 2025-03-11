@@ -47,8 +47,8 @@ app.disable('x-powered-by');
 //certificats
 app.use('/.well-known/acme-challenge', express.static(path.join(__dirname, 'public/.well-known/acme-challenge')));
 const sslOptions = {
-  key: fs.readFileSync(`./cert/key.key`),
-  cert: fs.readFileSync(`./cert/cert.crt`),
+  //key: fs.readFileSync(`./cert/key.key`),
+  //cert: fs.readFileSync(`./cert/cert.crt`),
 };
 const axiosInstance = axios.create({
   httpsAgent: new https.Agent({
