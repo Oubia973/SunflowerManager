@@ -1,5 +1,11 @@
 import React, { useEffect, useState } from 'react';
 
+let showNFT = true;
+let showNFTW = false;
+let showCraft = false;
+let showBud = false;
+let showSkill = false;
+
 function ModalTNFT({ onClose, it, food, fish, bounty, buildng, bTrynft, bnft, bTrynftw, bnftw, bTrybuild, bbuild, bTryskill, bskill, bTrybud, bbud, fishingDetails, spot, frmid, nft, nftw, fruitPlanted, coinsRatio, API_URL }) {
   const [tableNFT, settableNFT] = useState([]);
   const [tableContent, settableContent] = useState([]);
@@ -153,6 +159,66 @@ function ModalTNFT({ onClose, it, food, fish, bounty, buildng, bTrynft, bnft, bT
       console.log(`Error : ${error}`);
     }
   };
+  const setCollectibles = () => {
+    try {
+      showNFT = true;
+      showNFTW = false;
+      showCraft = false;
+      showBud = false;
+      showSkill = false;
+      setNFT(nfttry, nftwtry, buildtry, skilltry, budtry);
+    } catch (error) {
+      console.log(`Error : ${error}`);
+    }
+  };
+  const setWearables = () => {
+    try {
+      showNFT = false;
+      showNFTW = true;
+      showCraft = false;
+      showBud = false;
+      showSkill = false;
+      setNFT(nfttry, nftwtry, buildtry, skilltry, budtry);
+    } catch (error) {
+      console.log(`Error : ${error}`);
+    }
+  };
+  const setCraft = () => {
+    try {
+      showNFT = false;
+      showNFTW = false;
+      showCraft = true;
+      showBud = false;
+      showSkill = false;
+      setNFT(nfttry, nftwtry, buildtry, skilltry, budtry);
+    } catch (error) {
+      console.log(`Error : ${error}`);
+    }
+  };
+  const setBuds = () => {
+    try {
+      showNFT = false;
+      showNFTW = false;
+      showCraft = false;
+      showBud = true;
+      showSkill = false;
+      setNFT(nfttry, nftwtry, buildtry, skilltry, budtry);
+    } catch (error) {
+      console.log(`Error : ${error}`);
+    }
+  };
+  const setSkills = () => {
+    try {
+      showNFT = false;
+      showNFTW = false;
+      showCraft = false;
+      showBud = false;
+      showSkill = true;
+      setNFT(nfttry, nftwtry, buildtry, skilltry, budtry);
+    } catch (error) {
+      console.log(`Error : ${error}`);
+    }
+  };
   //const [tryitStates, setTryitStates] = useState({});
   const handleTryitChange = (item) => {
     /* setTryitStates((prevState) => ({
@@ -263,7 +329,8 @@ function ModalTNFT({ onClose, it, food, fish, bounty, buildng, bTrynft, bnft, bT
     const skillEntries = xskill && Object.entries(xskill);
     const budEntries = xbud && Object.entries(xbud);
     var NFT = [];
-    if (nftEntries) {
+    settableNFT("");
+    if (nftEntries && showNFT) {
       for (const [item, value] of nftEntries) {
         if (value.tryit) {
           totalCost += Number(value.price);
@@ -279,8 +346,12 @@ function ModalTNFT({ onClose, it, food, fish, bounty, buildng, bTrynft, bnft, bT
           <tr key={item}>
             <td className="tditemright">{item}</td>
             <td className="tdcenter" id="iccolumn"><i><img src={value.img} alt={''} className="nftico" /></i></td>
-            <td className="tdcenter"><input type="checkbox" checked={xnft[item].tryit} onChange={() => handleTryitChange(item)} /></td>
-            <td className="tdcenter" style={{ color: 'gray' }}><input type="checkbox" checked={value.isactive} /></td>
+            <td className="tdcenter">
+              <input type="checkbox" checked={xnft[item].tryit} onChange={() => handleTryitChange(item)} />
+              </td>
+            <td className="tdcenter">
+              <input type="checkbox" className={'checkbox-disabled'} checked={value.isactive} />
+              </td>
             <td className="tdcenter">{value.price}</td>
             <td className="tdcenter">{value.pricem || 0}</td>
             <td className="tdcenter">{isupply}</td>
@@ -289,7 +360,7 @@ function ModalTNFT({ onClose, it, food, fish, bounty, buildng, bTrynft, bnft, bT
         );
       }
     }
-    if (nftwEntries) {
+    if (nftwEntries && showNFTW) {
       for (const [itemw, valuew] of nftwEntries) {
         if (valuew.tryit) {
           totalCost += Number(valuew.price);
@@ -305,8 +376,12 @@ function ModalTNFT({ onClose, it, food, fish, bounty, buildng, bTrynft, bnft, bT
           <tr key={itemw}>
             <td className="tditemright">{itemw}</td>
             <td className="tdcenter" id="iccolumn"><i><img src={valuew.img} alt={''} className="nftico" /></i></td>
-            <td className="tdcenter"><input type="checkbox" checked={xnftw[itemw].tryit} onChange={() => handleTryitChange(itemw)} /></td>
-            <td className="tdcenter" style={{ color: 'gray' }}><input type="checkbox" checked={valuew.isactive} /></td>
+            <td className="tdcenter">
+              <input type="checkbox" checked={xnftw[itemw].tryit} onChange={() => handleTryitChange(itemw)} />
+              </td>
+            <td className="tdcenter">
+              <input type="checkbox" className={'checkbox-disabled'} checked={valuew.isactive} />
+              </td>
             <td className="tdcenter">{valuew.price}</td>
             <td className="tdcenter">{valuew.pricem || 0}</td>
             <td className="tdcenter">{isupplyw}</td>
@@ -315,7 +390,7 @@ function ModalTNFT({ onClose, it, food, fish, bounty, buildng, bTrynft, bnft, bT
         );
       }
     }
-    if (buildEntries) {
+    if (buildEntries && showCraft) {
       for (const [itemb, valueb] of buildEntries) {
         if (valueb.tryit) { totalCost += Number(valueb.price) };
         if (valueb.isactive) { totalCostactiv += Number(valueb.price) };
@@ -325,8 +400,12 @@ function ModalTNFT({ onClose, it, food, fish, bounty, buildng, bTrynft, bnft, bT
           <tr key={itemb}>
             <td className="tditemright">{itemb}</td>
             <td className="tdcenter" id="iccolumn"><i><img src={valueb.img} alt={''} className="nftico" /></i></td>
-            <td className="tdcenter"><input type="checkbox" checked={xbuild[itemb].tryit} onChange={() => handleTryitChange(itemb)} /></td>
-            <td className="tdcenter" style={{ color: 'gray' }}><input type="checkbox" checked={valueb.isactive} /></td>
+            <td className="tdcenter">
+              <input type="checkbox" checked={xbuild[itemb].tryit} onChange={() => handleTryitChange(itemb)} />
+              </td>
+            <td className="tdcenter">
+              <input type="checkbox" className={'checkbox-disabled'} checked={valueb.isactive} />
+              </td>
             <td className="tdcenter">{valueb.price}</td>
             <td className="tdcenter"></td>
             <td className="tdcenter">{isupplyb}</td>
@@ -335,23 +414,34 @@ function ModalTNFT({ onClose, it, food, fish, bounty, buildng, bTrynft, bnft, bT
         );
       }
     }
-    if (skillEntries) {
+    if (skillEntries && showSkill) {
       for (const [items, values] of skillEntries) {
+        if (values.tryit) {
+          totalCost += Number(values.points);
+          totalCostM += Number(values.pricem) || 0;
+        }
+        if (values.isactive) {
+          totalCostactiv += Number(values.points);
+          totalCostactivM += Number(values.pricem) || 0;
+        }
+        const cellStyle = {};
+        cellStyle.backgroundColor = xskill[items].tier === 1 ? `rgba(0, 116, 25, 0.63)` : xskill[items].tier === 2 ? `rgba(0, 2, 116, 0.63)` : `rgba(114, 116, 0, 0.63)`;
         NFT.push(
           <tr key={items}>
-            <td className="tditemright">{items}</td>
+            <td className="tditemright" style={cellStyle}>{items}</td>
             <td className="tdcenter" id="iccolumn"><i><img src={values.img} alt={''} className="nftico" /></i></td>
-            <td className="tdcenter"><input type="checkbox" checked={xskill[items].tryit} onChange={() => handleTryitChange(items)} /></td>
-            <td className="tdcenter" style={{ color: 'gray' }}><input type="checkbox" checked={values.isactive} /></td>
-            <td className="tdcenter">{values.price}</td>
-            <td className="tdcenter"></td>
-            <td className="tdcenter"></td>
+            <td className="tdcenter">
+              <input type="checkbox" checked={xskill[items].tryit} onChange={() => handleTryitChange(items)} />
+            </td>
+            <td className="tdcenter">
+              <input type="checkbox" className={'checkbox-disabled'} checked={values.isactive} />
+            </td>
             <td className="tditemnft" style={{ color: `rgb(190, 190, 190)` }}>{values.boost}</td>
           </tr>
         );
       }
     }
-    if (budEntries) {
+    if (budEntries && showBud) {
       for (const [itembd, valuebd] of budEntries) {
         if (valuebd.tryit) { totalCost += Number(valuebd.price) };
         if (valuebd.isactive) { totalCostactiv += Number(valuebd.price) };
@@ -359,8 +449,12 @@ function ModalTNFT({ onClose, it, food, fish, bounty, buildng, bTrynft, bnft, bT
           <tr key={itembd}>
             <td className="tditemright" style={{ width: '40px' }}>{itembd}</td>
             <td className="tdcenter" id="iccolumn"><i><img src={valuebd.img} alt={''} className="nftico" /></i></td>
-            <td className="tdcenter"><input type="checkbox" checked={xbud[itembd].tryit} onChange={() => handleTryitChange(itembd)} /></td>
-            <td className="tdcenter" style={{ color: 'gray' }}><input type="checkbox" checked={valuebd.isactive} /></td>
+            <td className="tdcenter">
+              <input type="checkbox" checked={xbud[itembd].tryit} onChange={() => handleTryitChange(itembd)} />
+              </td>
+            <td className="tdcenter">
+              <input type="checkbox" className={'checkbox-disabled'} checked={valuebd.isactive} />
+              </td>
             <td className="tdcenter">{valuebd.price}</td>
             <td className="tdcenter"></td>
             <td className="tdcenter"></td>
@@ -384,9 +478,9 @@ function ModalTNFT({ onClose, it, food, fish, bounty, buildng, bTrynft, bnft, bT
             <th>Item</th>
             <th className="tdcenter">Try</th>
             <th className="tdcenter">Active</th>
-            <th className="tdcenter">Price</th>
-            <th className="tdcenter">Market</th>
-            <th className="tdcenter">Supply</th>
+            {showSkill === false ? (<th className="tdcenter">Price</th>) : ("")}
+            {showSkill === false ? (<th className="tdcenter">Market</th>) : ("")}
+            {showSkill === false ? (<th className="tdcenter">Supply</th>) : ("")}        
             <th style={{ width: `150px` }}>Boost</th>
           </tr>
           <tr key="total">
@@ -394,9 +488,9 @@ function ModalTNFT({ onClose, it, food, fish, bounty, buildng, bTrynft, bnft, bT
             <td></td>
             <td className="tdcenter">{parseFloat(totalCost).toFixed(0)}</td>
             <td className="tdcenter">{parseFloat(totalCostactiv).toFixed(0)}</td>
-            <td className="tdcenter"></td>
-            <td className="tdcenter">{parseFloat(totalCostactivM).toFixed(0)}</td>
-            <td></td>
+            {showSkill === false ? (<td className="tdcenter"></td>) : ("")}
+            {showSkill === false ? (<td className="tdcenter">{parseFloat(totalCostactivM).toFixed(0)}</td>) : ("")}
+            {showSkill === false ? (<td></td>) : ("")}
             <td></td>
           </tr>
         </thead>
@@ -420,10 +514,21 @@ function ModalTNFT({ onClose, it, food, fish, bounty, buildng, bTrynft, bnft, bT
     <div className="modal">
       <div className="modal-content">
         <h2>Try NFT</h2>
-        <button onClick={closeModal}>Close</button>
-        <button onClick={Refresh}>Refresh</button>
-        <button onClick={Reset}>Reset</button>
-        <button onClick={SetZero}>No NFT/Skill</button>
+        <div className="button-group">
+          <div>
+            <button onClick={closeModal}>Close</button>
+            <button onClick={Refresh}>Refresh</button>
+            <button onClick={Reset}>Reset</button>
+            <button onClick={SetZero}>No NFT/Skill</button>
+          </div>
+          <div className="button-group-right">
+            <button onClick={setCollectibles}>Collectibles</button>
+            <button onClick={setWearables}>Wearables</button>
+            <button onClick={setCraft}>Craft</button>
+            <button onClick={setBuds}>Buds</button>
+            <button onClick={setSkills}>Skills</button>
+          </div>
+        </div>
         <div className="content-wrapper">
           <div className="left-content">
             <table>{tableContent}</table>

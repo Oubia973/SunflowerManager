@@ -9,7 +9,7 @@ const express = require("express");
 const https = require('https');
 const helmet = require("helmet");
 const started = Date.now();
-const fs = require("fs");
+//const fs = require("fs");
 require("colors");
 const axios = require('axios');
 

@@ -1,4 +1,4 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { Chart, registerables } from 'chart.js';
 import 'chartjs-adapter-date-fns';
 import { format, parseISO } from 'date-fns';
@@ -11,6 +11,7 @@ var clickedIndex = [];
 
 function Graph({ data, vals, it }) {
   const chartRef = useRef(null);
+  const [selectedCategory, setSelectedCategory] = useState('all');
 
   useEffect(() => {
     if (Array.isArray(data) && data.length > 0) {
@@ -19,6 +20,7 @@ function Graph({ data, vals, it }) {
         if (it[item].color) {
           idName[it[item].id].name = item;
           idName[it[item].id].color = it[item].color;
+          idName[it[item].id].cat = it[item].cat;
         }
       }
       const datasets = {};
@@ -27,7 +29,7 @@ function Graph({ data, vals, it }) {
         const date = parseISO(entry.date);
         const dateLabel = format(date, 'yyyy-MM-dd HH:mm:ss');
         const id = entry.id;
-        if (idName[id]) {
+        if (idName[id] && (selectedCategory === 'all' || categoryGroups[selectedCategory].includes(idName[id].cat))) {
           const xname = idName[id].name;
           if (!datasets[id]) {
             datasets[id] = {
@@ -35,6 +37,9 @@ function Graph({ data, vals, it }) {
               label: xname,
               data: [],
               borderColor: idName[id].color,
+              backgroundColor: idName[id].color,
+              borderWidth: 2,
+              pointRadius: 1,
               fill: false,
               cubicInterpolationMode: 'monotone',
               tension: 0.4,
@@ -57,7 +62,7 @@ function Graph({ data, vals, it }) {
           datasets[id].data.push({ x: dateLabel, y: unitValue });
         }
         else {
-          console.log(id + " no name");
+          //console.log(id + " no name");
         }
       });
 
@@ -84,6 +89,10 @@ function Graph({ data, vals, it }) {
                 display: false,
                 text: 'Date',
               },
+              grid: {
+                display: true,
+                color: 'rgba(61, 61, 61, 0.27)',
+              },
               //autoSkip: true,
             },
             y: {
@@ -91,6 +100,10 @@ function Graph({ data, vals, it }) {
               title: {
                 display: false,
                 text: 'Price',
+              },
+              grid: {
+                display: true,
+                color: 'rgba(83, 83, 83, 0.56)',
               },
             },
           },
@@ -140,23 +153,61 @@ function Graph({ data, vals, it }) {
         },
       });
     }
-  }, [data, vals]);
-
+  }, [data, vals, selectedCategory]);
+  const categoryGroups = {
+    "crops": ["crop"],
+    "wood minerals": ["wood", "mineral", "gem"],
+    "fruits honey": ["fruit", "honey", "mushroom"],
+    "animals": ["animal"]
+  };
   return (
     <div style={{ width: '100%', height: '100%' }}>
+      <div style={{ position: 'absolute', top: 10, right: 10 }}>
+        <button onClick={() => setSelectedCategory('all')}>All</button>
+        {Object.keys(categoryGroups).map(group => (
+          <button key={group} onClick={() => setSelectedCategory(group)}>{group}</button>
+        ))}
+      </div>
       <canvas id="myChart"></canvas>
     </div>
   );
 }
+const hexToRgba = (hex, alpha) => {
+  const r = parseInt(hex.slice(1, 3), 16);
+  const g = parseInt(hex.slice(3, 5), 16);
+  const b = parseInt(hex.slice(5, 7), 16);
+  return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+};
+const rgbToHex = (rgb) => {
+  const result = rgb.match(/\d+/g).map((num) => {
+    const hex = parseInt(num).toString(16);
+    return hex.length === 1 ? '0' + hex : hex;
+  });
+  return `#${result.join('')}`;
+};
+const darkenColor = (hex, amount) => {
+  let r = parseInt(hex.slice(1, 3), 16);
+  let g = parseInt(hex.slice(3, 5), 16);
+  let b = parseInt(hex.slice(5, 7), 16);
+  r = Math.max(0, r - amount);
+  g = Math.max(0, g - amount);
+  b = Math.max(0, b - amount);
+  return `#${r.toString(16).padStart(2, '0')}${g.toString(16).padStart(2, '0')}${b.toString(16).padStart(2, '0')}`;
+};
 const handleHover = (evt, item, legend) => {
   const activeDataset = legend.chart.data.datasets[item.datasetIndex];
   const label = activeDataset.label;
   legend.chart.data.datasets.forEach(dataset => {
     const idInfo = Object.keys(idName).find(id => idName[id].name === dataset.label);
+    const hexColor = rgbToHex(idName[idInfo].color);
     if (dataset.label === label) {
       dataset.borderColor = idName[idInfo].color;
+      dataset.backgroundColor = idName[idInfo].color;
+      dataset.borderWidth = 4;
     } else {
-      dataset.borderColor = idName[idInfo].color + '4D';
+      dataset.borderColor = darkenColor(hexColor, 200);
+      dataset.backgroundColor = darkenColor(hexColor, 200);
+      dataset.borderWidth = 1;
     }
   });
   legend.chart.update();
@@ -165,6 +216,8 @@ const handleLeave = (evt, item, legend) => {
   legend.chart.data.datasets.forEach(dataset => {
     const idInfo = Object.keys(idName).find(id => idName[id].name === dataset.label);
     dataset.borderColor = idName[idInfo].color;
+    dataset.backgroundColor = idName[idInfo].color;
+    dataset.borderWidth = 2;
   });
   legend.chart.update();
 };

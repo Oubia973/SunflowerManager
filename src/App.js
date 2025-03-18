@@ -13,16 +13,14 @@ import { FormControl, InputLabel, Select, MenuItem } from '@mui/material';
 //import xrespPrice from './respPrice.json';
 //import xrespBumpkin from './respBumpkin.json';
 
-const testLocal = true;
-const API_URL = testLocal ? "" : process.env.REACT_APP_API_URL;
+const runLocal = true;
+const API_URL = runLocal ? "" : process.env.REACT_APP_API_URL;
 
 var vversion = 1.02;
 
 var dateSeason = "";
 var tktName = "";
 var imgtkt = "";
-var resetDay = 0;
-var tktWeekly = 0;
 
 const imgsfl = './icon/res/sfltoken.png';
 const imgcoins = './icon/res/coins.png';
@@ -580,8 +578,8 @@ function App() {
         username = responseData.username;
         isAbo = responseData.isabo;
         dateSeason = new Date(responseData.constants.dateSeason);
-        resetDay = responseData.constants.resetDay;
-        tktWeekly = responseData.constants.tktWeekly;
+        //resetDay = responseData.constants.resetDay;
+        //tktWeekly = responseData.constants.tktWeekly;
         tktName = responseData.constants.tktName;
         imgtkt = responseData.constants.imgtkt;
         it = responseData.it;
@@ -628,8 +626,8 @@ function App() {
         setfTrades();
         setdeliveriesData(responseData.orderstable);
         setSelectedExpandType(xexpandData.type);
-        setfromtoexpand(responseData.expandData);
-        getFromToExpand(fromexpand, toexpand);
+        //setfromtoexpand(responseData.expandData);
+        //getFromToExpand(fromexpand, toexpand);
         //setanimalData(responseData.Animals);
       } else {
         if (response.status === 429) {
@@ -2545,6 +2543,10 @@ function App() {
       let minYield = 500;
       let minRdyAt = 0;
       let maxRdyAt = 0;
+      let cropMachineDone = false;
+      let greenhouseDone = false;
+      const imgcropmachine = "./icon/building/stage1_collector_empty.webp";
+      const imggreenhouse = "./icon/building/greenhouse.webp";
       const imgbee = <img src="./icon/ui/bee.webp" alt={''} title="Bee swarm" style={{ position: 'absolute', transform: 'translate(20%, -110%)', width: '14px', height: '14px' }} />;
       const minX = Math.min(...Object.keys(isleMap).map(x => parseInt(x)));
       const minY = Math.min(...Object.values(isleMap).flatMap(row => Object.keys(row).map(y => parseInt(y))));
@@ -2552,6 +2554,10 @@ function App() {
       const maxY = Math.max(...Object.values(isleMap).flatMap(row => Object.keys(row).map(y => parseInt(y))));
       const adjustedIsleMap = Array.from({ length: maxX - minX + 1 }, () => ({}));
       let rdyAtValues = [];
+      let lastCropMachineX = -1;
+      let lastCropMachineY = -1;
+      let lastGreenhouseX = -1;
+      let lastGreenhouseY = -1;
       Object.keys(isleMap).forEach(x => {
         const adjustedX = x - minX;
         Object.keys(isleMap[x]).forEach(y => {
@@ -2560,6 +2566,14 @@ function App() {
           if (isleMap[x][y].type === "crop") {
             minYield = isleMap[x][y].amount < minYield ? isleMap[x][y].amount : minYield;
             rdyAtValues.push(isleMap[x][y].rdyAt);
+          }
+          if (isleMap[x][y].type === "crop machine") {
+            lastCropMachineX = adjustedX;
+            lastCropMachineY = adjustedY;
+          }
+          if (isleMap[x][y].type === "greenhouse") {
+            lastGreenhouseX = adjustedX;
+            lastGreenhouseY = adjustedY;
           }
         });
       });
@@ -2580,15 +2594,21 @@ function App() {
           const item = row[y];
           const tableX = parseInt(x);
           const tableY = maxY - minY - parseInt(y);
-          const amount = parseFloat(item.amount).toFixed(2);
-          const Greenproc = (item.type === "crop") && (amount > minYield + 9);
+          const amount = parseFloat(item.amount).toFixed(2 * (item.type !== "crop machine"));
+          const Greenproc = (item.type === "crop" || item.type === "greenhouse") && (amount > minYield + 9);
           const colorAmount = Greenproc ? 'red' : 'white';
           const backColor = item.type === "crop" ? getBackgroundColor(minRdyAt, maxRdyAt, item.rdyAt) : 'transparent';
           const typeOrName = item.name ? item.name : item.type;
           const isSwarm = item.swarm && imgbee;
           const toReset = item.reset && item.reset;
+          cropMachineDone = (x === lastCropMachineX && y === lastCropMachineY);
+          greenhouseDone = (x === lastGreenhouseX && y === lastGreenhouseY);
+          const ximgcropmachine = (item.type === "crop machine" && cropMachineDone === true) ? <img src={imgcropmachine} className="image-overflow" /> : "";
+          const ximggreenhouse = (item.type === "greenhouse" && greenhouseDone === true) ? <img src={imggreenhouse} className="image-overflow" /> : "";
           table[tableY][tableX] = (
             <td key={`${tableX}-${tableY}`} style={{ position: 'relative', backgroundColor: backColor }} title={typeOrName}>
+              {/* {ximgcropmachine}
+              {ximggreenhouse} */}
               <img src={item.img} style={{ width: '22px', height: '22px' }} />
               <span style={{
                 position: 'absolute',
@@ -2596,10 +2616,10 @@ function App() {
                 left: '50%',
                 transform: 'translate(-50%, -10%)',
                 color: colorAmount,
-                backgroundColor: 'rgba(0, 0, 0, 0.5)',
+                backgroundColor: 'rgba(0, 0, 0, 0.4)',
                 padding: '0px 0px',
                 borderRadius: '0px',
-                fontSize: '12px'
+                fontSize: '11px'
               }}>
                 {isSwarm}
                 {amount}
@@ -2616,6 +2636,18 @@ function App() {
               }}>
                 {toReset}
               </span>
+              {/* <span style={{
+                position: 'absolute',
+                top: '0%',
+                right: '0%',
+                transform: 'translate(-50%, -50%)',
+                color: 'rgb(124, 255, 84)',
+                padding: '0px 0px',
+                borderRadius: '0px',
+                fontSize: '11px'
+              }}>
+                {x},{y}
+              </span> */}
             </td>
           );
         });
@@ -2631,7 +2663,7 @@ function App() {
 
       const tableElement = (
         <>
-          <table>
+          <table class="tablemap">
             <tbody>
               {tableContent}
             </tbody>
@@ -3746,7 +3778,7 @@ function App() {
         //console.log("Error, cleared local data");
       } */
     }
-  },  [farmData, itData, selectedCurr, selectedQuant, selectedQuantCook, selectedQuantFish, selectedQuantity, selectedQuantityCook, selectedCostCook,
+  }, [farmData, itData, selectedCurr, selectedQuant, selectedQuantCook, selectedQuantFish, selectedQuantity, selectedQuantityCook, selectedCostCook,
     selectedReady, selectedDsfl, selectedInv, inputMaxBB, inputKeep, inputFarmTime, deliveriesData, HarvestD,
     xListeCol, xListeColCook, xListeColFish, xListeColFlower, xListeColExpand, xListeColAnimals, xListeColActivity,
     xListeColActivityItem, CostChecked, TryChecked, BurnChecked, cstPrices, fromtolvltime, inputFromLvl, inputToLvl, fromtoexpand, activityData,
@@ -3921,7 +3953,7 @@ function App() {
           <ModalBumpkin onClose={handleClosefBumpkin} tableData={bkn} wardrobe={bumpkinData[0].wardrobe} bumpkinOnC={bumpkinData[0]} bumpkinOffC={bumpkinDataOC} img={imgbkn} nftw={nftw} frmid={lastClickedInputValue.current} />
         )}
         {showfGraph && (
-          <ModalGraph onClose={handleClosefGraph} graphtype={GraphType} frmid={lastClickedInputValue.current} it={it} API_URL={API_URL}/>
+          <ModalGraph onClose={handleClosefGraph} graphtype={GraphType} frmid={lastClickedInputValue.current} it={it} API_URL={API_URL} />
         )}
         {showfTNFT && (
           <ModalTNFT onClose={(ittry, foodtry, fishtry, bountytry, nfttry, nftwtry, buildtry, skilltry, budtry, Fishingtry, bTrynft, bTrynftw, bTrybuild, bTryskill, bTrybud) => { handleClosefTNFT(ittry, foodtry, fishtry, bountytry, nfttry, nftwtry, buildtry, skilltry, budtry, Fishingtry, bTrynft, bTrynftw, bTrybuild, bTryskill, bTrybud) }}
