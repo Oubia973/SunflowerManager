@@ -1,14 +1,14 @@
 import React, { useEffect, useState, useRef } from 'react';
 import logo from './gobcarry.gif';
 import './App.css';
-import ModalBoost from './fboost.js';
-import ModalBumpkin from './fbkn.js';
 import ModalTNFT from './ftrynft.js';
 import ModalGraph from './fgraph.js';
 import ModalDlvr from './fdelivery.js';
 import Cadre from './animodal.js';
+import Tooltip from "./tooltip.js";
 import DropdownCheckbox from './listcol.js';
 import { FormControl, InputLabel, Select, MenuItem } from '@mui/material';
+import { frmtNb, ColorValue } from './fct.js';
 //import xrespFarm from './respFarm.json';
 //import xrespPrice from './respPrice.json';
 //import xrespBumpkin from './respBumpkin.json';
@@ -41,6 +41,7 @@ const imgna = './icon/nft/na.png';
 const imgrod = './icon/tools/fishing_rod.png';
 
 var it = [];
+var tool = [];
 var food = [];
 var fish = [];
 var flower = [];
@@ -58,11 +59,7 @@ var bud = [];
 var spot = {};
 var mutantchickens = [];
 var sTickets = [];
-/* var supplyOS = [];
-var supplyOSW = [];
-var supplyBLD = []; */
 var fishingDetails = "";
-//var wklactivity = [];
 var ftrades = {};
 var Animals = {};
 var isleMap = {};
@@ -70,11 +67,6 @@ var isleMap = {};
 var username = "";
 var isAbo = false;
 var taxFreeSFL = 0;
-
-var BoostNFT = [];
-var BoostSkill = [];
-var bkn = [];
-var imgbkn = "";
 
 var bFarmit = [];
 var bCookit = [];
@@ -93,6 +85,10 @@ var dProd = [];
 var dProdtry = [];
 var xdxp = 0;
 
+let vinputMaxBB = 1;
+let vinputFarmTime = 8;
+let vinputAnimalLvl = 5;
+
 var xinitprc = false;
 var xnotifiedTimers = [];
 var xHrvst = [];
@@ -102,7 +98,6 @@ var HrvstMaxtry = [];
 var xBurning = [];
 xBurning.burn = [];
 xBurning.burntry = [];
-var itDck = [];
 var cstPricesb = [10000, 5000, 1000, 1000, 1000, 1000, 1000, 1000, 1000, 1000, 1000, 1000, 1000, 1000, 500, 100, 50, 50, 50, 1000, 100, 100, 100, 100, 100, 100, 100];
 var platformListings = "Trades";
 var coinsRatio = 320;
@@ -139,8 +134,9 @@ function App() {
   const [mapData, setMapData] = useState(null);
   const [ftradesData, setftradesData] = useState(null);
   const [itData, setitData] = useState(it);
-  const [priceData, setpriceData] = useState([]);/* 
-  const [priceDataT, setpriceDataT] = useState([]);
+  const [priceData, setpriceData] = useState([]);
+  const [tooltipData, setTooltipData] = useState(null);
+  /* const [priceDataT, setpriceDataT] = useState([]);
   const [priceDataTMC, setpriceDataTMC] = useState([]);
   const [priceDataTMW, setpriceDataTMW] = useState([]);
   const [priceDataN, setpriceDataN] = useState([]);
@@ -302,48 +298,7 @@ function App() {
   const [CostChecked, setCostChecked] = useState(true);
   const [TryChecked, setTryChecked] = useState(false);
   const [BurnChecked, setBurnChecked] = useState(true);
-  const handleButtonfBoostClick = () => {
-    setShowfBoost(true);
-  };
-  const handleClosefBoost = () => {
-    setShowfBoost(false);
-  };
-  const handleButtonfSkillClick = () => {
-    setShowfSkill(true);
-  };
-  const handleClosefSkill = () => {
-    setShowfSkill(false);
-  };
-  const handleButtonfBumpkinClick = async () => {
-    //if (testb === false) {
-    const response = await fetch(API_URL + "/getbumpkin", {
-      method: 'GET',
-      headers: {
-        //tokenuri: bumpkinData[0].tkuri,
-        bknid: bumpkinData[0].id,
-        frmid: lastClickedInputValue.current
-      }
-    });
-    if (response.ok) {
-      const data = await response.json();
-      bkn = data.responseBumpkin;
-      const imageData = data.responseImage;
-      //setImageData(`data:image/png;base64,${imageData}`);
-      imgbkn = `data:image/png;base64,${imageData}`;
-      setBumpkinDataOC(data.responseBkn);
-      bumpkinData[0].Bknlvl = data.Bknlvl;
-    }
-    /*} else {
-      const data = xrespBumpkin;
-      bkn = data.json;
-      const imageData = btoa(String.fromCharCode.apply(null, new Uint8Array(data.image)));
-      setImageData(imageData);
-    } */
-    setShowfBumpkin(true);
-  };
-  const handleClosefBumpkin = () => {
-    setShowfBumpkin(false);
-  };
+  
   const handleButtonfTNFTClick = () => {
     setShowfTNFT(true);
   };
@@ -519,9 +474,11 @@ function App() {
     }));
   };
   const handleMaxBBChange = (event) => {
+    vinputMaxBB = event.target.value;
     setInputMaxBB(event.target.value);
   };
   const handleFarmTimeChange = (event) => {
+    vinputFarmTime = event.target.value;
     setInputFarmTime(event.target.value);
   };
   const handleFromLvlChange = (event) => {
@@ -564,6 +521,9 @@ function App() {
         headers: {
           frmid: inputValue,
           inputkeep: inputKeep,
+          inputFarmTime: inputFarmTime,
+          inputMaxBB: inputMaxBB,
+          inputAnimalLvl: vinputAnimalLvl,
           coinsratio: coinsRatio,
           xtrynft: JSON.stringify(bTrynftArray),
           xtrynftw: JSON.stringify(bTrynftwArray),
@@ -583,6 +543,7 @@ function App() {
         tktName = responseData.constants.tktName;
         imgtkt = responseData.constants.imgtkt;
         it = responseData.it;
+        tool = responseData.tool;
         food = responseData.food;
         fish = responseData.fish;
         flower = responseData.flower;
@@ -595,8 +556,6 @@ function App() {
         bud = responseData.bud;
         spot = responseData.spot;
         fishingDetails = responseData.fishingDetails;
-        BoostNFT = responseData.BoostNFT;
-        BoostSkill = responseData.BoostSkill;
         mutantchickens = responseData.mutantchickens;
         sTickets = responseData.sTickets;
         buildngf = responseData.buildngf;
@@ -653,8 +612,6 @@ function App() {
         buildng = responseData.buildng;
         bud = responseData.bud;
         spot = responseData.spot;
-        BoostNFT = responseData.BoostNFT;
-        BoostSkill = responseData.BoostSkill;
         //sflsupply = responseData["sflsupply"];
         mutantchickens = responseData.mutantchickens;
         sTickets = responseData.sTickets;
@@ -724,6 +681,21 @@ function App() {
       }
     } else {
       console.log(response);
+    }
+  }
+  const handleTooltip = async (item, context, value, event) => {
+    try {
+      const { clientX, clientY } = event;
+      setTooltipData({
+        x: clientX,
+        y: clientY,
+        item,
+        context,
+        value
+      });
+      //console.log(responseData);
+    } catch (error) {
+      console.log(error)
     }
   }
   const handleDonClick = (address, element) => {
@@ -831,6 +803,16 @@ function App() {
     setCookie();
   };
 
+  let dataSet = {
+    it: it,
+    tool: tool,
+    spot: spot,
+    coinsRatio: coinsRatio,
+    inputFarmTime: inputFarmTime,
+    inputMaxBB: inputMaxBB,
+    inputAnimalLvl: vinputAnimalLvl,
+    forTry: TryChecked
+  }
   function setInv() {
     if (farmData.inventory) {
       const inventoryEntries = Object.entries(farmData.inventory);
@@ -1547,7 +1529,7 @@ function App() {
                   onBlur={(event) => handleInputcstPricesChange(event, xIndex)}>{cstPrices[xIndex]}</div></td>) :
                 (<td className="tdcenter" style={{ ...cellStyle, color: `rgb(160, 160, 160)` }}>{parseFloat(iQuant).toFixed(2)}</td>) : ("")}
               {xListeCol[3][1] === 1 ? (<td className="tdcenter" style={{ ...cellStyle, color: `rgb(200, 200, 200)` }}>{time}</td>) : ("")}
-              {xListeCol[4][1] === 1 ? (<td className="tdcenter" style={cellStyle}>{frmtNb(costp)}</td>) : ("")}
+              {xListeCol[4][1] === 1 ? (<td className="tdcenter" style={cellStyle} onClick={(e) => handleTooltip(item, "costp", costp, e, dataSet)}>{frmtNb(costp)}</td>) : ("")}
               {xListeCol[5][1] === 1 ? (<td className="tdcenter" style={cellStyle}>{frmtNb(pShop)}</td>) : ("")}
               {xListeCol[6][1] === 1 ? (<td className={parseFloat(pTrad).toFixed(20) === getMaxValue(pTrad, pNifty, pOS) ? 'tdcentergreen' : 'tdcenterbrd'}
                 onClick={(event) => handleTradeListClick(inputValue, ido, "Trades")} style={cellStyle} title={titleTrad} >{frmtNb(pTrad)}{ximgtrd}</td>) : ("")}
@@ -1576,7 +1558,9 @@ function App() {
                 (<span>{formatdate(irdyat)}{' '}{ximgrdy}</span>) :
                 <Timer key={`timer-${xIndex}`} timestamp={irdyat} index={item} onTimerFinish={handleTimerFinish} /> : "")}</td>) : ("")}
               {xListeCol[13][1] === 1 ? (<td className="tdcenter" style={{ ...cellStyle, color: `rgb(160, 160, 160)` }}>{BBprod > 0 ? parseFloat(BBprod).toFixed(2) : ""}</td>) : ("")}
-              {xListeCol[15][1] === 1 ? (<td className="tdcenter" style={{ ...cellStyle, ...cellDSflStyle, color: `rgb(255, 204, 132)` }} title={titleDsfl}>{Dsfl > 0 ? parseFloat(Dsfl).toFixed(2) : ""}</td>) : ("")}
+              {xListeCol[15][1] === 1 ? (<td className="tdcenter" style={{ ...cellStyle, ...cellDSflStyle, color: `rgb(255, 204, 132)` }}
+                title={titleDsfl} onClick={(e) => handleTooltip(item, "dailysfl", costp, e, dataSet)}>
+                {Dsfl > 0 ? parseFloat(Dsfl).toFixed(2) : ""}</td>) : ("")}
               {xListeCol[16][1] === 1 ? (<td className="tdcenter" style={{ ...cellStyle, color: `rgb(160, 160, 160)` }}>{dailyprodmx > 0 ? parseFloat(dailyprodmx).toFixed(2) : ""}</td>) : ("")}
             </tr>
           </>
@@ -1614,7 +1598,7 @@ function App() {
         for (let compofood in food[item].compoit) {
           const compo = compofood;
           const quant = food[item].compoit[compofood];
-          if (it[compo] || fish[compo]) {
+          if (it[compo] || fish[compo] || bounty[compo]) {
             Compo[item] = Compo[item] || [];
             Compo["total"][compo] = 0;
             Compo[item][compo] = Compo[item][compo] || 0;
@@ -1629,6 +1613,11 @@ function App() {
         }
       });
       Object.keys(fish).forEach(item => {
+        if (Object.hasOwn(Compo["total"], item)) {
+          sortedCompo.push(item);
+        }
+      });
+      Object.keys(bounty).forEach(item => {
         if (Object.hasOwn(Compo["total"], item)) {
           sortedCompo.push(item);
         }
@@ -1659,9 +1648,7 @@ function App() {
             const itdprod = dProd[compo] ? dProd[compo] : 0;
             const itdprodtry = dProdtry[compo] ? dProdtry[compo] : 0;
             const dCook = Math.floor(!TryChecked ? itdprod / quant : itdprodtry / quant);
-            itDck[compo] = dCook * quant;
             prodValues.push(dCook);
-            //console.log(item + ":" + compo + ":" + window[`dprod${i}`] + " itDck:" + itDck[compo]);
           }
         }
         //const prodValues = selectedQuantityCook === "dailymax" ? iquantd : selectedQuantityCook === "daily" ? [dprod1, dprod2, dprod3, dprod4, dprod5].filter(value => value > 0) : 0;
@@ -1710,7 +1697,7 @@ function App() {
           for (let compofood in food[item].compoit) {
             const compo = compofood;
             const quant = food[item].compoit[compofood];
-            if (it[compo] || fish[compo]) { Compo["total"][compo] += quant * (selectedQuantCook === "unit" ? 1 : iQuant) }
+            if (it[compo] || fish[compo] || bounty[compo]) { Compo["total"][compo] += quant * (selectedQuantCook === "unit" ? 1 : iQuant) }
           }
         }
         return (
@@ -1807,7 +1794,7 @@ function App() {
                       <MenuItem value="opensea">OpenSea</MenuItem>
                     </Select></FormControl></div></th> : null}
                 {xListeColCook[11][1] === 1 ? Object.values(sortedCompo).map((itemName, itIndex) => (
-                  <th className="thcenter" key={itemName}><i><img src={(it[itemName] ? it[itemName].img : fish[itemName] ? fish[itemName].img : imgna)} alt={itemName} className="itico" /></i></th>
+                  <th className="thcenter" key={itemName}><i><img src={(it[itemName] ? it[itemName].img : fish[itemName] ? fish[itemName].img : bounty[itemName] ? bounty[itemName].img : imgna)} alt={itemName} className="itico" /></i></th>
                 )) : null}
               </tr>
               {(selectedQuantCook !== "unit" || selectedQuantityCook !== "farm") ?
@@ -1977,7 +1964,7 @@ function App() {
                   return null;
                 })}</td> : null}
               {xListeColFish[9][1] === 1 ? <td className="tdcenter">{iprct}</td> : null}
-              {xListeColFish[10][1] === 1 ? <td className="tdcenter">{isNaN(ixp) ? "" : ixp}</td> : null}
+              {xListeColFish[10][1] === 1 ? <td className="tdcenter">{isNaN(ixp) ? "" : parseFloat(ixp).toFixed(1)}</td> : null}
               {xListeColFish[11][1] === 1 ? <td className="tdcenter">{parseFloat(xCost).toFixed(3)}</td> : null}
               {xListeColFish[12][1] === 1 ? <td className="tdcenter">{isNaN(parseFloat(ixpsfl).toFixed(1)) ? "" : parseFloat(ixpsfl).toFixed(1)}</td> : null}
             </tr>
@@ -2541,10 +2528,10 @@ function App() {
   function setMap() {
     if (isleMap) {
       let minYield = 500;
-      let minRdyAt = 0;
-      let maxRdyAt = 0;
+      let minYieldGH = 500;
       let cropMachineDone = false;
       let greenhouseDone = false;
+      const isGA = nftw["Green Amulet"].isactive;
       const imgcropmachine = "./icon/building/stage1_collector_empty.webp";
       const imggreenhouse = "./icon/building/greenhouse.webp";
       const imgbee = <img src="./icon/ui/bee.webp" alt={''} title="Bee swarm" style={{ position: 'absolute', transform: 'translate(20%, -110%)', width: '14px', height: '14px' }} />;
@@ -2558,6 +2545,11 @@ function App() {
       let lastCropMachineY = -1;
       let lastGreenhouseX = -1;
       let lastGreenhouseY = -1;
+      let greenprocIndices = [];
+      let lastGreenProc = 0;
+      let cropIndexTotal = 0;
+      let cropIndex = 0;
+      let isLastCrop = false;
       Object.keys(isleMap).forEach(x => {
         const adjustedX = x - minX;
         Object.keys(isleMap[x]).forEach(y => {
@@ -2567,13 +2559,14 @@ function App() {
             minYield = isleMap[x][y].amount < minYield ? isleMap[x][y].amount : minYield;
             rdyAtValues.push(isleMap[x][y].rdyAt);
           }
+          if (isleMap[x][y].type === "greenhouse") {
+            minYieldGH = isleMap[x][y].amount < minYieldGH ? isleMap[x][y].amount : minYieldGH;
+            lastGreenhouseX = adjustedX;
+            lastGreenhouseY = adjustedY;
+          }
           if (isleMap[x][y].type === "crop machine") {
             lastCropMachineX = adjustedX;
             lastCropMachineY = adjustedY;
-          }
-          if (isleMap[x][y].type === "greenhouse") {
-            lastGreenhouseX = adjustedX;
-            lastGreenhouseY = adjustedY;
           }
         });
       });
@@ -2582,11 +2575,57 @@ function App() {
       rdyAtValues.forEach((value, index) => {
         rdyAtMap.set(value, index);
       });
-      function getBackgroundColor(minRdyAt, maxRdyAt, rdyAt) {
-        const index = rdyAtMap.get(rdyAt);
-        const ratio = index / (rdyAtValues.length - 1);
-        const colorValue = Math.floor(255 - (ratio * 255));
-        return `rgb(${255 - colorValue}, ${255 - colorValue}, 0)`;
+      adjustedIsleMap.forEach((row, x) => {
+        Object.keys(row).forEach(y => {
+          const item = row[y];
+          //console.log(item);
+          if ((item.type === "crop") && (item.amount > minYield + 9)) {
+            greenprocIndices.push(rdyAtMap.get(item.rdyAt));
+          }
+        });
+      });
+      greenprocIndices.sort((a, b) => a - b);
+      let rngColor = [];
+      let rngColor2 = [];
+      let rngColor3 = [];
+      let lastStart = 0;
+      const previousColors = [];
+      function getBackgroundColor(index) {
+        let start = 0;
+        let end = rdyAtValues.length - 1;
+        for (let i = 0; i < greenprocIndices.length; i++) {
+          if (index <= greenprocIndices[i]) {
+            end = greenprocIndices[i];
+            break;
+          }
+          start = greenprocIndices[i];
+          lastStart = start;
+        }
+        const ratio = (index - start) / (end - start);
+        if (!rngColor[end]) {
+          let xR, xG, xB, isUnique;
+          let min = 0;
+          let max = 256;
+          do {
+            xR = Math.floor(Math.random() * 156) + 100;
+            xG = Math.floor(Math.random() * 156) + 100;
+            xB = Math.floor(Math.random() * 156) + 100;
+            min = Math.min(xR, xG, xB);
+            max = Math.max(xR, xG, xB);
+            isUnique = (max - min >= 50);
+            for (let prev of previousColors.slice(-5)) {
+              let diff = Math.abs(prev.xR - xR) + Math.abs(prev.xG - xG) + Math.abs(prev.xB - xB);
+              if (diff < 100) {
+                isUnique = false;
+                break;
+              }
+            }
+          } while (!isUnique);
+          rngColor[end] = xR;
+          rngColor2[end] = xG;
+          rngColor3[end] = xB;
+        }
+        return `rgba(${rngColor[end]}, ${rngColor2[end]}, ${rngColor3[end]}, ${ratio})`;
       }
       const table = Array.from({ length: maxY - minY + 1 }, () => Array(maxX - minX + 1).fill(null));
       adjustedIsleMap.forEach((row, x) => {
@@ -2595,16 +2634,27 @@ function App() {
           const tableX = parseInt(x);
           const tableY = maxY - minY - parseInt(y);
           const amount = parseFloat(item.amount).toFixed(2 * (item.type !== "crop machine"));
-          const Greenproc = (item.type === "crop" || item.type === "greenhouse") && (amount > minYield + 9);
-          const colorAmount = Greenproc ? 'red' : 'white';
-          const backColor = item.type === "crop" ? getBackgroundColor(minRdyAt, maxRdyAt, item.rdyAt) : 'transparent';
+          const Greenproc = (item.type === "crop") && (item.amount > minYield + 9);
+          const GreenprocGH = (item.type === "greenhouse") && (item.amount > minYieldGH + 9);
+          const colorAmount = (Greenproc || GreenprocGH) ? 'red' : 'white';
+          const rdyAtIndex = rdyAtMap.get(item.rdyAt);
+          const backColor = (item.type === "crop" && isGA) ? getBackgroundColor(rdyAtIndex) : 'transparent';
+          if (Greenproc) {
+            lastGreenProc = rdyAtIndex;
+          }
+          if (item.type === "crop") {
+            cropIndexTotal++;
+            cropIndex = ((rdyAtIndex + 1) - (lastStart + 1)) + (1 * (rdyAtIndex === 0));
+            isLastCrop = (rdyAtIndex === (rdyAtValues.length - 1));
+            //cropIndex = rdyAtIndex;
+          }
           const typeOrName = item.name ? item.name : item.type;
           const isSwarm = item.swarm && imgbee;
           const toReset = item.reset && item.reset;
           cropMachineDone = (x === lastCropMachineX && y === lastCropMachineY);
           greenhouseDone = (x === lastGreenhouseX && y === lastGreenhouseY);
-          const ximgcropmachine = (item.type === "crop machine" && cropMachineDone === true) ? <img src={imgcropmachine} className="image-overflow" /> : "";
-          const ximggreenhouse = (item.type === "greenhouse" && greenhouseDone === true) ? <img src={imggreenhouse} className="image-overflow" /> : "";
+          //const ximgcropmachine = (item.type === "crop machine" && cropMachineDone === true) ? <img src={imgcropmachine} className="image-overflow" /> : "";
+          //const ximggreenhouse = (item.type === "greenhouse" && greenhouseDone === true) ? <img src={imggreenhouse} className="image-overflow" /> : "";
           table[tableY][tableX] = (
             <td key={`${tableX}-${tableY}`} style={{ position: 'relative', backgroundColor: backColor }} title={typeOrName}>
               {/* {ximgcropmachine}
@@ -2629,24 +2679,27 @@ function App() {
                 top: '10%',
                 left: '90%',
                 transform: 'translate(-50%, -50%)',
-                color: 'rgb(255, 238, 215)',
+                color: 'rgb(45, 252, 55)',
+                backgroundColor: 'rgba(0, 0, 0, 0.4)',
                 padding: '0px 0px',
                 borderRadius: '0px',
                 fontSize: '11px'
               }}>
                 {toReset}
+                {(item.type === "crop" && isGA === 1 && (Greenproc || isLastCrop)) && cropIndex}
               </span>
               {/* <span style={{
                 position: 'absolute',
                 top: '0%',
                 right: '0%',
                 transform: 'translate(-50%, -50%)',
-                color: 'rgb(124, 255, 84)',
+                color: 'rgb(36, 229, 255)',
                 padding: '0px 0px',
                 borderRadius: '0px',
                 fontSize: '11px'
               }}>
-                {x},{y}
+                {rdyAtIndex}
+                {{x},{y}}
               </span> */}
             </td>
           );
@@ -3556,6 +3609,9 @@ function App() {
       headers: {
         frmid: lastClickedInputValue.current,
         inputkeep: lastClickedInputKeep.current,
+        inputFarmTime: vinputFarmTime,
+        inputMaxBB: vinputMaxBB,
+        inputAnimalLvl: vinputAnimalLvl,
         coinsratio: coinsRatio,
         xtrynft: JSON.stringify(bTrynftArray),
         xtrynftw: JSON.stringify(bTrynftwArray),
@@ -3583,6 +3639,7 @@ function App() {
         MergeIt(responseData.allData.it, it);
         setPlanted(responseData.allData.it);
         it = responseData.allData.it;
+        tool = responseData.allData.tool;
         MergeFood(responseData.allData.food, food);
         food = responseData.allData.food;
         MergeFish(responseData.allData.fish, fish);
@@ -3943,15 +4000,6 @@ function App() {
             </>
           ) : ("")}
         </div>
-        {showfBoost && (
-          <ModalBoost onClose={handleClosefBoost} tableData={BoostNFT} />
-        )}
-        {showfSkill && (
-          <ModalBoost onClose={handleClosefSkill} tableData={BoostSkill} />
-        )}
-        {showfBumpkin && (
-          <ModalBumpkin onClose={handleClosefBumpkin} tableData={bkn} wardrobe={bumpkinData[0].wardrobe} bumpkinOnC={bumpkinData[0]} bumpkinOffC={bumpkinDataOC} img={imgbkn} nftw={nftw} frmid={lastClickedInputValue.current} />
-        )}
         {showfGraph && (
           <ModalGraph onClose={handleClosefGraph} graphtype={GraphType} frmid={lastClickedInputValue.current} it={it} API_URL={API_URL} />
         )}
@@ -3959,13 +4007,23 @@ function App() {
           <ModalTNFT onClose={(ittry, foodtry, fishtry, bountytry, nfttry, nftwtry, buildtry, skilltry, budtry, Fishingtry, bTrynft, bTrynftw, bTrybuild, bTryskill, bTrybud) => { handleClosefTNFT(ittry, foodtry, fishtry, bountytry, nfttry, nftwtry, buildtry, skilltry, budtry, Fishingtry, bTrynft, bTrynftw, bTrybuild, bTryskill, bTrybud) }}
             it={it} food={food} fish={fish} bounty={bounty} buildng={buildng} bTrynft={bTrynft} bnft={bnft} bTrynftw={bTrynftw} bnftw={bnftw} bTrybuild={bTrybuild} bbuild={bbuild}
             bTryskill={bTryskill} bskill={bskill} bTrybud={bTrybud} bbud={bbud} spot={spot} nft={nft} nftw={nftw} fruitPlanted={fruitPlanted} frmid={lastClickedInputValue.current}
-            fishingDetails={fishingDetails} coinsRatio={coinsRatio} API_URL={API_URL} />
+            fishingDetails={fishingDetails} coinsRatio={coinsRatio} API_URL={API_URL} dataSet={dataSet} />
         )}
         {showfDlvr && (
           <ModalDlvr onClose={() => { handleClosefDlvr() }} tableData={deliveriesData} imgtkt={imgtkt} coinsRatio={coinsRatio} />
         )}
         {showCadre && (
           <Cadre onClose={handleCloseCadre} tableData={listingsData} Platform={platformListings} frmid={lastClickedInputValue.current} />
+        )}
+        {tooltipData && (
+          <Tooltip
+            onClose={() => setTooltipData(null)}
+            clickPosition={tooltipData}
+            item={tooltipData.item}
+            context={tooltipData.context}
+            value={tooltipData.value}
+            dataSet={dataSet}
+          />
         )}
       </div >
     </>
@@ -3990,8 +4048,9 @@ function App() {
         vversion: bvversion,
         inputValue: inputValue,
         inputKeep: inputKeep,
-        inputMaxBB: inputMaxBB,
-        inputFarmTime: inputFarmTime,
+        inputMaxBB: vinputMaxBB,
+        inputFarmTime: vinputFarmTime,
+        inputAnimalLvl: vinputAnimalLvl,
         inputFromLvl: inputFromLvl,
         inputToLvl: inputToLvl,
         selectedInv: selectedInv,
@@ -4053,7 +4112,9 @@ function App() {
         setInputKeep(loadedData.inputKeep);
         lastClickedInputKeep.current = loadedData.inputKeep;
         setInputMaxBB(loadedData.inputMaxBB);
+        vinputMaxBB = loadedData.inputMaxBB;
         setInputFarmTime(loadedData.inputFarmTime);
+        vinputFarmTime = loadedData.inputFarmTime;
         setInputFromLvl(loadedData.inputFromLvl);
         setInputToLvl(loadedData.inputToLvl);
         setCstPrices(loadedData.cstPrices);
@@ -4249,52 +4310,6 @@ const getMaxValue = (value1, value2, value3) => {
   const positiveValues = [parseFloat(value1).toFixed(20), parseFloat(value2).toFixed(20), parseFloat(value3).toFixed(20)].filter(value => value > 0);
   return positiveValues.length > 0 ? parseFloat(Math.max(...positiveValues)).toFixed(20).toString() : null;
 };
-function frmtNb(nombre) {
-  const nombreNumerique = parseFloat(nombre);
-  var nombreStr = nombreNumerique.toString();
-  const positionE = nombreStr.indexOf("e");
-  if (positionE !== -1) {
-    const nombreNumeriqueCorr = Number(nombreStr).toFixed(20);
-    nombreStr = nombreNumeriqueCorr.toString();
-  }
-  if (isNaN(nombreNumerique)) {
-    return "0";
-  }
-  const positionVirgule = nombreStr.indexOf(".");
-  if (positionVirgule !== -1) {
-    let chiffreSupZero = null;
-    for (let i = positionVirgule + 1; i < nombreStr.length; i++) {
-      if (nombreStr[i] !== '0') {
-        chiffreSupZero = i;
-        break;
-      }
-    }
-    if (chiffreSupZero === null) { return nombreNumerique.toFixed(2) }
-    if (Math.abs(Math.floor(nombre)) > 0) {
-      if (Math.abs(Math.floor(nombre)) < 5) {
-        return nombreNumerique.toFixed(3);
-      } else {
-        return nombreNumerique.toFixed(2);
-      }
-    } else {
-      return nombreStr.slice(0, chiffreSupZero + 3);
-    }
-  } else {
-    return nombreStr;
-  }
-}
-function ColorValue(value) {
-  if (value < 1) {
-    return "red";
-  } else {
-    const normalizedValue = Math.min((value - 1) / (20 - 1), 1);
-    //console.log(normalizedValue);
-    const red = Math.round((1 - normalizedValue) * 255);
-    const green = Math.round(255);
-    const blue = 0;
-    return `rgb(${red}, ${green}, ${blue})`;
-  }
-}
 function Timer({ timestamp, index, onTimerFinish }) {
   const [timeLeft, setTimeLeft] = useState(timestamp - Date.now());
   useEffect(() => {

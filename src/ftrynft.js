@@ -6,7 +6,8 @@ let showCraft = false;
 let showBud = false;
 let showSkill = false;
 
-function ModalTNFT({ onClose, it, food, fish, bounty, buildng, bTrynft, bnft, bTrynftw, bnftw, bTrybuild, bbuild, bTryskill, bskill, bTrybud, bbud, fishingDetails, spot, frmid, nft, nftw, fruitPlanted, coinsRatio, API_URL }) {
+function ModalTNFT({ onClose, it, food, fish, bounty, buildng, bTrynft, bnft, bTrynftw, bnftw, bTrybuild, bbuild, bTryskill, bskill, bTrybud, bbud, fishingDetails, spot, frmid, nft, nftw, fruitPlanted, coinsRatio, API_URL, dataSet }) {
+  const inputAnimalLvl = dataSet.inputAnimalLvl;
   const [tableNFT, settableNFT] = useState([]);
   const [tableContent, settableContent] = useState([]);
   const [nfttry, setnfttry] = useState(nft);
@@ -44,6 +45,7 @@ function ModalTNFT({ onClose, it, food, fish, bounty, buildng, bTrynft, bnft, bT
         frmid: frmid,
         coinsRatio: coinsRatio,
         inputKeep: 0,
+        inputAnimalLvl: inputAnimalLvl,
         xtrynft: JSON.stringify(bTrynft),
         xtrynftw: JSON.stringify(bTrynftw),
         xtrybuild: JSON.stringify(bTrybuild),
