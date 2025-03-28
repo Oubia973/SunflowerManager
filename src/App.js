@@ -8,7 +8,7 @@ import Cadre from './animodal.js';
 import Tooltip from "./tooltip.js";
 import DropdownCheckbox from './listcol.js';
 import { FormControl, InputLabel, Select, MenuItem } from '@mui/material';
-import { frmtNb, ColorValue } from './fct.js';
+import { frmtNb, ColorValue, Timer } from './fct.js';
 //import xrespFarm from './respFarm.json';
 //import xrespPrice from './respPrice.json';
 //import xrespBumpkin from './respBumpkin.json';
@@ -298,7 +298,7 @@ function App() {
   const [CostChecked, setCostChecked] = useState(true);
   const [TryChecked, setTryChecked] = useState(false);
   const [BurnChecked, setBurnChecked] = useState(true);
-  
+
   const handleButtonfTNFTClick = () => {
     setShowfTNFT(true);
   };
@@ -805,6 +805,12 @@ function App() {
 
   let dataSet = {
     it: it,
+    food: food,
+    fish: fish,
+    bounty: bounty,
+    nft: nft,
+    nftw: nftw,
+    skill: skill,
     tool: tool,
     spot: spot,
     coinsRatio: coinsRatio,
@@ -1033,13 +1039,14 @@ function App() {
           if (buildngf[building]) {
             if (buildngf[building].readyAt > 0) {
               const ico = buildngf[building].img;
-              const item = building;
+              const item = buildngf[building];
               const icost = buildngf[building].cost;
+              const buildCraft = buildngf[building].craft;
               const irdyat = buildngf[building].readyAt;
               var xnow = new Date().getTime();
               const ximgrdy = irdyat > 0 && irdyat < xnow ? <img src={imgrdy} alt="" /> : "";
               const ximgfood = <img src={buildngf[building].itimg} alt="" style={{ width: '15px', height: '15px' }} />
-              const iquant = buildngf[building].quant;
+              const iquant = buildngf[building].quant > 1 && buildngf[building].quant;
               const pNifty = buildngf[building].costp2pn;
               const pOS = buildngf[building].costp2po;
               const pTrad = buildngf[building].costp2pt;
@@ -1068,8 +1075,10 @@ function App() {
                   {xListeCol[17][1] === 1 && xListeCol[9][1] === 1 ? (<td className="tdcenter"></td>) : ("")}
                   {xListeCol[10][1] === 1 ? (<td className="tdcenter" style={{ color: `rgb(255, 234, 204)` }}></td>) : ("")}
                   {xListeCol[11][1] === 1 ? (<td className="tdcenter" style={{ color: `rgb(255, 225, 183)` }}></td>) : ("")}
-                  {xListeCol[12][1] === 1 ? (<td className="tdcenter" style={{ color: `rgb(253, 215, 162)` }}>{iquant > 0 ? iquant : ""}{ximgfood}</td>) : ("")}
-                  {xListeCol[18][1] === 1 ? (<td id={`timer-${index}`} className="tdcenterbrd">{(irdyat > 0 ? selectedReady === "when" ? (<span>{formatdate(irdyat)}{' '}{ximgrdy}</span>) : <Timer key={`timer-${index}`} timestamp={irdyat} index={item} onTimerFinish={handleTimerFinish} /> : "")}</td>) : ("")}
+                  {xListeCol[12][1] === 1 ? (<td className="tdcenter" style={{ color: `rgb(253, 215, 162)` }} onClick={(e) => handleTooltip(item, "buildcraft", buildCraft, e, dataSet)}>
+                    {iquant > 0 ? iquant : ""}{ximgfood}</td>) : ("")}
+                  {xListeCol[18][1] === 1 ? (<td id={`timer-${index}`} className="tdcenterbrd">{(irdyat > 0 ? selectedReady === "when" ? (<span>{formatdate(irdyat)}{' '}{ximgrdy}</span>) :
+                    <Timer key={`timer-${index}`} timestamp={irdyat} index={item} onTimerFinish={handleTimerFinish} /> : "")}</td>) : ("")}
                   {xListeCol[13][1] === 1 ? (<td className="tdcenter" style={{ color: `rgb(160, 160, 160)` }}></td>) : ("")}
                   {xListeCol[15][1] === 1 ? (<td className="tdcenter" style={{ color: `rgb(255, 204, 132)` }}></td>) : ("")}
                   {xListeCol[16][1] === 1 ? (<td className="tdcenter" style={{ color: `rgb(160, 160, 160)` }}></td>) : ("")}
@@ -1493,6 +1502,14 @@ function App() {
           totcNifty += bNifty;
           totcOS += bOS;
         }
+        const timerElement = (
+          <Timer
+            key={`timer-${xIndex}`}
+            timestamp={irdyat}
+            index={item}
+            onTimerFinish={handleTimerFinish}
+          />
+        );
         return (
           <>
             <tr key={xIndex}>
@@ -1543,9 +1560,11 @@ function App() {
               {xListeCol[9][1] === 1 ? (<td className={parseFloat(pOS).toFixed(20) === getMaxValue(pTrad, pNifty, pOS) ? 'tdcentergreen' : 'tdcenterbrd'}
                 onClick={(event) => handleTradeListClick(inputValue, ido, "OS")} style={cellStyle} title={titleOS}>{frmtNb(pOS)}</td>) : ("")}
               {xListeCol[17][1] === 1 && xListeCol[9][1] === 1 ? (<td style={{ ...cellStyle, color: colorO, textAlign: 'center', fontSize: '8px' }}>{coefO > 0 ? coefO : ""}</td>) : ("")}
-              {xListeCol[10][1] === 1 ? (<td className="tdcenter" style={{ ...cellStyle, color: `rgb(255, 234, 204)` }}>{parseFloat(imyield).toFixed(2)}</td>) : ("")}
-              {xListeCol[11][1] === 1 ? (<td className="tdcenter" style={{ ...cellStyle, color: `rgb(255, 225, 183)` }}>{parseFloat(iharvest).toFixed(2)}</td>) : ("")}
-              {xListeCol[12][1] === 1 ? (<td className="tdcenter" style={{ ...cellStyle, color: `rgb(253, 215, 162)` }}>
+              {xListeCol[10][1] === 1 ? (<td className="tdcenter" style={{ ...cellStyle, color: `rgb(255, 234, 204)` }} onClick={(e) => handleTooltip(item, "harvest", iharvest, e, dataSet)}>
+                {parseFloat(imyield).toFixed(2)}</td>) : ("")}
+              {xListeCol[11][1] === 1 ? (<td className="tdcenter" style={{ ...cellStyle, color: `rgb(255, 225, 183)` }} onClick={(e) => handleTooltip(item, "harvest", iharvest, e, dataSet)}>
+                {parseFloat(iharvest).toFixed(2)}</td>) : ("")}
+              {xListeCol[12][1] === 1 ? (<td className="tdcenter" style={{ ...cellStyle, color: `rgb(253, 215, 162)` }} onClick={(e) => handleTooltip(item, "harvest", i2bharvest, e, dataSet)}>
                 <div class="tooltip-container">
                   {i2bharvest > 0 ? parseFloat(i2bharvest).toFixed(2) : ""}{bswarm && imgbee}{issick ? imgsick : needslove && imglove}
                   <div class="tooltip-content" style={{ top: `calc(${index > 1 ? "-100%" : "100%"} + 5px);` }}>
@@ -1555,8 +1574,7 @@ function App() {
                 </div>
               </td>) : ("")}
               {xListeCol[18][1] === 1 ? (<td id={`timer-${xIndex}`} className="tdcenterbrd" style={cellStyle}>{(i2bharvest > 0 || item === "Honey" ? selectedReady === "when" ?
-                (<span>{formatdate(irdyat)}{' '}{ximgrdy}</span>) :
-                <Timer key={`timer-${xIndex}`} timestamp={irdyat} index={item} onTimerFinish={handleTimerFinish} /> : "")}</td>) : ("")}
+                (<span>{formatdate(irdyat)}{' '}{ximgrdy}</span>) : timerElement : "")}</td>) : ("")}
               {xListeCol[13][1] === 1 ? (<td className="tdcenter" style={{ ...cellStyle, color: `rgb(160, 160, 160)` }}>{BBprod > 0 ? parseFloat(BBprod).toFixed(2) : ""}</td>) : ("")}
               {xListeCol[15][1] === 1 ? (<td className="tdcenter" style={{ ...cellStyle, ...cellDSflStyle, color: `rgb(255, 204, 132)` }}
                 title={titleDsfl} onClick={(e) => handleTooltip(item, "dailysfl", costp, e, dataSet)}>
@@ -4310,40 +4328,6 @@ const getMaxValue = (value1, value2, value3) => {
   const positiveValues = [parseFloat(value1).toFixed(20), parseFloat(value2).toFixed(20), parseFloat(value3).toFixed(20)].filter(value => value > 0);
   return positiveValues.length > 0 ? parseFloat(Math.max(...positiveValues)).toFixed(20).toString() : null;
 };
-function Timer({ timestamp, index, onTimerFinish }) {
-  const [timeLeft, setTimeLeft] = useState(timestamp - Date.now());
-  useEffect(() => {
-    const timer = setInterval(() => {
-      setTimeLeft(prevTimeLeft => prevTimeLeft - 1000);
-      if (timeLeft <= 0) {
-        clearInterval(timer);
-        onTimerFinish(index);
-      }
-    }, 1000);
-    return () => {
-      clearInterval(timer);
-    };
-  }, [timeLeft, index, onTimerFinish]);
-  const formatTime = (time) => {
-    const hours = Math.floor(time / (1000 * 60 * 60));
-    const minutes = Math.floor((time % (1000 * 60 * 60)) / (1000 * 60));
-    const seconds = Math.floor((time % (1000 * 60)) / 1000);
-    return `${hours}:${minutes}:${seconds}`;
-  };
-  return (
-    <div>
-      {timeLeft > 0 ? (
-        <div>
-          <span>{formatTime(timeLeft)}</span>
-        </div>
-      ) : (
-        <div>
-          <img src={imgrdy} alt="" />
-        </div>
-      )}
-    </div>
-  );
-}
 function setTryit(xnft, xnftw, xskill, xbuildng, xbud) {
   const nftEntries = Object.entries(xnft);
   const nftwEntries = Object.entries(xnftw);

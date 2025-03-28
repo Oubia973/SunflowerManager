@@ -1,3 +1,7 @@
+import React, { useEffect, useState, useRef } from 'react';
+
+const imgrdy = './icon/ui/expression_alerted.png';
+
 export function frmtNb(nombre) {
   const nombreNumerique = parseFloat(nombre);
   var nombreStr = nombreNumerique.toString();
@@ -69,4 +73,37 @@ export function ColorValue(value) {
     const blue = 0;
     return `rgb(${red}, ${green}, ${blue})`;
   }
+}
+
+export function Timer({ timestamp, index, onTimerFinish }) {
+  const [timeLeft, setTimeLeft] = useState(timestamp - Date.now());
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setTimeLeft(prevTimeLeft => prevTimeLeft - 1000);
+      if (timeLeft <= 0) {
+        clearInterval(timer);
+        if (onTimerFinish) {
+          onTimerFinish(index);
+        }
+      }
+    }, 1000);
+    return () => {
+      clearInterval(timer);
+    };
+  }, [timeLeft, index, onTimerFinish]);
+  const formatTime = (time) => {
+    const hours = Math.floor(time / (1000 * 60 * 60));
+    const minutes = Math.floor((time % (1000 * 60 * 60)) / (1000 * 60));
+    const seconds = Math.floor((time % (1000 * 60)) / 1000);
+    return `${hours}:${minutes}:${seconds}`;
+  };
+  return (
+    <span>
+      {timeLeft > 0 ? (
+        <span>{formatTime(timeLeft)}</span>
+      ) : (
+        <img src={imgrdy} alt="" />
+      )}
+    </span>
+  );
 }
