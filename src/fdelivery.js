@@ -3,7 +3,7 @@ import { FormControl, InputLabel, Select, MenuItem } from '@mui/material';
 const imgno = './icon/ui/cancel.png';
 const imgyes = './icon/ui/confirm.png';
 const imgrdy = './icon/ui/expression_alerted.png';
-const imgsfl = './icon/res/sfltoken.png';
+const imgsfl = './icon/res/flowertoken.webp';
 const imgcoins = './icon/res/coins.png';
 const imggems = './icon/res/gem.webp';
 const imgna = './icon/nft/na.png';
@@ -53,7 +53,7 @@ function ModalDlvr({ onClose, tableData, imgtkt, coinsRatio }) {
       let pattern = /(.*?)<img/g;
       let correspondance = pattern.exec(OrderItem.reward);
       const istkt = correspondancetkn && correspondancetkn[1] === imgtktname;
-      const issfl = correspondancetkn && correspondancetkn[1] === "sfltoken.png";
+      const issfl = correspondancetkn && correspondancetkn[1] === "flowertoken.webp";
       const iscoins = correspondancetkn && correspondancetkn[1] === "coins.png";
       const isgems = correspondancetkn && correspondancetkn[1] === "gems.png";
       const quantreward = correspondance && Number(correspondance[1]);

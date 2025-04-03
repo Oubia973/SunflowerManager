@@ -22,7 +22,7 @@ var dateSeason = "";
 var tktName = "";
 var imgtkt = "";
 
-const imgsfl = './icon/res/sfltoken.png';
+const imgsfl = './icon/res/flowertoken.webp';
 const imgcoins = './icon/res/coins.png';
 const imgxp = './icon/ui/level_up.png';
 const imgcrop = './icon/res/soil.png';
@@ -46,6 +46,7 @@ var food = [];
 var fish = [];
 var flower = [];
 var bounty = [];
+var compost = [];
 //var fishing = [];
 //var expand = [];
 var xexpandData = [];
@@ -534,12 +535,9 @@ function App() {
       });
       if (response.ok) {
         const responseData = await response.json();
-        //console.log(responseData);
         username = responseData.username;
         isAbo = responseData.isabo;
         dateSeason = new Date(responseData.constants.dateSeason);
-        //resetDay = responseData.constants.resetDay;
-        //tktWeekly = responseData.constants.tktWeekly;
         tktName = responseData.constants.tktName;
         imgtkt = responseData.constants.imgtkt;
         it = responseData.it;
@@ -548,6 +546,7 @@ function App() {
         fish = responseData.fish;
         flower = responseData.flower;
         bounty = responseData.bounty;
+        compost = responseData.compost;
         nft = responseData.nft;
         nftw = responseData.nftw;
         skilllgc = responseData.skilllgc;
@@ -563,7 +562,6 @@ function App() {
         isleMap = responseData.isleMap;
         //frmOwner = responseData.frmOwner;
         xexpandData = responseData.expandData;
-        //wklactivity = responseData.wklactivity;
         ftrades = responseData.ftrades;
         taxFreeSFL = frmtNb(responseData.taxFreeSFL);
         setReqState('');
@@ -811,7 +809,12 @@ function App() {
     nft: nft,
     nftw: nftw,
     skill: skill,
+    skilllgc: skilllgc,
+    buildng: buildng,
+    buildngf: buildngf,
+    bud: bud,
     tool: tool,
+    compost: compost,
     spot: spot,
     coinsRatio: coinsRatio,
     inputFarmTime: inputFarmTime,
@@ -3640,62 +3643,47 @@ function App() {
     });
     if (response.ok) {
       const responseData = await response.json();
-      //console.log(responseData);
       setpriceData(JSON.parse(JSON.stringify(responseData.priceData)));
-      /* setpriceDataT(responseData.priceDataT);
-      setpriceDataTMC(responseData.priceDataTMC);
-      setpriceDataTMW(responseData.priceDataTMW);
-      setpriceDataN(responseData.priceDataN);
-      setpriceDataO(responseData.priceDataO);
-      setpriceDataOW(responseData.priceDataOW); */
-      /* supplyOS = responseData.supplyOS;
-      supplyOSW = responseData.supplyOSW;
-      supplyBLD = responseData.supplyBLD; */
       if (responseData.allData !== "" && responseData.allData !== undefined) {
-        setFarmData(responseData.allData.frmData);
-        setBumpkinData(responseData.allData.Bumpkin);
-        MergeIt(responseData.allData.it, it);
-        setPlanted(responseData.allData.it);
         it = responseData.allData.it;
         tool = responseData.allData.tool;
-        MergeFood(responseData.allData.food, food);
         food = responseData.allData.food;
-        MergeFish(responseData.allData.fish, fish);
         fish = responseData.allData.fish;
         flower = responseData.allData.flower;
         bounty = responseData.allData.bounty;
-        //food = responseData.allData.food;
-        //it = responseData.allData.it;
+        compost = responseData.allData.compost;
         nft = responseData.allData.nft;
         nftw = responseData.allData.nftw;
         skilllgc = responseData.allData.skilllgc;
         skill = responseData.allData.skill;
         buildng = responseData.allData.buildng;
         bud = responseData.allData.bud;
-        getFarmit(it);
-        getCookit(food);
-        getTryit(nft, nftw, skilllgc, buildng, bud);
         spot = responseData.allData.spot;
-        //getFarmit(it);
-        //getCookit(food);
-        //getTryit(nft, nftw, skill, buildng, bud);
-        //getActive(nft, nftw, skill, buildng, bud);
         mutantchickens = responseData.allData.mutantchickens;
         sTickets = responseData.allData.sTickets;
-        setdeliveriesData(responseData.allData.orderstable);
         buildngf = responseData.allData.buildngf;
-        //fishing = responseData.allData.fishing;
-        //Fishing = responseData.allData.FishingCasts;
         fishingDetails = responseData.allData.fishingDetails;
-        //wklactivity = responseData.allData.wklactivity;
-        ftrades = responseData.allData.ftrades;
-        setfTrades();
         Animals = responseData.allData.Animals;
         isleMap = responseData.allData.isleMap;
+        ftrades = responseData.allData.ftrades;
         //setanimalData(responseData.allData.Animals);
         //expand = responseData.allData.expand;
         //xexpandData = responseData.allData.expandData;
         //frmOwner = responseData.allData.frmOwner;
+        setFarmData(responseData.allData.frmData);
+        setBumpkinData(responseData.allData.Bumpkin);
+        //MergeIt(responseData.allData.it, it);
+        setPlanted(responseData.allData.it);
+        getFarmit(it);
+        getCookit(food);
+        getTryit(nft, nftw, skilllgc, buildng, bud);
+        //getFarmit(it);
+        //getCookit(food);
+        //getTryit(nft, nftw, skill, buildng, bud);
+        //getActive(nft, nftw, skill, buildng, bud);
+        setdeliveriesData(responseData.allData.orderstable);
+        setfTrades();
+        setitData(it);
       }
       //NFTPrice();
       xinitprc = true;
@@ -4023,8 +4011,7 @@ function App() {
         )}
         {showfTNFT && (
           <ModalTNFT onClose={(ittry, foodtry, fishtry, bountytry, nfttry, nftwtry, buildtry, skilltry, budtry, Fishingtry, bTrynft, bTrynftw, bTrybuild, bTryskill, bTrybud) => { handleClosefTNFT(ittry, foodtry, fishtry, bountytry, nfttry, nftwtry, buildtry, skilltry, budtry, Fishingtry, bTrynft, bTrynftw, bTrybuild, bTryskill, bTrybud) }}
-            it={it} food={food} fish={fish} bounty={bounty} buildng={buildng} bTrynft={bTrynft} bnft={bnft} bTrynftw={bTrynftw} bnftw={bnftw} bTrybuild={bTrybuild} bbuild={bbuild}
-            bTryskill={bTryskill} bskill={bskill} bTrybud={bTrybud} bbud={bbud} spot={spot} nft={nft} nftw={nftw} fruitPlanted={fruitPlanted} frmid={lastClickedInputValue.current}
+            bTrynft={bTrynft} bTrynftw={bTrynftw} bTrybuild={bTrybuild} bTryskill={bTryskill} bTrybud={bTrybud} frmid={lastClickedInputValue.current}
             fishingDetails={fishingDetails} coinsRatio={coinsRatio} API_URL={API_URL} dataSet={dataSet} />
         )}
         {showfDlvr && (

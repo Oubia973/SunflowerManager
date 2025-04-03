@@ -6,19 +6,19 @@ let showCraft = false;
 let showBud = false;
 let showSkill = false;
 
-function ModalTNFT({ onClose, it, food, fish, bounty, buildng, bTrynft, bnft, bTrynftw, bnftw, bTrybuild, bbuild, bTryskill, bskill, bTrybud, bbud, fishingDetails, spot, frmid, nft, nftw, fruitPlanted, coinsRatio, API_URL, dataSet }) {
+function ModalTNFT({ onClose, bTrynft, bTrynftw, bTrybuild, bTryskill, bTrybud, fishingDetails, frmid, coinsRatio, API_URL, dataSet }) {
   const inputAnimalLvl = dataSet.inputAnimalLvl;
   const [tableNFT, settableNFT] = useState([]);
   const [tableContent, settableContent] = useState([]);
-  const [nfttry, setnfttry] = useState(nft);
-  const [nftwtry, setnftwtry] = useState(nftw);
-  const [ittry, setittry] = useState(it);
-  const [foodtry, setfoodtry] = useState(food);
-  const [fishtry, setfishtry] = useState(fish);
-  const [bountytry, setbountytry] = useState(bounty);
-  const [buildtry, setbuildtry] = useState(buildng);
-  const [skilltry, setskilltry] = useState([]);
-  const [budtry, setbudtry] = useState([]);
+  const [nfttry, setnfttry] = useState(dataSet.nft);
+  const [nftwtry, setnftwtry] = useState(dataSet.nftw);
+  const [ittry, setittry] = useState(dataSet.it);
+  const [foodtry, setfoodtry] = useState(dataSet.food);
+  const [fishtry, setfishtry] = useState(dataSet.fish);
+  const [bountytry, setbountytry] = useState(dataSet.bounty);
+  const [buildtry, setbuildtry] = useState(dataSet.buildng);
+  const [skilltry, setskilltry] = useState(dataSet.skill);
+  const [budtry, setbudtry] = useState(dataSet.bud);
   const [Fishingtry, setFishingtry] = useState(fishingDetails);
   const closeModal = () => {
     onClose(ittry, foodtry, fishtry, bountytry, nfttry, nftwtry, buildtry, skilltry, budtry, Fishingtry, bTrynft, bTrynftw, bTrybuild, bTryskill, bTrybud);
@@ -70,8 +70,8 @@ function ModalTNFT({ onClose, it, food, fish, bounty, buildng, bTrynft, bnft, bT
         setfoodtry(responseData.food);
         setfishtry(responseData.fish);
         setbountytry(responseData.bounty);
-        //setnfttry(responseData.nft);
-        //setnftwtry(responseData.nftw);
+        setnfttry(responseData.nft);
+        setnftwtry(responseData.nftw);
         setbuildtry(responseData.buildng);
         setskilltry(responseData.skill);
         setbudtry(responseData.bud);
