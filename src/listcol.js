@@ -34,7 +34,9 @@ const DropdownCheckbox = ({ options, onChange }) => {
         multiple
         value={selectedOptions}
         onChange={handleSelectChange}
-        renderValue={() => <Icon><img src="./options.png" alt="Options" width="100%" /></Icon>}
+        renderValue={() => <Icon>
+          <img src="./options.png" alt="Options" width="100%" />
+        </Icon>}
         MenuProps={{
           PaperProps: {
             style: {

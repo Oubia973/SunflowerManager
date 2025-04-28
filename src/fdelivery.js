@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { FormControl, InputLabel, Select, MenuItem } from '@mui/material';
+import Tooltip from "./tooltip.js";
 const imgno = './icon/ui/cancel.png';
 const imgyes = './icon/ui/confirm.png';
 const imgrdy = './icon/ui/expression_alerted.png';
@@ -18,6 +19,7 @@ function ModalDlvr({ onClose, tableData, imgtkt, coinsRatio }) {
   const [tableDeliveries, settableDeliveries] = useState([]);
   const [tableChores, settableChores] = useState([]);
   const [tableBounties, settableBounties] = useState([]);
+  const [tooltipData, setTooltipData] = useState(null);
   const ximgno = <img src={imgno} alt="" />;
   const ximgyes = <img src={imgyes} alt="" />;
   const ximgrdy = <img src={imgrdy} alt="" />;
@@ -29,6 +31,21 @@ function ModalDlvr({ onClose, tableData, imgtkt, coinsRatio }) {
   const handleChangeCost = (event) => {
     const selectedValue = event.target.value;
     setSelectedCost(selectedValue);
+  }
+  const handleTooltip = async (item, context, value, event) => {
+    try {
+      const { clientX, clientY } = event;
+      setTooltipData({
+        x: clientX,
+        y: clientY,
+        item,
+        context,
+        value
+      });
+      //console.log(responseData);
+    } catch (error) {
+      console.log(error)
+    }
   }
   function setDeliveries() {
     const inventoryEntries = Object.entries(tableData.orders);
@@ -82,7 +99,7 @@ function ModalDlvr({ onClose, tableData, imgtkt, coinsRatio }) {
           <td className="tdcenter" dangerouslySetInnerHTML={{ __html: OrderItem.items }}></td>
           <td className="tdcenter">{OrderItem.completed ? ximgyes : ximgno}</td>
           {/* <td className="tdcenter" dangerouslySetInnerHTML={{ __html: OrderItem.reward }}>{coinrewardconvertsfl}</td> */}
-          <td className="tdcenter" >{textReward}</td>
+          <td className="tdcenter">{textReward}</td>
           <td className="tdcenter">{frmtNb(OrderItem.cost / coinsRatio)}</td>
           <td className="tdcenter">{costp2p}</td>
           <td className="tdcenter">{frmtNb(OrderItem.costtkt / coinsRatio)}</td>
@@ -101,14 +118,14 @@ function ModalDlvr({ onClose, tableData, imgtkt, coinsRatio }) {
               <th>From</th>
               <th>Items</th>
               <th> </th>
-              <th>Reward</th>
+              <th className="thcenter">Reward</th>
               <th>Cost</th>
               <th>
                 <div className="selectquantback" style={{ top: `4px` }}><FormControl variant="standard" id="formselectquant" className="selectquant" size="small">
                   <InputLabel>Cost</InputLabel>
                   <Select value={selectedCost} onChange={handleChangeCost}>
                     <MenuItem value="shop">Shop</MenuItem>
-                    <MenuItem value="trader">Trader</MenuItem>
+                    <MenuItem value="trader">Market</MenuItem>
                     <MenuItem value="nifty">Niftyswap</MenuItem>
                     <MenuItem value="opensea">OpenSea</MenuItem>
                   </Select></FormControl></div></th>
@@ -121,7 +138,7 @@ function ModalDlvr({ onClose, tableData, imgtkt, coinsRatio }) {
               <td>TOTAL</td>
               <td></td>
               <td></td>
-              <td>{frmtNb(totSFL)}{imgbsfl} {totTKT}{imgbtkt} {frmtNb(totCoins)}{imgbcoins}</td>
+              <td className="tdcenter">{frmtNb(totSFL)}{imgbsfl} {totTKT}{imgbtkt} {frmtNb(totCoins)}{imgbcoins}</td>
               <td className="tdcenter">{frmtNb(totCost)}</td>
               <td className="tdcenter">{frmtNb(totCostp2p)}</td>
               <td></td>
@@ -215,13 +232,23 @@ function ModalDlvr({ onClose, tableData, imgtkt, coinsRatio }) {
     <div className="modal">
       <div className="modal-content">
         <h2>Deliveries</h2>
-        <button onClick={closeModal}>Close</button>
+        <button onClick={closeModal} class="button"><img src="./icon/ui/cancel.png" alt="" className="resico" /></button>
         {tableDeliveries}
         <h2>Chores</h2>
         {tableChores}
         <h2>Bounties</h2>
         {tableBounties}
       </div>
+      {tooltipData && (
+        <Tooltip
+          onClose={() => setTooltipData(null)}
+          clickPosition={tooltipData}
+          item={tooltipData.item}
+          context={tooltipData.context}
+          value={tooltipData.value}
+          dataSet={dataSet}
+        />
+      )}
     </div>
   );
 }

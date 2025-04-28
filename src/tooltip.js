@@ -10,6 +10,7 @@ const Tooltip = ({ onClose, item, context, value, clickPosition, dataSet }) => {
     let mtimeortry = ForTry ? "mtimetry" : "mtime";
     let timeortry = ForTry ? "timetry" : "time";
     let stockortry = ForTry ? "stocktry" : "stock";
+    let spotortry = ForTry ? "spottry" : "spot";
     let xportry = ForTry ? "xptry" : "xp";
     let fishcastmaxortry = ForTry ? "CastMaxtry" : "CastMax";
     let fishcastcostortry = ForTry ? "CastCosttry" : "CastCost";
@@ -25,13 +26,14 @@ const Tooltip = ({ onClose, item, context, value, clickPosition, dataSet }) => {
     let sflortry = ForTry ? "sfltry" : "sfl";
     let dailycycleortry = ForTry ? "dailycycletry" : "dailycycle";
     const imgna = "./icon/nft/na.png";
-    const imgsfl = <img src="./icon/res/sfltoken.png" style={{ width: "15px", height: "15px" }} />
+    const imgsfl = <img src="./icon/res/flowertoken.webp" style={{ width: "15px", height: "15px" }} />
     const imgcoins = <img src="./icon/res/coins.png" style={{ width: "15px", height: "15px" }} />
+    const imgusdc = <img src="./usdc.png" style={{ width: "15px", height: "15px" }} />
     const imgmp = <img src="./icon/ui/exchange.png" style={{ width: "15px", height: "15px" }} />
     const Item = dataSet.it[item];
     let txt = "";
     const [isOpen, setIsOpen] = useState(false);
-    const [pos, setPos] = useState({ x: clickPosition.x, y: clickPosition.y });
+    //const [pos, setPos] = useState({ x: clickPosition.x, y: clickPosition.y });
     const [justOpened, setJustOpened] = useState(true);
     const closeModal = () => {
         setIsOpen(false);
@@ -51,7 +53,7 @@ const Tooltip = ({ onClose, item, context, value, clickPosition, dataSet }) => {
     }, []);
     useEffect(() => {
         setTimeout(() => {
-            setPos({ x: "50%", y: "50%" });
+            //setPos({ x: "50%", y: "50%" });
             setIsOpen(true);
         }, 50);
     }, []);
@@ -64,21 +66,22 @@ const Tooltip = ({ onClose, item, context, value, clickPosition, dataSet }) => {
 
     try {
         if (context === "costp") {
+            const itemImg = <img src={Item?.img ?? imgna} alt={item ?? "?"} style={{ width: "22px", height: "22px" }} />;
+            const prodCost = Item[costortry] / dataSet.coinsRatio;
+            const profit = (Item.costp2pt * 0.9) - prodCost;
+            const profitMul = (Item.costp2pt * 0.9) / prodCost;
+            const colorProfitMul = ColorValue(profitMul);
             if (Item.cat === "crop") {
                 const cropOrGreenhouse = Item.greenhouse ? "greenhouse" : "crop";
                 const oilQuant = Item.greenhouse && Item.oil;
                 const imgOil = <img src={dataSet.it["Oil"].img ?? imgna} style={{ width: "20px", height: "20px" }} />
                 const oilCost = Item.greenhouse ? (oilQuant * (dataSet.it["Oil"][costortry] / dataSet.coinsRatio)) : 0;
                 const costTotal = (Item[seedortry] / dataSet.coinsRatio) + oilCost;
-                const prodCost = Item[costortry] / dataSet.coinsRatio;
-                const profit = (Item.costp2pt * 0.9) - prodCost;
-                const profitMul = (Item.costp2pt * 0.9) / prodCost;
-                const colorProfitMul = ColorValue(profitMul);
                 txt = (
                     <><div><img src={Item?.img ?? imgna} alt={item ?? "?"} style={{ width: "22px", height: "22px" }} /> {item}</div>
                         <div>Seed cost {frmtNb(Item[seedortry])}{imgcoins} {oilQuant && oilQuant}{oilQuant && imgOil}
                             {'('}{frmtNb(costTotal)}{imgsfl}{')'}</div>
-                        <div>{frmtNb(Item[harvestortry] / dataSet.spot[cropOrGreenhouse])} average by node</div>
+                        <div>{itemImg}x{frmtNb(Item[harvestortry] / dataSet.spot[cropOrGreenhouse])} average by node</div>
                         <div>Your production cost {frmtNb(prodCost)}{imgsfl}</div>
                         <div>Marketplace{imgmp}-10% tax {frmtNb(Item.costp2pt * 0.9)}{imgsfl}</div>
                         <div>Profit {frmtNb(profit)}{imgsfl} <span style={{ color: colorProfitMul }}>x{frmtNb(profitMul)}</span></div></>
@@ -88,15 +91,11 @@ const Tooltip = ({ onClose, item, context, value, clickPosition, dataSet }) => {
                 const itemTool = dataSet.tool[Item.tool];
                 const imgTool = <img src={itemTool.img ?? imgna} style={{ width: "22px", height: "22px" }} />
                 const toolCost = itemTool[costortry];
-                const txtTool = <div>{imgTool} cost {frmtNb(toolCost)}{imgcoins} {'('}{frmtNb(toolCost / dataSet.coinsRatio)}{imgsfl}{')'}</div>;
-                const prodCost = Item[costortry] / dataSet.coinsRatio;
-                const profit = (Item.costp2pt * 0.9) - value;
-                const profitMul = (Item.costp2pt * 0.9) / (Item[costortry] / dataSet.coinsRatio);
-                const colorProfitMul = ColorValue(profitMul);
+                const txtTool = <div>{imgTool} cost {frmtNb(itemTool[sflortry])}{imgcoins} {'('}{frmtNb(toolCost / dataSet.coinsRatio)}{imgsfl}{')'}</div>;
                 txt = (
                     <><div><img src={Item?.img ?? imgna} alt={item ?? "?"} style={{ width: "22px", height: "22px" }} /> {item}</div>
-                        {dataSet.nft["Foreman Beaver"][activeortry] === 1 ? txtTool : null}
-                        <div>{frmtNb(Item[harvestortry] / dataSet.spot.wood)} average by node</div>
+                        {dataSet.nft["Foreman Beaver"][activeortry] ? null : txtTool}
+                        <div>{itemImg}x{frmtNb(Item[harvestortry] / dataSet.spot.wood)} average by node</div>
                         <div>Your production cost {frmtNb(prodCost)}{imgsfl}</div>
                         <div>Marketplace{imgmp}-10% tax {frmtNb(Item.costp2pt * 0.9)}{imgsfl}</div>
                         <div>Profit {frmtNb(profit)}{imgsfl} <span style={{ color: colorProfitMul }}>x{frmtNb(profitMul)}</span></div></>
@@ -114,15 +113,11 @@ const Tooltip = ({ onClose, item, context, value, clickPosition, dataSet }) => {
                                 <img src={dataSet.it[itemName].img} className="resicon" alt={itemName} />
                             </>
                         ) : null));
-                    const prodCost = Item[costortry] / dataSet.coinsRatio;
-                    const profit = (Item.costp2pt * 0.9) - value;
-                    const profitMul = (Item.costp2pt * 0.9) / (Item[costortry] / dataSet.coinsRatio);
-                    const colorProfitMul = ColorValue(profitMul);
                     txt = (
                         <><div><img src={Item?.img ?? imgna} alt={item ?? "?"} style={{ width: "22px", height: "22px" }} /> {item}</div>
                             <div>{imgTool} cost {frmtNb(itemTool[sflortry])}{imgcoins}
                                 {toolCompo} {'('}{frmtNb(toolCost / dataSet.coinsRatio)}{imgsfl}{')'}</div>
-                            <div>{frmtNb(Item[harvestortry] / dataSet.spot[item.toLowerCase()])} average by node</div>
+                            <div>{itemImg}x{frmtNb(Item[harvestortry] / dataSet.spot[item.toLowerCase()])} average by node</div>
                             <div>Your production cost {frmtNb(prodCost)}{imgsfl}</div>
                             <div>Marketplace{imgmp}-10% tax {frmtNb(Item.costp2pt * 0.9)}{imgsfl}</div>
                             <div>Profit {frmtNb(profit)}{imgsfl} <span style={{ color: colorProfitMul }}>x{frmtNb(profitMul)}</span></div></>
@@ -132,19 +127,16 @@ const Tooltip = ({ onClose, item, context, value, clickPosition, dataSet }) => {
             if (Item.cat === "animal") {
                 const aniName = Item.animal;
                 const aniFoodQuant = Item[foodquantortry];
-                const aniSpot = aniName !== "Chicken" ? dataSet.spot[aniName.toLowerCase()] : dataSet.spot["egg"];
+                const aniSpot = Item[spotortry]; //aniName !== "Chicken" ? dataSet.spot[aniName.toLowerCase()] : dataSet.spot["egg"];
                 const foodCost = (Item[foodcostortry] / dataSet.coinsRatio);
-                const imgFood = <img src={dataSet.it[Item[foodortry]].img ?? imgna} style={{ width: "20px", height: "20px" }} />
-                const prodCost = Item[costortry] / dataSet.coinsRatio;
-                const profit = (Item.costp2pt * 0.9) - (Item[costortry] / dataSet.coinsRatio);
-                //const profitPercentage = (profit / (Item.costp2pt * 0.9)) * 100;
-                const profitMul = (Item.costp2pt * 0.9) / (Item[costortry] / dataSet.coinsRatio);
-                const colorProfitMul = ColorValue(profitMul);
+                const urlImgFood = Item[foodortry] === "Mix" ? "./icon/res/mixed_grain_v2.webp" :
+                    dataSet.it[Item[foodortry]].img ?? imgna;
+                const imgFood = <img src={urlImgFood} style={{ width: "20px", height: "20px" }} />
                 txt = (
                     <><div><img src={Item?.img ?? imgna} alt={item ?? "?"} style={{ width: "22px", height: "22px" }} /> {item}</div>
-                        <div>{frmtNb(aniFoodQuant)}{imgFood} cost {frmtNb(foodCost)}{imgsfl}</div>
+                        <div>{imgFood}x{frmtNb(aniFoodQuant)} cost {frmtNb(foodCost)}{imgsfl}</div>
                         <div>for a lvl{dataSet.inputAnimalLvl} animal</div>
-                        <div>{frmtNb(Item[harvestortry] / aniSpot)} average by animal</div>
+                        <div>{itemImg}x{frmtNb(Item[harvestortry] / aniSpot)} average by animal</div>
                         <div>Your production cost {frmtNb(prodCost)}{imgsfl}</div>
                         <div>Marketplace{imgmp}-10% tax {frmtNb(Item.costp2pt * 0.9)}{imgsfl}</div>
                         <div>Profit {frmtNb(profit)}{imgsfl} <span style={{ color: colorProfitMul }}>x{frmtNb(profitMul)}</span></div></>
@@ -159,20 +151,16 @@ const Tooltip = ({ onClose, item, context, value, clickPosition, dataSet }) => {
                 const itemTool = dataSet.tool["Axe"];
                 const imgTool = <img src={itemTool.img ?? imgna} style={{ width: "22px", height: "22px" }} />
                 const toolCost = Item[toolcostortry];
-                const prodCost = Item[costortry] / dataSet.coinsRatio;
                 const harvestNb = Item[nbharvestortry];
                 const harvestTotal = harvestNb * dataSet.spot[fruitOrGreenhouse];
-                const profit = (Item.costp2pt * 0.9) - value;
-                const profitPercentage = (profit / (Item.costp2pt * 0.9)) * 100;
-                const profitMul = (Item.costp2pt * 0.9) / (Item[costortry] / dataSet.coinsRatio);
-                const colorProfitMul = ColorValue(profitMul);
                 txt = (
                     <><div><img src={Item?.img ?? imgna} alt={item ?? "?"} style={{ width: "22px", height: "22px" }} /> {item}</div>
                         <div>Seed cost {frmtNb(Item[seedortry])}{imgcoins} {oilQuant && oilQuant}{oilQuant && imgOil}
                             {'('}{frmtNb(costTotal)}{imgsfl}{')'}</div>
-                        <div>{frmtNb(Item[harvestortry] / dataSet.spot[fruitOrGreenhouse])} average by node</div>
-                        {!Item.greenhouse ? <div>{harvestNb}harvest average by node</div> : null}
-                        {!Item.greenhouse ? <div>{imgTool} cost {toolCost}{imgsfl}</div> : null}
+                        {(!Item.greenhouse && !dataSet.nft["Foreman Beaver"][activeortry]) ? <div>{imgTool} cost {toolCost}{imgcoins}
+                            {'('}{frmtNb(toolCost / dataSet.coinsRatio)}{imgsfl}{')'}</div> : null}
+                        <div>{itemImg}x{frmtNb(Item[harvestortry] / dataSet.spot[fruitOrGreenhouse])} average by node</div>
+                        {!Item.greenhouse ? <div>{harvestNb} harvest average by node</div> : null}
                         <div>Your production cost {frmtNb(prodCost)}{imgsfl}</div>
                         <div>Marketplace{imgmp}-10% tax {frmtNb(Item.costp2pt * 0.9)}{imgsfl}</div>
                         <div>Profit {frmtNb(profit)}{imgsfl} <span style={{ color: colorProfitMul }}>x{frmtNb(profitMul)}</span></div></>
@@ -189,8 +177,9 @@ const Tooltip = ({ onClose, item, context, value, clickPosition, dataSet }) => {
             const itemImg = <img src={Item?.img ?? imgna} alt={item ?? "?"} style={{ width: "22px", height: "22px" }} />;
             const itemTool = dataSet.tool[Item.tool];
             const imgTool = itemTool && <img src={itemTool?.img ?? imgna} style={{ width: "22px", height: "22px" }} />;
-            let itemSpot = dataSet.spot[dataSet.it[item].cat.toLowerCase()];
-            let nodeCost = 0;
+            //let itemSpot = dataSet.spot[dataSet.it[item].cat.toLowerCase()];
+            let itemSpot = Item[spotortry];
+            let nodeCost = Item[costortry] * (Item[harvestortry] / itemSpot);
             let txtCompo = "";
             if (Item?.cat === "crop") {
                 const cropOrGreenhouse = Item.greenhouse ? "greenhouse" : "crop";
@@ -204,8 +193,8 @@ const Tooltip = ({ onClose, item, context, value, clickPosition, dataSet }) => {
                     {'('}{frmtNb((nodeCost * itemSpot) / dataSet.coinsRatio)}{imgsfl}{')'}</div>;
             }
             if (Item?.cat === "wood") {
-                nodeCost = dataSet.nft["Foreman Beaver"][activeortry] ? 0 : itemTool[costortry];
-                const txtTool = <div>{imgTool}x{itemSpot} cost {frmtNb(nodeCost * itemSpot)}{imgcoins} {'('}{frmtNb(nodeCost / dataSet.coinsRatio)}{imgsfl}{')'}</div>;
+                //nodeCost = dataSet.nft["Foreman Beaver"][activeortry] ? 0 : itemTool[costortry];
+                const txtTool = <div>{imgTool}x{itemSpot} cost {frmtNb(nodeCost * itemSpot)}{imgcoins} {'('}{frmtNb((nodeCost * itemSpot) / dataSet.coinsRatio)}{imgsfl}{')'}</div>;
                 txtCompo = <div>{dataSet.nft["Foreman Beaver"][activeortry] ? "nothing" : txtTool}</div>;
             }
             if (Item?.cat === "mineral" || Item.cat === "gem") {
@@ -221,13 +210,37 @@ const Tooltip = ({ onClose, item, context, value, clickPosition, dataSet }) => {
                 txtCompo = <div>{imgTool}x{itemSpot} cost {frmtNb(itemTool[sflortry] * itemSpot)}{imgcoins} {txtTool} {'('}{frmtNb((nodeCost * itemSpot) / dataSet.coinsRatio)}{imgsfl}{')'}</div>;
             }
             if (Item?.cat === "animal") {
-                itemSpot = item === "Egg" ? dataSet.spot.egg : dataSet.spot[dataSet.it[item].animal.toLowerCase()];
-                nodeCost = dataSet.it[item][foodcostortry];
-                const imgFood = dataSet.it[dataSet.it[item][foodortry]].img;
-                const txtImgFood = <img src={imgFood ?? imgna} style={{ width: "22px", height: "22px" }} />;
-                const quantFood = dataSet.it[item][foodquantortry];
+                const aniName = Item.animal;
+                itemSpot = Item[spotortry]; //aniName !== "Chicken" ? dataSet.spot[aniName.toLowerCase()] : dataSet.spot["egg"];
+                nodeCost = Item[foodcostortry];
+                //const imgFood = dataSet.it[dataSet.it[item][foodortry]].img;
+                const urlImgFood = Item[foodortry] === "Mix" ? "./icon/res/mixed_grain_v2.webp" :
+                    dataSet.it[Item[foodortry]].img ?? imgna;
+                const txtImgFood = <img src={urlImgFood} style={{ width: "22px", height: "22px" }} />;
+                const quantFood = dataSet.it[item][foodquantortry] * itemSpot;
                 const animalLvl = <div> for a lvl{dataSet.inputAnimalLvl} animal</div>;
-                txtCompo = <div> Food: {frmtNb(quantFood)}{txtImgFood} cost {frmtNb((nodeCost * itemSpot) / dataSet.coinsRatio)}{imgsfl}{animalLvl}</div>;
+                txtCompo = <div> Food: {txtImgFood}x{frmtNb(quantFood)} cost {frmtNb((nodeCost * itemSpot) / dataSet.coinsRatio)}{imgsfl}{animalLvl}</div>;
+            }
+            if (Item.cat === "fruit") {
+                //const fruitOrGreenhouse = Item.greenhouse ? "greenhouse" : "fruit";
+                //itemSpot = Item.imgseason === "FullMoon" ? 1 : dataSet.spot[fruitOrGreenhouse];
+                const imgOil = <img src={dataSet.it["Oil"].img ?? imgna} style={{ width: "20px", height: "20px" }} />
+                const oilQuant = Item.greenhouse ? Item.oil : 0;
+                const oilCost = oilQuant * dataSet.it["Oil"][costortry];
+                const itemTool = dataSet.tool["Axe"];
+                const imgTool = <img src={itemTool.img ?? imgna} style={{ width: "22px", height: "22px" }} />
+                const toolCost = Item[toolcostortry];
+                const harvestNb = Item[nbharvestortry];
+                nodeCost = (Item[seedortry] + oilCost + toolCost) / harvestNb;
+                const prodCost = (nodeCost * itemSpot) / dataSet.coinsRatio;
+                const txtOilQuantTotal = Item.greenhouse && <span> Oil: {oilQuant * itemSpot}{imgOil}</span>;
+                const txt1harvest = <span> {!Item.greenhouse ? <div>For first harvest :</div> : null}</span>;
+                const txtSeed = <div> - Seeds: {frmtNb(Item[seedortry] * itemSpot)}{imgcoins} {txtOilQuantTotal}
+                    {'('}{frmtNb(((Item[seedortry] + oilCost) * itemSpot) / dataSet.coinsRatio)}{imgsfl}{')'}</div>;
+                const txtTool = <span> {!Item.greenhouse ? <div>- {imgTool} cost {toolCost * itemSpot}{imgcoins}
+                    {' ('}{frmtNb((toolCost * itemSpot) / dataSet.coinsRatio)}{imgsfl}{')'}</div> : null}</span>;
+                const txtNbHarvest = <span> {!Item.greenhouse ? <div>For {harvestNb} harvests = {frmtNb(prodCost)}{imgsfl}</div> : null}</span>;
+                txtCompo = <div>{txt1harvest}{txtSeed}{dataSet.nft["Foreman Beaver"][activeortry] ? null : txtTool}{txtNbHarvest}</div>;
             }
             if (Item?.cat === "honey") {
                 itemSpot = dataSet.spot.beehive;
@@ -235,131 +248,125 @@ const Tooltip = ({ onClose, item, context, value, clickPosition, dataSet }) => {
                 txtCompo = <div> Seeds: {frmtNb((nodeCost * itemSpot) / dataSet.coinsRatio)}{imgsfl}</div>;
             }
             //const prodCost = Item[costortry] / dataSet.coinsRatio;
-            const harvestCost = nodeCost * itemSpot;
+            const prodCost = (nodeCost * itemSpot) / dataSet.coinsRatio;
             const harvestCostp2pt = (Item.costp2pt * 0.9) * Item[harvestortry];
-            const txtProdCost = txtCompo && (nodeCost !== harvestCost) && <div>Your production cost: {txtCompo}</div>;
-            const profit = harvestCostp2pt - (harvestCost / dataSet.coinsRatio);
-            const profitMul = harvestCostp2pt / (harvestCost / dataSet.coinsRatio);
+            const txtProdCost = txtCompo && (nodeCost !== prodCost) && <div>Your production cost: {txtCompo}</div>;
+            const profit = harvestCostp2pt - prodCost;
+            const profitMul = harvestCostp2pt / prodCost;
             const colorProfitMul = ColorValue(profitMul);
             txt = (
                 <><div>{itemImg} {item}</div>
                     <div>Yield by node {frmtNb(Item[myieldortry])}</div>
                     <div>Harvest average {frmtNb(Item[harvestortry])} for {itemSpot} nodes</div>
-                    <div>{frmtNb(Item[harvestortry] / itemSpot)} average by node</div>
+                    <div>{itemImg}x{frmtNb(Item[harvestortry] / itemSpot)} average by node</div>
                     {txtProdCost}
                     <div>Marketplace{imgmp}-10% tax {frmtNb(harvestCostp2pt)}{imgsfl}</div>
                     <div>Profit {frmtNb(profit)}{imgsfl} <span style={{ color: colorProfitMul }}>x{frmtNb(profitMul)}</span></div></>
             );
         }
         if (context === "dailysfl") {
+            const itemImg = <img src={Item?.img ?? imgna} alt={item ?? "?"} style={{ width: "22px", height: "22px" }} />;
+            const itemTool = dataSet.tool[Item.tool];
+            const imgTool = itemTool && <img src={itemTool?.img ?? imgna} style={{ width: "22px", height: "22px" }} />;
+            const imgOil = <img src={dataSet.it["Oil"].img ?? imgna} style={{ width: "20px", height: "20px" }} />
+            //let itemSpot = dataSet.spot[dataSet.it[item].cat.toLowerCase()];
+            let itemSpot = Item[spotortry];
+            const cycleD = Item[dailycycleortry] || 1;
+            let dailySpot = cycleD * itemSpot;
+            let dailySfl = ((Item.costp2pt * 0.9) * Item[harvestortry]) * cycleD;
+            let dailyCoinsCost = Item[costortry] * Item[harvestortry] * cycleD;
+            let dailySflCost = dailyCoinsCost / dataSet.coinsRatio;
+            let txtCompo = "";
+            let txtStock = <span>stock: {Item[stockortry]}</span>;
             if (Item.cat === "crop") {
-                const cropOrGreenhouse = Item.greenhouse ? "greenhouse" : "crop";
-                const seedNb = Item[dailycycleortry] * dataSet.spot[cropOrGreenhouse];
-                const oilQuant = Item.greenhouse && Item.oil * seedNb;
-                const imgOil = <img src={dataSet.it["Oil"].img ?? imgna} style={{ width: "20px", height: "20px" }} />
-                const oilCost = Item.greenhouse ? (oilQuant * (dataSet.it["Oil"][costortry] / dataSet.coinsRatio)) : 0;
-                const sflHarvest = (Item.costp2pt * 0.9) * Item[harvestortry];
-                const cycleD = Item[dailycycleortry] || 1;
-                const sflD = sflHarvest * cycleD;
-                const coinSeedD = seedNb * Item[seedortry];
-                const sflSeedD = (coinSeedD / dataSet.coinsRatio) + oilCost;
-                const profit = sflD - sflSeedD;
-                const profitPercentage = (profit / (Item.costp2pt * 0.9)) * 100;
-                const profitMul = (Item.costp2pt * 0.9) / (Item[costortry] / dataSet.coinsRatio);
-                const colorProfitMul = ColorValue(profitMul);
-                txt = (
-                    <><div><img src={Item?.img ?? imgna} alt={item ?? "?"} style={{ width: "22px", height: "22px" }} /> {item}</div>
-                        <div>Grow time: {Item[timeortry]} seed stock: {Item[stockortry]}</div>
-                        <div>{cycleD}cycle/day with {dataSet.inputFarmTime}h and {dataSet.inputMaxBB}restock</div>
-                        <div>Harvest average {frmtNb(Item[harvestortry])} with {dataSet.spot[cropOrGreenhouse]}node</div>
-                        <div>Harvest total by day {frmtNb(Item[harvestortry] * cycleD)}</div>
-                        <div>Marketplace{imgmp}-10% tax {frmtNb(sflD)}{imgsfl}</div>
-                        <div>Seed cost {frmtNb(coinSeedD)}{imgcoins} for {seedNb}seed {oilQuant && oilQuant}{oilQuant && imgOil} {'('}{frmtNb(sflSeedD)}{imgsfl}{')'}</div>
-                        <div>Profit {frmtNb(profit)}{imgsfl} <span style={{ color: colorProfitMul }}>x{frmtNb(profitMul)}</span></div></>
-                );
+                dailySpot = cycleD * itemSpot;
+                const oilQuant = Item.greenhouse && (Item.oil * dailySpot);
+                const oilCost = Item.greenhouse ? (oilQuant * (dataSet.it["Oil"][costortry])) : 0;
+                dailyCoinsCost = (dailySpot * Item[seedortry]) + oilCost;
+                dailySflCost = (dailyCoinsCost / dataSet.coinsRatio);
+                txtCompo = <div>Seed cost {frmtNb(dailyCoinsCost)}{imgcoins} for {dailySpot}seed {oilQuant && oilQuant}{oilQuant && imgOil}
+                    {'('}{frmtNb(dailySflCost)}{imgsfl}{')'}</div>;
+                txtStock = <span>seed stock: {Item[stockortry]}</span>;
             }
             if (Item.cat === "wood") {
-                const itemTool = dataSet.tool[Item.tool];
-                const imgTool = <img src={itemTool.img ?? imgna} style={{ width: "22px", height: "22px" }} />
-                const toolCost = Item[costortry];
-                const cycleD = Item[dailycycleortry] || 1;
-                const seedNb = cycleD * dataSet.spot.wood;
-                const sflHarvest = (Item.costp2pt * 0.9) * Item[harvestortry];
-                const sflD = sflHarvest * cycleD;
-                const coinSeedD = seedNb * toolCost;
-                const profit = sflD - (coinSeedD / dataSet.coinsRatio);
-                const profitMul = (Item.costp2pt * 0.9) / (Item[costortry] / dataSet.coinsRatio);
-                const colorProfitMul = ColorValue(profitMul);
-                const txtTool = <div>{imgTool}x{seedNb} cost {frmtNb(coinSeedD)}{imgcoins} {'('}{frmtNb(coinSeedD / dataSet.coinsRatio)}{imgsfl}{')'}</div>;
-                txt = (
-                    <><div><img src={Item?.img ?? imgna} alt={item ?? "?"} style={{ width: "22px", height: "22px" }} /> {item}</div>
-                        <div>Grow time: {Item[timeortry]} tool stock: {Item[stockortry]}</div>
-                        <div>{cycleD}cycle/day with {dataSet.inputFarmTime}h and {dataSet.inputMaxBB}restock</div>
-                        <div>Chop average {frmtNb(Item[harvestortry])} with {dataSet.spot.wood}node</div>
-                        <div>Chop total by day {frmtNb(Item[harvestortry] * cycleD)}</div>
-                        <div>Marketplace{imgmp}-10% tax {frmtNb(sflD)}{imgsfl}</div>
-                        <div>{dataSet.nft["Foreman Beaver"][activeortry] ? null : txtTool}</div>
-                        <div>Profit {frmtNb(profit)}{imgsfl} <span style={{ color: colorProfitMul }}>x{frmtNb(profitMul)}</span></div></>
-                );
+                //dailyCoinsCost = dailySpot * (dataSet.nft["Foreman Beaver"][activeortry] ? 0 : itemTool[costortry]);
+                //dailySflCost = (dailyCoinsCost / dataSet.coinsRatio);
+                txtCompo = dataSet.nft["Foreman Beaver"][activeortry] ? null :
+                    <div>{imgTool}x{dailySpot} cost {frmtNb(dailyCoinsCost)}{imgcoins} {'('}{frmtNb(dailySflCost)}{imgsfl}{')'}</div>;
+                txtStock = dataSet.nft["Foreman Beaver"][activeortry] ? null : <span>tool stock: {Item[stockortry]}</span>;
             }
             if (Item.cat === "mineral" || Item.cat === "gem") {
-                const itemTool = dataSet.tool[Item.tool];
-                const imgTool = <img src={itemTool.img ?? imgna} style={{ width: "22px", height: "22px" }} />
-                const toolCost = (itemTool[costortry] / dataSet.coinsRatio);
-                const cycleD = Item[dailycycleortry] || 1;
-                const seedNb = cycleD * dataSet.spot[item.toLowerCase()];
+                dailySpot = cycleD * itemSpot;
+                dailyCoinsCost = dailySpot * itemTool[costortry];
+                dailySflCost = (dailyCoinsCost / dataSet.coinsRatio);
                 const toolCompo = Object.keys(itemTool).map((itemName, itIndex) => (
                     itemTool[itemName] && dataSet.it[itemName] ? (
                         <>
-                            {itemTool[itemName] * cycleD * dataSet.spot[item.toLowerCase()]}
+                            {itemTool[itemName] * cycleD * itemSpot}
                             <img src={dataSet.it[itemName].img} className="resicon" alt={itemName} />
                         </>
                     ) : null));
-                const sflHarvest = (Item.costp2pt * 0.9) * Item[harvestortry];
-                const sflD = sflHarvest * cycleD;
-                const coinSeedD = seedNb * itemTool[sflortry];
-                const profit = sflD - (toolCost * seedNb);
-                const profitPercentage = (profit / (Item.costp2pt * 0.9)) * 100;
-                const profitMul = (Item.costp2pt * 0.9) / (Item[costortry] / dataSet.coinsRatio);
-                const colorProfitMul = ColorValue(profitMul);
-                txt = (
-                    <><div><img src={Item?.img ?? imgna} alt={item ?? "?"} style={{ width: "22px", height: "22px" }} /> {item}</div>
-                        <div>Grow time: {Item[timeortry]} tool stock: {Item[stockortry]}</div>
-                        <div>{cycleD}cycle/day with {dataSet.inputFarmTime}h and {dataSet.inputMaxBB}restock</div>
-                        <div>Mine average {frmtNb(Item[harvestortry])} with {dataSet.spot[item.toLowerCase()]}node</div>
-                        <div>Mine total by day {frmtNb(Item[harvestortry] * cycleD)}</div>
-                        <div>Marketplace{imgmp}-10% tax {frmtNb(sflD)}{imgsfl}</div>
-                        <div>{imgTool}x{seedNb} cost {frmtNb(coinSeedD)}{imgcoins}{toolCompo} {'('}{frmtNb((toolCost * seedNb))}{imgsfl}{')'}</div>
-                        <div>Profit {frmtNb(profit)}{imgsfl} <span style={{ color: colorProfitMul }}>x{frmtNb(profitMul)}</span></div></>
-                );
+                txtCompo = <div>{imgTool}x{dailySpot} cost {frmtNb(itemTool[sflortry] * dailySpot)}{imgcoins}{toolCompo} {'('}{frmtNb(dailySflCost)}{imgsfl}{')'}</div>;
+                txtStock = <span>tool stock: {Item[stockortry]}</span>;
             }
             if (Item.cat === "animal") {
-                const aniName = Item.animal;
+                //const aniName = Item.animal;
+                dailySpot = cycleD * itemSpot;
+                const urlImgFood = Item[foodortry] === "Mix" ? "./icon/res/mixed_grain_v2.webp" :
+                    dataSet.it[Item[foodortry]].img ?? imgna;
+                const imgFood = <img src={urlImgFood} style={{ width: "20px", height: "20px" }} />
                 const aniFoodQuant = Item[foodquantortry];
-                const aniSpot = aniName !== "Chicken" ? dataSet.spot[aniName.toLowerCase()] : dataSet.spot["egg"];
-                const cycleD = Item[dailycycleortry] || 1;
-                const seedNb = cycleD * aniSpot;
-                const imgFood = <img src={dataSet.it[Item[foodortry]].img ?? imgna} style={{ width: "20px", height: "20px" }} />
-                const foodQuant = aniFoodQuant * aniSpot;
-                const foodCost = (Item[foodcostortry] / dataSet.coinsRatio) * aniSpot;
-                const sflHarvest = (Item.costp2pt * 0.9) * Item[harvestortry];
-                const sflD = sflHarvest * cycleD;
-                const profit = sflD - foodCost;
-                const profitPercentage = (profit / (Item.costp2pt * 0.9)) * 100;
-                const profitMul = (Item.costp2pt * 0.9) / (Item[costortry] / dataSet.coinsRatio);
-                const colorProfitMul = ColorValue(profitMul);
-                txt = (
-                    <><div><img src={Item?.img ?? imgna} alt={item ?? "?"} style={{ width: "22px", height: "22px" }} /> {item}</div>
-                        <div>Sleep time {Item[timeortry]}</div>
-                        <div>{cycleD}cycle/day with {dataSet.inputFarmTime}h</div>
-                        <div>Produce average {frmtNb(Item[harvestortry])}</div>
-                        <div>Produce total by day {frmtNb(Item[harvestortry] * cycleD)}</div>
-                        <div> with {aniSpot}animals lvl{dataSet.inputAnimalLvl} </div>
-                        <div>Marketplace{imgmp}-10% tax {frmtNb(sflD)}{imgsfl}</div>
-                        <div>Food cost {frmtNb(foodCost)}{imgsfl} for {seedNb}animals {frmtNb(foodQuant)}{imgFood}</div>
-                        <div>Profit {frmtNb(profit)}{imgsfl} <span style={{ color: colorProfitMul }}>x{frmtNb(profitMul)}</span></div></>
-                );
+                const foodQuant = aniFoodQuant * dailySpot;
+                const foodCost = Item[foodcostortry];
+                dailyCoinsCost = dailySpot * Item[foodcostortry];
+                dailySflCost = (dailyCoinsCost / dataSet.coinsRatio);
+                const txtCompos = <div>{imgFood}x{frmtNb(foodQuant)} cost {frmtNb(dailyCoinsCost)}{imgcoins} {'('}{frmtNb(dailySflCost)}{imgsfl}{')'}</div>;
+                const txtAnimals = <div> with {itemSpot}animals lvl{dataSet.inputAnimalLvl} </div>;
+                txtCompo = <div>{txtCompos}{txtAnimals}</div>;
             }
+            if (Item.cat === "fruit") {
+                /* dailySpot = cycleD * itemSpot;
+                const oilQuant = Item.greenhouse && (Item.oil * dailySpot);
+                const oilCost = Item.greenhouse ? (oilQuant * (dataSet.it["Oil"][costortry])) : 0;
+                dailyCoinsCost = (dailySpot * Item[seedortry]) + oilCost;
+                dailySflCost = (dailyCoinsCost / dataSet.coinsRatio);
+                txtCompo = <div>Seed cost {frmtNb(dailyCoinsCost)}{imgcoins} for {dailySpot}seed {oilQuant && oilQuant}{oilQuant && imgOil}
+                    {'('}{frmtNb(dailySflCost)}{imgsfl}{')'}</div>;
+                txtStock = <span>seed stock: {Item[stockortry]}</span>; */
+                dailySpot = cycleD * itemSpot;
+                const oilQuant = Item.greenhouse ? Item.oil : 0;
+                const oilCost = oilQuant * dataSet.it["Oil"][costortry];
+                const itemTool = dataSet.tool["Axe"];
+                const imgTool = <img src={itemTool.img ?? imgna} style={{ width: "22px", height: "22px" }} />
+                const toolCost = Item[toolcostortry];
+                const harvestNb = Item[nbharvestortry];
+                //nodeCost = (Item[seedortry] + oilCost + toolCost) / harvestNb;
+                //const prodCost = (nodeCost * dailySpot) / dataSet.coinsRatio;
+                dailyCoinsCost = ((Item[seedortry] + oilCost + toolCost) / harvestNb) * dailySpot;
+                dailySflCost = (dailyCoinsCost / dataSet.coinsRatio);
+                const txtOilQuantTotal = Item.greenhouse && <span> Oil: {oilQuant * itemSpot}{imgOil}</span>;
+                const txt1harvest = <span> {!Item.greenhouse ? <div>For first harvest :</div> : null}</span>;
+                const txtSeed = <div> - Seeds: {frmtNb(Item[seedortry] * itemSpot)}{imgcoins} {txtOilQuantTotal}
+                    {'('}{frmtNb(((Item[seedortry] + oilCost) * itemSpot) / dataSet.coinsRatio)}{imgsfl}{')'}</div>;
+                const txtTool = <span> {!Item.greenhouse ? <div>- {imgTool} cost {toolCost * itemSpot}{imgcoins}
+                    {' ('}{frmtNb((toolCost * itemSpot) / dataSet.coinsRatio)}{imgsfl}{')'}</div> : null}</span>;
+                const txtNbHarvest = <span> {!Item.greenhouse ? <div>For {harvestNb} harvests = {frmtNb(dailySflCost)}{imgsfl}</div> : null}</span>;
+                txtCompo = <div>{txt1harvest}{txtSeed}{dataSet.nft["Foreman Beaver"][activeortry] ? null : txtTool}{txtNbHarvest}</div>;
+            }
+            const txtProdCost = txtCompo && <div>{txtCompo}</div>;
+            const profit = dailySfl - dailySflCost;
+            const profitMul = dailySfl / dailySflCost;
+            const colorProfitMul = ColorValue(profitMul);
+            txt = (
+                <><div><img src={Item?.img ?? imgna} alt={item ?? "?"} style={{ width: "22px", height: "22px" }} /> {item}</div>
+                    <div>Grow time: {Item[timeortry]} {txtStock}</div>
+                    <div>{cycleD}cycle/day with {dataSet.inputFarmTime}h and {dataSet.inputMaxBB}restock</div>
+                    <div>Harvest average {itemImg}x{frmtNb(Item[harvestortry])} with {itemSpot}node</div>
+                    <div>Harvest total by day {frmtNb(Item[harvestortry] * cycleD)}</div>
+                    {txtProdCost}
+                    <div>Marketplace{imgmp}-10% tax {frmtNb(dailySfl)}{imgsfl}</div>
+                    <div>Profit {frmtNb(profit)}{imgsfl} <span style={{ color: colorProfitMul }}>x{frmtNb(profitMul)}</span></div></>
+            );
         }
         if (context === "buildcraft") {
             const buildName = item.name;
@@ -385,6 +392,243 @@ const Tooltip = ({ onClose, item, context, value, clickPosition, dataSet }) => {
                     })}</div></>
             );
         }
+        if (context === "th") {
+            if (item === "hoard") {
+                txt = (
+                    <><div>
+                        Hoarding limit is the maximum amount you can make before store on chain
+                    </div></>
+                );
+            }
+            if (item === "quantity") {
+                txt = (
+                    <><div>Farm : how much you have in your farm</div>
+                        <div>Daily : how much you can make daily</div>
+                        <div>Restock : how much you can make by restock</div>
+                        <div>Custom : you can change quantity to see total prices as you want</div>
+                    </>
+                );
+            }
+            if (item === "cost") {
+                txt = (
+                    <><div>Your production cost</div>
+                        <div>/Unit : by unit</div>
+                        <div>/Quantity : total by quantity</div>
+                        <div>Checkbox : subtract production costs from price totals</div>
+                    </>
+                );
+            }
+            if (item === "withdraw") {
+                txt = (
+                    <><div>How much you can withdraw</div>
+                    </>
+                );
+            }
+            if (item === "coef") {
+                txt = (
+                    <><div>Sell price / Prod price</div>
+                    </>
+                );
+            }
+            if (item === "diff") {
+                txt = (
+                    <><div>% difference with Market price</div>
+                    </>
+                );
+            }
+            if (item === "yield") {
+                txt = (
+                    <><div>Amount by node with your boosts</div>
+                    </>
+                );
+            }
+            if (item === "harvest") {
+                txt = (
+                    <><div>Amount average on all nodes with your boosts</div>
+                    </>
+                );
+            }
+            if (item === "toharvest") {
+                txt = (
+                    <><div>Amount on all nodes in your farm</div>
+                    </>
+                );
+            }
+        }
+        if (context === "trynft") {
+            const booststable = {  ...dataSet.skilllgc, ...dataSet.skill, ...dataSet.buildng,...dataSet.nft, ...dataSet.nftw, ...dataSet.bud };
+            const imtemimg = <img src={Item.img ?? imgna} alt={item} style={{ width: "22px", height: "22px" }} />;
+            let filteredBoosts = [];
+            let txtItem = "";
+            const filterBoosts = (item, boosttype) => {
+                return Object.keys(booststable).filter(nftitem => {
+                    const boost = booststable[nftitem];
+                    const boostactive = boost.tryit;
+                    const hasBoostType = Array.isArray(boost.boosttype)
+                        ? boost.boosttype.includes(boosttype)
+                        : boost.boosttype === boosttype;
+                    const matchesBoostit = Array.isArray(boost.boostit)
+                        ? boost.boostit.some(boostItem => boostItem === Item.cat || boostItem === item || boostItem === Item.scat)
+                        : boost.boostit === Item.cat || boost.boostit === item || boost.boostit === Item.scat;
+                    const isGreenhouseBoost = (boostactive && hasBoostType && boost?.cat === "Greenhouse") || (boostactive && hasBoostType && boost.boostit === "greenhouse");
+                    let isBoostValid = boostactive && hasBoostType && matchesBoostit;
+                    if (Item.cat === "crop") {
+                        if (boosttype === "time" && (booststable["Scarecrow"]?.tryit || booststable["Kuebiko"]?.tryit) && nftitem === "Nancy") { isBoostValid = true; }
+                        if (boosttype === "yield" && booststable["Kuebiko"]?.tryit && nftitem === "Scarecrow") { isBoostValid = true; }
+                    }
+                    if (Item.cat === "wood") {
+                        if (boosttype === "yield" && (booststable["Apprentice Beaver"]?.tryit || booststable["Foreman Beaver"]?.tryit) && nftitem === "Woody the Beaver") { isBoostValid = true; }
+                        if (boosttype === "time" && booststable["Foreman Beaver"]?.tryit && nftitem === "Apprentice Beaver") { isBoostValid = true; }
+                    }
+                    if ( Item.greenhouse && isGreenhouseBoost) { isBoostValid = true; }
+                    if (isBoostValid) {
+                        if (Item.greenhouse) {
+                            if(dataSet.it[boost?.boostit] && item !== boost?.boostit) { isBoostValid = false; }
+                            if (boosttype === "time") {
+                                if (!isGreenhouseBoost) {
+                                    if (boost?.boostit === "crop") { isBoostValid = false; }
+                                    if (boost?.boostit === "fruit") { isBoostValid = false; }
+                                }
+                            }
+                            if (nftitem === "Frozen Heart") { isBoostValid = false; }
+                            if (nftitem === "Autumn's Embrace") { isBoostValid = false; }
+                            if (nftitem === "Blossom Ward") { isBoostValid = false; }
+                            if (nftitem === "Solflare Aegis") { isBoostValid = false; }
+                            if (nftitem === "Sir Goldensnout") { isBoostValid = false; }
+                        }
+                        if (booststable["Cabbage Boy"]?.tryit && nftitem === "Karkinos") { isBoostValid = false; }
+                    }
+                    return isBoostValid;
+                });
+            };
+            if (value === "timechg") {
+                filteredBoosts = filterBoosts(item, "time");
+                txtItem = <div>Boosts for {imtemimg}{item} time:</div>;
+            }
+            if (value === "yieldchg") {
+                filteredBoosts = filterBoosts(item, "yield");
+                txtItem = <div>Boosts for {imtemimg}{item} yield:</div>;
+            }
+            if (value === "costchg") {
+                filteredBoosts = filterBoosts(item, "cost");
+                txtItem = <div>Boosts for {imtemimg}{item} cost:</div>;
+            }
+            txt = (
+                <div>
+                    {txtItem}
+                    {filteredBoosts.length > 0 ? (
+                        filteredBoosts.map((nftitem, index) => (
+                            <div key={index}>
+                                <img src={booststable[nftitem].img ?? imgna} alt={nftitem} style={{ width: "22px", height: "22px" }} />
+                                {nftitem} : {booststable[nftitem].boost}
+                            </div>
+                        ))
+                    ) : (
+                        <div>No boosts for this item.</div>
+                    )}
+                </div>
+            );
+        }
+        if (context === "trynfthelp") {
+            txt = (
+                <>
+                    <div>The Active items are on your farm.</div>
+                    <div>Select NFT/Craft/Skills/Buds you want on Try checkboxes</div>
+                    <div>and clic Refresh button to see changes.</div>
+                    <div>Then on main page you can switch Activeset/Tryset to see differences</div>
+                </>
+            );
+        }
+        if (context === "trades") {
+            const trades = dataSet.ftrades;
+            if (trades && Object.keys(trades).length > 0) {
+                let totalPrice = 0;
+                let totalMarketPrice = 0;
+                let totalSoldPrice = 0;
+                txt = (
+                    <table style={{ borderCollapse: "collapse", width: "100%", color: "white" }}>
+                        <thead>
+                            <tr>
+                                <th className="tdcenterbrd">Item</th>
+                                <th className="tdcenterbrd">Quantity</th>
+                                <th className="tdcenterbrd">Sold</th>
+                                <th className="tdcenterbrd">Price</th>
+                                <th className="tdcenterbrd">Floor</th>
+                                <th className="tdcenterbrd">Diff</th>
+                                <th className="tdcenterbrd">Date</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {Object.keys(trades).map(([key, trade], index) => {
+                                const traderow = trades[index];
+                                const date = new Date(traderow.createdAt).toLocaleString();
+                                let itemName = "";
+                                let quantity = 0;
+                                const isSold = traderow.fulfilledAt;
+                                Object.entries(traderow.items).forEach(([name, qty]) => {
+                                    itemName = name;
+                                    quantity = qty;
+                                });
+                                const price = traderow.sfl;
+                                let marketPrice = 0;
+                                let itemImg = "";
+                                if (dataSet.nft[itemName]) {
+                                    marketPrice = dataSet.nft[itemName].pricemsfl * quantity;
+                                    itemImg = <img src={dataSet.nft[itemName].img} className="resicon" />;
+                                }
+                                if (dataSet.nftw[itemName]) {
+                                    marketPrice = dataSet.nftw[itemName].pricemsfl * quantity;
+                                    itemImg = <img src={dataSet.nftw[itemName].img} className="resicon" />;
+                                }
+                                if (dataSet.it[itemName]) {
+                                    marketPrice = dataSet.it[itemName].costp2pt * quantity;
+                                    itemImg = <img src={dataSet.it[itemName].img} className="resicon" />;
+                                }
+                                const marketDiff = marketPrice ? ((price - marketPrice) / marketPrice * 100).toFixed(2) + "%" : "N/A";
+                                const marketDiffStyle = marketPrice && ((price - marketPrice) / marketPrice * 100) > 20 ? { color: "red" } : {};
+                                totalPrice += price;
+                                totalMarketPrice += marketPrice;
+                                if (isSold) {
+                                    totalSoldPrice += price;
+                                }
+                                return (
+                                    <tr key={index}>
+                                        <td className="tdcenterbrd">{itemImg}{itemName}</td>
+                                        <td className="tdcenterbrd">{quantity}</td>
+                                        <td className="tdcenterbrd">{isSold && <img src="./icon/ui/confirm.png" className="resicon" />}</td>
+                                        <td className="tdcenterbrd">{frmtNb(price)}</td>
+                                        <td className="tdcenterbrd">{frmtNb(marketPrice)}</td>
+                                        <td className="tdcenterbrd" style={marketDiffStyle}>{marketDiff}</td>
+                                        <td className="tdcenterbrd">{date}</td>
+                                    </tr>
+                                );
+                            })}
+                            <tr>
+                                <td className="tdcenterbrd">Total</td>
+                                <td className="tdcenterbrd"></td>
+                                <td className="tdcenterbrd">{frmtNb(totalSoldPrice)}</td>
+                                <td className="tdcenterbrd">{frmtNb(totalPrice)}</td>
+                                <td className="tdcenterbrd">{frmtNb(totalMarketPrice)}</td>
+                                <td className="tdcenterbrd"></td>
+                                <td className="tdcenterbrd"></td>
+                            </tr>
+                        </tbody>
+                    </table>
+                );
+            } else {
+                txt = <div>No trades available.</div>;
+            }
+        }
+        if (context === "balance") {
+            txt = (
+                <>
+                    <div>On Your farm : {dataSet.balanceUSD}{imgusdc}</div>
+                    <div>Your withdraw tax : {dataSet.withdrawtax}%</div>
+                    <div>You have {dataSet.taxFreeSFL}{imgsfl} tax free</div>
+                    <div>You can withdraw {dataSet.sflwithdraw}{imgsfl} : {dataSet.usdwithdraw}{imgusdc}</div>
+                </>
+            );
+        }
     } catch (error) {
         console.log("tooltip: ", error);
     }
@@ -400,9 +644,15 @@ const Tooltip = ({ onClose, item, context, value, clickPosition, dataSet }) => {
     return (
         <div className={`tooltip-wrapper ${isOpen ? "open" : ""}`}>
             <div className="tooltip"
-                style={{
+                /* style={{
                     left: typeof pos.x === "number" ? `${pos.x}px` : pos.x,
                     top: typeof pos.y === "number" ? `${pos.y}px` : pos.y,
+                }}> */
+                style={{
+                    position: "fixed",
+                    top: "50%",
+                    left: "50%",
+                    transform: "translate(-50%, -50%)",
                 }}>
                 {txt}
             </div>

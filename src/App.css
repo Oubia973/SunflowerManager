@@ -7,24 +7,20 @@
   background-color: var(--background-color);
   color: var(--text-color);
 }
-
 .App::-webkit-scrollbar {
   width: 8px;
   height: 8px;
 }
-
 .App::-webkit-scrollbar-thumb {
   background-color: #7a7a7a;
 }
-
 .App::-webkit-scrollbar-track {
   background-color: #1d1d1d;
 }
-
 .App-header {
   background-color: #1a1d22;
   /* min-height: 60vh; */
-  height: 100px;
+  height: 50px;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -33,28 +29,86 @@
   /*calc(10px + 2vmin);*/
   color: white;
 }
-
+.top-frame {
+  overflow-x: auto;
+  overflow-y: hidden;
+  max-width: 100%;
+  top: 0;
+  position: sticky;
+  display: block;
+  height: 145px;
+}
 .App-h1 {
   background-color: #15171b;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  font-size: 16px;
+  font-size: 12px;
+}
+.h1-container {
+  background-color: #15171b;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
   /*calc(10px + 2vmin);*/
   color: rgb(253, 223, 55);
 }
-
 .App-logo {
   display: flex;
-  height: 35px;
-  width: 35px;
+  height: 30px;
+  width: 30px;
   pointer-events: none;
+}
+.vertical {
+  position: absolute;
+  top: 0;
+  left: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0px;
+}
+.horizontal {
+  display: flex;
+  align-items: center;
+  gap: 5px;
 }
 
 .container {
   display: flex;
   justify-content: space-between;
+}
+.buttons-container {
+  display: flex;
+  align-items: center;
+}
+.balance-container {
+  display: flex;
+  align-items: center;
+}
+
+.button {
+  position: relative;
+  display: inline-block;
+  width: 30px;
+  height: 30px;
+  background-image: url('../public/icon/ui/itemdisc_01.png');
+  background-size: cover;
+  background-position: center;
+  border: none;
+  border-radius: 50%;
+  cursor: pointer;
+}
+
+.button img {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 20px;
+  height: 20px;
 }
 
 .don {
@@ -64,6 +118,7 @@
   text-align: right;
   font-size: 10px;
   color: rgba(173, 173, 173, 0.671);
+  pointer-events: none;
 }
 
 .selectopt {
@@ -73,19 +128,17 @@
 
 .currencies {
   position: absolute;
-  top: 15px;
-  right: 10px;
+  top: 0px;
+  right: 0px;
   display: flex;
-  /* flex-direction: column; */
-  align-items: right;
+  flex-direction: row;
+  align-items: center;
+  gap: 9px;
 }
 
 .currency-controls {
   display: flex;
   flex-direction: column;
-  position: absolute;
-  top: -15px;
-  right: 50px;
 }
 
 .currency-pair {
@@ -229,6 +282,7 @@
   background-color: #ffffff;
   border-color: #d3d3d3;
 }
+
 input[type="checkbox"].checkbox-disabled:checked {
   background-color: #d3d3d3;
   border-color: #d3d3d3;
@@ -276,12 +330,12 @@ input[type="checkbox"].checkbox-disabled:checked {
   position: relative;
   top: -17px;
   left: 4px;
-  color: white;
+  color: rgb(0, 0, 0);
 }
 
 #formselectinv .MuiInputLabel-root,
 #formselectinv .MuiSelect-root {
-  color: white;
+  color: rgb(0, 0, 0);
 }
 
 .selectinvback {
@@ -457,10 +511,12 @@ input[type="checkbox"].checkbox-disabled:checked {
   height: 600px;
   max-height: 70vh;
 }
+
 .modalanim.open {
   transform: translate(-50%, -50%) scale(1);
   opacity: 1;
 }
+
 .modalanim-content {
   top: 0;
   align-items: center;
@@ -470,13 +526,16 @@ input[type="checkbox"].checkbox-disabled:checked {
   overflow-y: auto;
   z-index: 991;
 }
+
 .modalanim-content::-webkit-scrollbar {
   width: 8px;
   height: 8px;
 }
+
 .modalanim-content::-webkit-scrollbar-thumb {
   background-color: #7a7a7a;
 }
+
 .modalanim-content::-webkit-scrollbar-track {
   background-color: #1d1d1d;
 }
@@ -496,10 +555,12 @@ input[type="checkbox"].checkbox-disabled:checked {
   transition: opacity 0.1s ease-in-out;
   pointer-events: none;
 }
+
 .tooltip-wrapper.open {
   opacity: 1;
   pointer-events: auto;
 }
+
 .tooltip {
   position: absolute;
   transform: scale(0);
@@ -511,6 +572,7 @@ input[type="checkbox"].checkbox-disabled:checked {
   transition: transform 0.4s ease, left 0.4s ease, top 0.4s ease;
   border: 2px solid rgba(156, 58, 58, 0.39);
 }
+
 .tooltip-wrapper.open .tooltip {
   transform: scale(1);
 }
@@ -545,25 +607,6 @@ input[type="checkbox"].checkbox-disabled:checked {
   width: 45px;
 }
 
-.buttons-container {
-  display: flex;
-  align-items: center;
-}
-
-.balance-container {
-  display: flex;
-  align-items: center;
-}
-
-.top-frame {
-  overflow-x: auto;
-  max-width: 100%;
-  top: 0;
-  position: sticky;
-  display: block;
-  height: 155px;
-}
-
 .table-container {
   overflow-x: auto;
   max-width: 100%;
@@ -595,12 +638,15 @@ input[type="checkbox"].checkbox-disabled:checked {
   border-right: 0px solid rgb(83, 51, 51);
   border-bottom: 0px solid rgb(83, 51, 51);
 }
+
 tbody tr:nth-child(odd) {
   background-color: #1d1313dc;
 }
+
 .tablemap tr:nth-child(even) {
   background-color: transparent;
 }
+
 .tablemap tr:nth-child(odd) {
   background-color: transparent;
 }
@@ -646,23 +692,30 @@ th {
 .tdcenter {
   position: relative;
   text-align: center;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: clip;
 }
+
 .tdcenterbrd {
   position: relative;
   text-align: center;
   border-left: 1px solid rgb(83, 51, 51);
   border-right: 1px solid rgb(83, 51, 51);
 }
+
 .tdcenterbrdright {
   position: relative;
   text-align: center;
   border-right: 1px solid rgb(83, 51, 51);
 }
+
 .tdcenterbrdleft {
   position: relative;
   text-align: center;
   border-left: 1px solid rgb(83, 51, 51);
 }
+
 .tdcenterbrdbot {
   position: relative;
   text-align: center;
@@ -783,6 +836,9 @@ th {
   position: relative;
   text-align: center;
   font-size: 13px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: clip;
 }
 
 .thcenterbrd {
@@ -838,11 +894,11 @@ th {
 
 .overlay-trad {
   position: absolute;
-  top: 0px;
-  left: -15px;
-  width: 40px;
-  height: 40px;
-  background-image: url('./trader.png');
+  top: 7px;
+  left: 0px;
+  width: 20px;
+  height: 20px;
+  background-image: url('./exchange.png');
   background-size: contain;
   background-repeat: no-repeat;
   background-position: center;
@@ -960,17 +1016,17 @@ th {
   z-index: 9999;
 }
 
-.tooltip-container {
+.tooltiphrvst-container {
   position: relative;
   display: inline-block;
 }
 
-.tooltip-trigger {
+.tooltiphrvst-trigger {
   cursor: pointer;
   text-decoration: underline;
 }
 
-.tooltip-content {
+.tooltiphrvst-content {
   position: absolute;
   z-index: 1;
   background-color: #333;
@@ -984,11 +1040,11 @@ th {
   white-space: nowrap;
 }
 
-.tooltip-container:hover .tooltip-content {
+.tooltiphrvst-container:hover .tooltiphrvst-content {
   display: block;
 }
 
-.tooltip-content.left {
+.tooltiphrvst-content.left {
   top: 50%;
   right: calc(100% + 5px);
   transform: translateY(-50%);
@@ -999,8 +1055,37 @@ th {
   grid-template-columns: 1fr 1fr;
   gap: 20px;
   max-height: 100vh;
-  /* max-height: 80vh; */
+  max-height: 80vh;
   overflow: hidden;
+}
+
+.tooltip {
+  position: absolute;
+  transform: scale(0);
+  opacity: 0;
+  background: rgba(0, 0, 0, 1);
+  color: white;
+  padding: 15px;
+  border-radius: 8px;
+  box-shadow: 0 5px 15px rgba(0, 0, 0, 1);
+  transition: transform 0.5s ease, opacity 0.3s ease;
+  border: 2px solid rgba(156, 58, 58, 0.39);
+  max-height: 80vh;
+  overflow-y: auto;
+}
+.tooltip-wrapper.open .tooltip {
+  transform: scale(1);
+  opacity: 1;
+}
+.tooltip::-webkit-scrollbar {
+  width: 8px;
+}
+.tooltip::-webkit-scrollbar-thumb {
+  background-color: #7a7a7a;
+  border-radius: 4px;
+}
+.tooltip::-webkit-scrollbar-track {
+  background-color: #1d1d1d;
 }
 
 .left-content {
