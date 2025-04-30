@@ -73,10 +73,10 @@ function ModalOptions({ onClose, dataSet, onFarmTimeChange, onMaxBBChange, onCoi
                 }}>
                 <button onClick={closeModal} class="button" align="right" position='absolute'><img src="./icon/ui/cancel.png" alt="" className="resico" /></button>
                 <span style={{ fontWeight: "bold", fontSize: "16px" }}>Preferences</span>
-                <div><input type="text" onChange={handleFarmTimeChange} value={dataSet.inputFarmTime || ""} style={{ textAlign: "left", width: "30px" }} />Hours your can check your farm daily</div>
+                <div><input type="text" onChange={handleFarmTimeChange} value={dataSet.inputFarmTime || ""} style={{ textAlign: "left", width: "30px" }} />Hours you can check your farm daily</div>
                 <div><input type="text" onChange={handleMaxBBChange} value={dataSet.inputMaxBB || ""} style={{ textAlign: "left", width: "30px" }} />Restock daily</div>
                 <div><input type="text" onChange={handleCoinsRatioChange} value={dataSet.coinsRatio || ""} style={{ textAlign: "left", width: "30px" }} />Coins/flower</div>
-                <div><input type="text" onChange={handleAnimalLvlChange} value={dataSet.inputAnimalLvl || ""} style={{ textAlign: "left", width: "30px" }} />Animal lvl for details</div>
+                <div><input type="text" onChange={handleAnimalLvlChange} value={dataSet.inputAnimalLvl || ""} style={{ textAlign: "left", width: "30px" }} />Animal lvl</div>
             </div>
         </div>
     );

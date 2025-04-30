@@ -48,6 +48,7 @@ var food = [];
 var fish = [];
 var flower = [];
 var bounty = [];
+var craft = [];
 var compost = [];
 //var fishing = [];
 //var expand = [];
@@ -90,10 +91,6 @@ var fruitPlanted = [];
 var dProd = [];
 var dProdtry = [];
 var xdxp = 0;
-
-let vinputMaxBB = 1;
-let vinputFarmTime = 8;
-let vinputAnimalLvl = 5;
 
 var xinitprc = false;
 var xnotifiedTimers = [];
@@ -210,7 +207,7 @@ function App() {
   ]);
   const [xListeColFish, setXListeColFish] = useState([
     ['Category', 1],
-    ['Location', 1],
+    ['Location', 0],
     ['Hoard', 1],
     ['Item name', 1],
     ['Bait', 1],
@@ -334,7 +331,7 @@ function App() {
     //getTryit(nft, nftw, skill, buildng, bud);
     //setInv();
     setitData(it);
-    setCookie();
+    //setCookie();
     setShowfTNFT(false);
   };
   const handleClosefGraph = () => {
@@ -618,6 +615,7 @@ function App() {
             fish = responseData.fish;
             flower = responseData.flower;
             bounty = responseData.bounty;
+            craft = responseData.craft;
             compost = responseData.compost;
             nft = responseData.nft;
             nftw = responseData.nftw;
@@ -776,8 +774,8 @@ function App() {
     setCostChecked(event.target.checked);
   };
   const handleTryCheckedChange = (event) => {
-    setTryChecked(event.target.checked);
     dataSet.forTry = event.target.checked;
+    setTryChecked(event.target.checked);
   };
   const handleBurnCheckedChange = (event) => {
     setBurnChecked(event.target.checked);
@@ -2002,6 +2000,7 @@ function App() {
         totCost += icost * iQuant;
         const xCost = selectedQuantFish === "unit" ? icost : icost * iQuant;
         const ixpsfl = isNaN(ixp / xCost) ? "" : ixp / xCost;
+        xListeColFish[1][1] = 0;
         if (icat !== "Bait") {
           return (
             <tr key={index}>
@@ -2829,9 +2828,9 @@ function App() {
       const tableContent = (
         <>
           <tr>
-            <td className="tdcenter">{exchangeimg}</td>
+            <td>{exchangeimg}</td>
             {vegetableNames.map((name, index) => (
-              <td className="tdcenter">{<img src={it[name]?.img || nft[name]?.img || nftw[name]?.img || imgna} alt={''} className="itico" title={name} />}{data[index]?.fulfilledAt && imgsold}</td>
+              <td style={{ textAlign: 'center', position: "relative" }}>{<img src={it[name]?.img || nft[name]?.img || nftw[name]?.img || imgna} alt={''} className="itico" title={name} />}{data[index]?.fulfilledAt && imgsold}</td>
             ))}
           </tr>
           {/* <tr>
@@ -3711,6 +3710,7 @@ function App() {
         tool = responseData.allData.tool;
         food = responseData.allData.food;
         fish = responseData.allData.fish;
+        craft = responseData.allData.craft;
         flower = responseData.allData.flower;
         bounty = responseData.allData.bounty;
         compost = responseData.allData.compost;
@@ -3811,6 +3811,7 @@ function App() {
   useEffect(() => {
     loadCookie();
   }, []);
+  const intervalRef = useRef(null);
   useEffect(() => {
     //loadCookie();
     const fetchData = async () => {
@@ -3821,13 +3822,35 @@ function App() {
       }
     };
     //fetchData();
-    const interval = setInterval(() => {
-      if (farmData.balance) {
-        fetchData();
+    const startInterval = () => {
+      if (!intervalRef.current) {
+        intervalRef.current = setInterval(() => {
+          if (farmData.balance) {
+            fetchData();
+          }
+        }, 60000);
       }
-    }, 60000);
+    };
+    const clearIntervalIfExists = () => {
+      if (intervalRef.current) {
+        clearInterval(intervalRef.current);
+        intervalRef.current = null;
+      }
+    };
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible') {
+        startInterval();
+      } else {
+        clearIntervalIfExists();
+      }
+    };
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    if (document.visibilityState === 'visible') {
+      startInterval();
+    }
     return () => {
-      clearInterval(interval);
+      clearIntervalIfExists();
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
     };
   }, [farmData.balance]);
   useEffect(() => {
@@ -4397,7 +4420,9 @@ function App() {
     dataSet.it = it;
     dataSet.food = food;
     dataSet.fish = fish;
+    dataSet.flower = flower;
     dataSet.bounty = bounty;
+    dataSet.craft = craft;
     dataSet.nft = nft;
     dataSet.nftw = nftw;
     dataSet.skill = skill;
