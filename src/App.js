@@ -10,11 +10,12 @@ import Tooltip from "./tooltip.js";
 import DropdownCheckbox from './listcol.js';
 import { FormControl, InputLabel, Select, MenuItem, Switch, FormControlLabel } from '@mui/material';
 import { frmtNb, ColorValue, Timer } from './fct.js';
+import { setHome } from './setHome.js';
 //import xrespFarm from './respFarm.json';
 //import xrespPrice from './respPrice.json';
 //import xrespBumpkin from './respBumpkin.json';
 
-const runLocal = true;
+const runLocal = false;
 const API_URL = runLocal ? "" : process.env.REACT_APP_API_URL;
 
 var vversion = 1.02;
@@ -129,6 +130,8 @@ function App() {
   const [farmData, setFarmData] = useState([]);
   const [bumpkinData, setBumpkinData] = useState([]);
   const [reqState, setReqState] = useState("");
+  const [homeData, sethomeData] = useState(null);
+  const [isOpen, setIsOpen] = useState({});
   const [invData, setinvData] = useState(null);
   const [cookData, setcookData] = useState(null);
   const [fishData, setfishData] = useState(null);
@@ -160,7 +163,7 @@ function App() {
   const [selectedFromActivityDay, setSelectedFromActivityDay] = useState("7");
   const [selectedExpandType, setSelectedExpandType] = useState("spring");
   const [activityDisplay, setActivityDisplay] = useState("item");
-  const [selectedInv, setSelectedInv] = useState('inv');
+  const [selectedInv, setSelectedInv] = useState('home');
   const [activeTimers, setActiveTimers] = useState([]);
   const [notifiedTimers, setNotifiedTimers] = useState([]);
   const [GraphType, setGraphType] = useState('');
@@ -296,6 +299,12 @@ function App() {
   const [TryChecked, setTryChecked] = useState(false);
   const [BurnChecked, setBurnChecked] = useState(true);
 
+  const handleHomeClic = (index) => {
+    setIsOpen((prevState) => ({
+      ...prevState,
+      [index]: !prevState[index],
+    }));
+  };
   const handleButtonfTNFTClick = () => {
     setShowfTNFT(true);
   };
@@ -331,6 +340,7 @@ function App() {
     //getTryit(nft, nftw, skill, buildng, bud);
     //setInv();
     setitData(it);
+    //refreshDataSet();
     //setCookie();
     setShowfTNFT(false);
   };
@@ -604,8 +614,12 @@ function App() {
             const responseData = await response.json();
             username = responseData.username;
             isAbo = responseData.isabo;
-            isVip = responseData.isvip;
+            isVip = responseData.vip;
+            dataSet.isVip = isVip;
+            dataSet.dateVip = responseData.datevip;
             isBanned = responseData.isbanned ? <div style={{ color: "red", margin: "0", padding: "0" }}><img src={"./icon/ui/suspicious.png"} /><span>BANNED</span></div> : "";
+            dataSet.isBanned = responseData.isbanned;
+            dataSet.dailychest = responseData.dailychest;
             dateSeason = new Date(responseData.constants.dateSeason);
             tktName = responseData.constants.tktName;
             imgtkt = responseData.constants.imgtkt;
@@ -637,8 +651,31 @@ function App() {
             dataSet.taxFreeSFL = taxFreeSFL;
             setReqState('');
             setFarmData(responseData.frmData);
+            dataSet.farmData = responseData.frmData;
             setBumpkinData(responseData.Bumpkin);
+            dataSet.bumpkin = responseData.Bumpkin[0];
             getPlanted(it);
+            if (dataSet.farmId !== inputValue || !dataSet.bumpkinImg) {
+              const response = await fetch(API_URL + "/getbumpkin", {
+                method: 'GET',
+                headers: {
+                  //tokenuri: bumpkinData[0].tkuri,
+                  //bknid: 1, //bumpkinData[0].id,
+                  frmid: inputValue,
+                  tknuri: responseData.Bumpkin[0].tkuri,
+                }
+              });
+              if (response.ok) {
+                const data = await response.json();
+                //bkn = data.responseBumpkin;
+                const imageData = data.responseImage;
+                //setImageData(`data:image/png;base64,${imageData}`);
+                dataSet.bumpkinImg = `data:image/png;base64,${imageData}`;
+                //setBumpkinDataOC(data.responseBkn);
+                //bumpkinData[0].Bknlvl = data.Bknlvl;
+              }
+            }
+            dataSet.farmId = inputValue;
             if (localStorage.getItem("SFLManData") === null) {
               //setFarmit(it);
               //setCookit(food);
@@ -653,6 +690,7 @@ function App() {
             //NFTPrice();
             setfTrades();
             setdeliveriesData(responseData.orderstable);
+            dataSet.orderstable = responseData.orderstable;
             setSelectedExpandType(xexpandData.type);
             //setfromtoexpand(responseData.expandData);
             //getFromToExpand(fromexpand, toexpand);
@@ -1527,7 +1565,7 @@ function App() {
         const cellDSflStyle = {};
         cellDSflStyle.backgroundColor = (selectedDsfl === "max" && Dsfl > 0) ? maxPltfrm === "Trader" ? 'rgba(5, 128, 1, 0.14)' :
           maxPltfrm === "Niftyswap" ? 'rgba(103, 1, 128, 0.14)' : maxPltfrm === "OpenSea" ? 'rgba(0, 75, 236, 0.14)' : '' : '';
-        cellDSflStyle.color = ColorValue(Dsfl);
+        cellDSflStyle.color = ColorValue(Dsfl, 0, 10);
         if (selectedQuant !== "unit") {
           const bCost = !isNaN(costp) ? Number(costp) : 0;
           const bShop = !isNaN(pShop) ? Number(pShop) : 0;
@@ -2366,10 +2404,13 @@ function App() {
         const bntName = element;
         const ico = <img src={cobj.img} alt={''} className="nodico" title={bntName} />;
         const stock = cobj.stock > 0 ? cobj.stock : '';
-        const value = (cobj.cost > 0 && !it[bntName]) ? parseFloat((cobj.cost * stock) / coinsRatio).toFixed(3) : '';
+        const icost = TryChecked ? cobj.costtry : cobj.cost;
+        const value = (icost > 0 && !it[bntName]) ? parseFloat((icost * stock) / coinsRatio).toFixed(3) : '';
         const qtoday = cobj.qtoday > 0 ? cobj.qtoday : '';
-        const valuetoday = cobj.vtoday > 0 ? parseFloat(cobj.vtoday / coinsRatio).toFixed(3) : '';
-        const toolcostToday = cobj.toolctoday > 0 ? parseFloat(cobj.toolctoday / coinsRatio).toFixed(3) : '';
+        const ivtoday = TryChecked ? cobj.vtodaytry : cobj.vtoday;
+        const valuetoday = ivtoday > 0 ? parseFloat(ivtoday / coinsRatio).toFixed(3) : '';
+        const itoolctoday = TryChecked ? cobj.toolctodaytry : cobj.toolctoday;
+        const toolcostToday = itoolctoday > 0 ? parseFloat(itoolctoday / coinsRatio).toFixed(3) : '';
         valueTotal += Number(value);
         vTodayTotal += Number(valuetoday);
         toolcostTodayTotal += Number(toolcostToday);
@@ -3729,11 +3770,13 @@ function App() {
         isleMap = responseData.allData.isleMap;
         ftrades = responseData.allData.ftrades;
         dataSet.taxFreeSFL = frmtNb(responseData.allData.taxFreeSFL);
+        dataSet.dailychest = responseData.allData.dailychest;
         //setanimalData(responseData.allData.Animals);
         //expand = responseData.allData.expand;
         //xexpandData = responseData.allData.expandData;
         //frmOwner = responseData.allData.frmOwner;
         setFarmData(responseData.allData.frmData);
+        dataSet.farmData = responseData.allData.frmData;
         setBumpkinData(responseData.allData.Bumpkin);
         //MergeIt(responseData.allData.it, it);
         setPlanted(responseData.allData.it);
@@ -3745,6 +3788,7 @@ function App() {
         //getTryit(nft, nftw, skill, buildng, bud);
         //getActive(nft, nftw, skill, buildng, bud);
         setdeliveriesData(responseData.allData.orderstable);
+        dataSet.orderstable = responseData.allData.orderstable;
         setfTrades();
         setitData(it);
         refreshDataSet();
@@ -3822,13 +3866,21 @@ function App() {
       }
     };
     //fetchData();
+    if (!isAbo) {
+      //console.log("not abo");
+      setTimeout(() => {
+        if (farmData.balance) {
+          fetchData();
+        }
+      }, 19 * 1000);
+    }
     const startInterval = () => {
       if (!intervalRef.current) {
         intervalRef.current = setInterval(() => {
           if (farmData.balance) {
             fetchData();
           }
-        }, 60000);
+        }, 60 * 1000);
       }
     };
     const clearIntervalIfExists = () => {
@@ -3852,8 +3904,20 @@ function App() {
       clearIntervalIfExists();
       document.removeEventListener('visibilitychange', handleVisibilityChange);
     };
-  }, [farmData.balance]);
+  }, [farmData?.balance]);
   useEffect(() => {
+    if (selectedInv === "home") {
+      try {
+        const xhomeData = setHome(dataSet, xListeColBounty, handleHomeClic, isOpen);
+        sethomeData(xhomeData);
+        setMutants(mutantchickens);
+        setsTickets(sTickets);
+        if (farmData.balance) { setCookie() }
+      } catch (error) {
+        //localStorage.clear();
+        console.log(error);
+      }
+    }
     if (selectedInv === "inv") {
       try {
         setInv();
@@ -3955,7 +4019,7 @@ function App() {
     selectedReady, selectedDsfl, selectedInv, inputMaxBB, inputKeep, inputFarmTime, inputAnimalLvl, inputCoinsRatio, deliveriesData, HarvestD,
     xListeCol, xListeColCook, xListeColFish, xListeColFlower, xListeColExpand, xListeColAnimals, xListeColActivity,
     xListeColActivityItem, CostChecked, TryChecked, BurnChecked, cstPrices, fromtolvltime, inputFromLvl, inputToLvl, fromtoexpand, activityData,
-    activityDisplay, ftradesData]);
+    activityDisplay, ftradesData, isOpen]);
   /* useEffect(() => {
     console.log("InputValue a changé :", inputValue);
   }, [inputValue]); */
@@ -4098,11 +4162,12 @@ function App() {
                           },
                         },
                       }}>
+                      <MenuItem value="home"><img src="./icon/ui/playercount.png" alt="" className="itico" />Home</MenuItem>
                       <MenuItem value="inv"><img src="./icon/tools/shovel.png" alt="" className="itico" />Farm</MenuItem>
                       <MenuItem value="cook"><img src="./icon/food/chef_hat.png" alt="" className="itico" />Cook</MenuItem>
                       <MenuItem value="fish"><img src="./icon/fish/anchovy.png" alt="" className="itico" />Fish</MenuItem>
                       <MenuItem value="flower"><img src="./icon/flower/red_pansy.webp" alt="" className="itico" />Flower</MenuItem>
-                      <MenuItem value="bounty"><img src="./icon/ui/synced.gif" alt="" className="itico" />Bounty</MenuItem>
+                      <MenuItem value="bounty"><img src="./icon/tools/sand_shovel.png" alt="" className="itico" />Dig</MenuItem>
                       <MenuItem value="animal"><img src={imgchkn} alt="" className="itico" />Animals</MenuItem>
                       <MenuItem value="map"><img src="./icon/ui/world.png" alt="" className="itico" />Map</MenuItem>
                       <MenuItem value="expand"><img src="./icon/tools/hammer.png" alt="" className="itico" />Expand</MenuItem>
@@ -4127,19 +4192,31 @@ function App() {
         </div>
         <div className="table-container">
           {farmData.balance ? (
-            <>
-              {invData ? selectedInv === "inv" ? invData : "" : ""}
-              {cookData ? selectedInv === "cook" ? cookData : "" : ""}
-              {selectedInv === "fish" ? <span><img src={imgrod} alt="" className="itico" title="Daily casts" />{fishcasts}  -  Cost: {fishcosts}</span> : null}
-              {fishData ? selectedInv === "fish" ? fishData : "" : ""}
-              {flowerData ? selectedInv === "flower" ? flowerData : "" : ""}
-              {bountyData ? selectedInv === "bounty" ? bountyData : "" : ""}
-              {animalData ? selectedInv === "animal" ? animalData : "" : ""}
-              {mapData ? selectedInv === "map" ? mapData : "" : ""}
-              {expandData ? selectedInv === "expand" ? expandData : "" : ""}
-              {activityTable ? selectedInv === "activity" ? activityTable : "" : ""}
-            </>
-          ) : ("")}
+            (() => {
+              const componentsMap = {
+                home: homeData || null,
+                inv: invData || null,
+                cook: cookData || null,
+                fish: (
+                  <>
+                    <span>
+                      <img src={imgrod} alt="" className="itico" title="Daily casts" />
+                      {fishcasts} - Cost: {fishcosts}
+                    </span>
+                    {fishData || null}
+                  </>
+                ),
+                flower: flowerData || null,
+                bounty: bountyData || null,
+                animal: animalData || null,
+                map: mapData || null,
+                expand: expandData || null,
+                activity: activityTable || null,
+              };
+
+              return componentsMap[selectedInv] || null;
+            })()
+          ) : null}
         </div>
         {showOptions && (
           <ModalOptions onClose={() => {
@@ -4164,7 +4241,14 @@ function App() {
             frmid={lastClickedInputValue.current} coinsRatio={coinsRatio} API_URL={API_URL} dataSet={dataSet} />
         )}
         {showfDlvr && (
-          <ModalDlvr onClose={() => { handleClosefDlvr() }} tableData={deliveriesData} imgtkt={imgtkt} coinsRatio={coinsRatio} />
+          <ModalDlvr
+          onClose={() => { handleClosefDlvr() }}
+          tableData={deliveriesData}
+          imgtkt={imgtkt}
+          coinsRatio={coinsRatio}
+          TryChecked={TryChecked}
+          handleTryCheckedChange={handleTryCheckedChange}
+          />
         )}
         {showCadre && (
           <Cadre onClose={handleCloseCadre} tableData={listingsData} Platform={platformListings} frmid={lastClickedInputValue.current} />
@@ -4286,7 +4370,7 @@ function App() {
         setInputToLvl(loadedData.inputToLvl);
         setCstPrices(loadedData.cstPrices);
         //setSelectedInv(loadedData.selectedInv);
-        setSelectedInv("inv");
+        setSelectedInv("home");
         setSelectedCurr(loadedData.selectedCurr);
         setSelectedDsfl(loadedData.selectedDsfl);
         setSelectedQuantity(loadedData.selectedQuantity);
@@ -4394,29 +4478,6 @@ function App() {
     }
   }
   function refreshDataSet() {
-    /* dataSet = {
-      it: it,
-      food: food,
-      fish: fish,
-      bounty: bounty,
-      nft: nft,
-      nftw: nftw,
-      skill: skill,
-      skilllgc: skilllgc,
-      buildng: buildng,
-      buildngf: buildngf,
-      bud: bud,
-      tool: tool,
-      compost: compost,
-      spot: spot,
-      forTry: TryChecked,
-      ftrades: ftrades,
-      balanceUSD: balanceUSD,
-      withdrawtax: withdrawtax,
-      taxFreeSFL: taxFreeSFL,
-      sflwithdraw: sflwithdraw,
-      usdwithdraw: usdwithdraw,
-    } */
     dataSet.it = it;
     dataSet.food = food;
     dataSet.fish = fish;
@@ -4433,13 +4494,8 @@ function App() {
     dataSet.tool = tool;
     dataSet.compost = compost;
     dataSet.spot = spot;
-    dataSet.forTry = TryChecked;
+    //dataSet.forTry = TryChecked;
     dataSet.ftrades = ftrades;
-    /* dataSet.balanceUSD = balanceUSD;
-    dataSet.withdrawtax = withdrawtax;
-    dataSet.taxFreeSFL = taxFreeSFL;
-    dataSet.sflwithdraw = sflwithdraw;
-    dataSet.usdwithdraw = usdwithdraw; */
   }
 }
 function convTime(nombre) {

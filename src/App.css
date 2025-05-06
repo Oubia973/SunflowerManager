@@ -415,6 +415,57 @@ input[type="checkbox"].checkbox-disabled:checked {
   position: relative;
 }
 
+.home-container {
+  display: flex;
+  gap: 20px;
+}
+
+.home-left-panel {
+  position: sticky;
+  top: 0;
+  align-self: flex-start;
+  width: 110px;
+  background-color: #1d1d1d;
+  padding: 5px;
+  border-radius: 8px;
+  color: white;
+  text-align: center;
+}
+
+.home-left-panel-text p {
+  margin: 10px 0;
+}
+
+.collapsible-container {
+  flex: 1;
+}
+
+.collapsible-block {
+  margin-bottom: 10px;
+  border: 1px solid #ccc;
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.collapsible-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background-color: #333;
+  color: white;
+  padding: 10px;
+  cursor: pointer;
+}
+
+.collapsible-header:hover {
+  background-color: #444;
+}
+
+.collapsible-content {
+  background-color: #222;
+  padding: 10px;
+}
+
 .modal {
   position: fixed;
   top: 0;

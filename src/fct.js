@@ -62,17 +62,25 @@ export function convtimenbr(tempsFormat) {
   }
 }
 
-export function ColorValue(value) {
-  if (value < 1) {
+export function ColorValue(value, minValue = 1, maxValue = 10) {
+  if (value <= minValue) {
     return "red";
-  } else {
-    const normalizedValue = Math.min((value - 1) / (20 - 1), 1);
-    //console.log(normalizedValue);
-    const red = Math.round((1 - normalizedValue) * 255);
-    const green = Math.round(255);
-    const blue = 0;
-    return `rgb(${red}, ${green}, ${blue})`;
   }
+  if (value === Infinity) {
+    return `rgb(${0}, ${255}, ${0})`;
+  }
+  /* if (value >= maxV) {
+    return "green";
+  } */
+  //const normalizedValue = Math.min((value - 1) / (20 - 1), 1);
+  //console.log(normalizedValue);
+  //const red = Math.round((1 - normalizedValue) * 255);
+  //const green = Math.round(255);
+  const normalizedValue = (value - minValue) / (maxValue - minValue);
+  const red = Math.round(255 * (1 - normalizedValue));
+  const green = 255;
+  const blue = 0;
+  return `rgb(${red}, ${green}, ${blue})`;
 }
 
 export function Timer({ timestamp, index, onTimerFinish }) {

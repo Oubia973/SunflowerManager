@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { FormControl, InputLabel, Select, MenuItem } from '@mui/material';
+import { FormControl, InputLabel, Select, MenuItem, Switch, FormControlLabel } from '@mui/material';
 import Tooltip from "./tooltip.js";
 const imgno = './icon/ui/cancel.png';
 const imgyes = './icon/ui/confirm.png';
@@ -10,7 +10,7 @@ const imggems = './icon/res/gem.webp';
 const imgna = './icon/nft/na.png';
 //const imgtkt = './icon/res/' + imgtktname;
 
-function ModalDlvr({ onClose, tableData, imgtkt, coinsRatio }) {
+function ModalDlvr({ onClose, tableData, imgtkt, coinsRatio, handleTryCheckedChange, TryChecked }) {
   const closeModal = () => {
     onClose();
   };
@@ -28,6 +28,10 @@ function ModalDlvr({ onClose, tableData, imgtkt, coinsRatio }) {
   const imgbsfl = <img src={imgsfl} alt="" title="SFL" style={{ width: '15px', height: '15px' }} />;
   const imgbcoins = <img src={imgcoins} alt="" title="Coins" style={{ width: '15px', height: '15px' }} />;
   const imgbgems = <img src={imggems} alt="" title="Coins" style={{ width: '15px', height: '15px' }} />;
+  function key(name) {
+    if (name === "active") { return TryChecked ? "tryit" : "isactive"; }
+    return TryChecked ? name + "try" : name;
+  }
   const handleChangeCost = (event) => {
     const selectedValue = event.target.value;
     setSelectedCost(selectedValue);
@@ -68,7 +72,7 @@ function ModalDlvr({ onClose, tableData, imgtkt, coinsRatio }) {
       let patterntkn = /res\/(.*?)\ alt=/g;
       let correspondancetkn = patterntkn.exec(OrderItem.reward);
       let pattern = /(.*?)<img/g;
-      let correspondance = pattern.exec(OrderItem.reward);
+      let correspondance = pattern.exec(OrderItem[key("reward")]);
       const istkt = correspondancetkn && correspondancetkn[1] === imgtktname;
       const issfl = correspondancetkn && correspondancetkn[1] === "flowertoken.webp";
       const iscoins = correspondancetkn && correspondancetkn[1] === "coins.png";
@@ -85,7 +89,7 @@ function ModalDlvr({ onClose, tableData, imgtkt, coinsRatio }) {
           (<>{quantreward}{imgbtkt}</>);
       const costp2p = selectedCost === "shop" ? frmtNb(OrderItem.costs) : selectedCost === "trader" ? frmtNb(OrderItem.costt) : selectedCost === "nifty" ? frmtNb(OrderItem.costn) : selectedCost === "opensea" ? frmtNb(OrderItem.costo) : 0;
       if (OrderItem.completed) {
-        totCost += (OrderItem.cost / coinsRatio);
+        totCost += (OrderItem[key("cost")] / coinsRatio);
         totCostp2p += Number(costp2p);
         if (istkt) { totTKT += quantreward }
         if (issfl) { totSFL += quantreward }
@@ -100,9 +104,9 @@ function ModalDlvr({ onClose, tableData, imgtkt, coinsRatio }) {
           <td className="tdcenter">{OrderItem.completed ? ximgyes : ximgno}</td>
           {/* <td className="tdcenter" dangerouslySetInnerHTML={{ __html: OrderItem.reward }}>{coinrewardconvertsfl}</td> */}
           <td className="tdcenter">{textReward}</td>
-          <td className="tdcenter">{frmtNb(OrderItem.cost / coinsRatio)}</td>
+          <td className="tdcenter">{frmtNb(OrderItem[key("cost")] / coinsRatio)}</td>
           <td className="tdcenter">{costp2p}</td>
-          <td className="tdcenter">{frmtNb(OrderItem.costtkt / coinsRatio)}</td>
+          <td className="tdcenter">{frmtNb(OrderItem[key("costtkt")] / coinsRatio)}</td>
           <td className="tdcenter">{OrderItem.readyAt}</td>
           <td className="tdcenter">{OrderItem.nbcompleted}</td>
           <td className="tdcenter">{OrderItem.nbskipped}</td>
@@ -198,7 +202,7 @@ function ModalDlvr({ onClose, tableData, imgtkt, coinsRatio }) {
         <tr key={index}>
           <td className="tdcenter">{imgitem ? imgitem : item[1].item}</td>
           <td className="tdcenter">{item[1].lvl}</td>
-          <td className="tdcenter">{item[1].reward}{imgRew}</td>
+          <td className="tdcenter">{item[1][key("reward")]}{imgRew}</td>
           <td className="tdcenter">{item[1].completed ? item[1].completedAt === 0 ? ximgrdy : ximgyes : ximgno}</td>
         </tr>
       )
@@ -227,12 +231,55 @@ function ModalDlvr({ onClose, tableData, imgtkt, coinsRatio }) {
   }, []);
   useEffect(() => {
     setDeliveries();
-  }, [Delivery, selectedCost, tableData]);
+  }, [Delivery, selectedCost, tableData, TryChecked]);
   return (
     <div className="modal">
-      <div className="modal-content">
-        <h2>Deliveries</h2>
-        <button onClick={closeModal} class="button"><img src="./icon/ui/cancel.png" alt="" className="resico" /></button>
+      <div style={{
+        position: 'fixed', // Fixe le cadre par rapport à la fenêtre
+        top: 0, // Positionne le cadre en haut
+        left: 0, // Positionne le cadre à gauche
+        width: '100%', // Prend toute la largeur de la fenêtre
+        height: '40px', // Ajuste la hauteur
+        padding: '5px', // Espacement interne
+        backgroundColor: '#222', // Couleur de fond
+        display: 'flex', // Aligne les éléments horizontalement
+        justifyContent: 'left', // Espace entre les éléments
+        alignItems: 'center', // Centre les éléments verticalement
+        zIndex: 1000, // Assure que le cadre reste au-dessus des autres éléments
+        boxShadow: '0 2px 5px rgba(0, 0, 0, 0.1)', // Ajoute une ombre pour le style
+        gap: '10px'
+      }}>
+        <h1 style={{ margin: 0 }}>Deliveries</h1>
+        <div>
+          <button onClick={closeModal} class="button"><img src="./icon/ui/cancel.png" alt="" className="resico" /></button>
+        </div>
+        <FormControlLabel
+          control={
+            <Switch
+              checked={TryChecked}
+              onChange={handleTryCheckedChange}
+              color="primary"
+              size="small"
+              sx={{
+                '& .MuiSwitch-track': {
+                  backgroundColor: 'gray',
+                },
+                transform: 'translate(10%, 0%)',
+              }}
+            />
+          }
+          label={TryChecked ? 'Tryset' : 'Activeset'}
+          sx={{
+            '& .MuiFormControlLabel-label': {
+              fontSize: '10px',
+            },
+          }}
+        />
+      </div>
+      <div className="modal-content"
+        style={{
+          marginTop: '50px', // Ajoute un espace sous le cadre
+        }}>
         {tableDeliveries}
         <h2>Chores</h2>
         {tableChores}

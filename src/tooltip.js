@@ -287,8 +287,7 @@ const Tooltip = ({ onClose, item, context, value, clickPosition, dataSet }) => {
             txt = (
                 <><div>{itemImg} {item}</div>
                     <div>Yield by node {frmtNb(Item[myieldortry])}</div>
-                    <div>Harvest average {frmtNb(Item[harvestortry])} for {itemSpot} nodes</div>
-                    <div>{itemImg}x{frmtNb(Item[harvestortry] / itemSpot)} average by node</div>
+                    <div>Harvest average {itemImg}x{frmtNb(Item[harvestortry])} for {itemSpot} nodes</div>
                     {txtProdCost}
                     <div>Marketplace{imgmp}-10% tax {frmtNb(harvestCostp2pt)}{imgsfl}</div>
                     <div>Profit {frmtNb(profit)}{imgsfl} <span style={{ color: colorProfitMul }}>x{frmtNb(profitMul)}</span></div></>
@@ -332,7 +331,7 @@ const Tooltip = ({ onClose, item, context, value, clickPosition, dataSet }) => {
                     const toolCompo = Object.keys(itemTool).map((itemName, itIndex) => (
                         itemTool[itemName] && dataSet.it[itemName] ? (
                             <>
-                                {itemTool[itemName] * cycleD * itemSpot}
+                                {itemTool[itemName] * dailySpot}
                                 <img src={dataSet.it[itemName].img} className="resicon" alt={itemName} />
                             </>
                         ) : null));
@@ -352,7 +351,7 @@ const Tooltip = ({ onClose, item, context, value, clickPosition, dataSet }) => {
                             return (
                                 <React.Fragment key={itIndex}>
                                     <img src={itemToolCompo.img} className="resicon" alt={itemName} />
-                                    x{Item.compo[itemName]}
+                                    x{Item.compo[itemName] * dailySpot}
                                 </React.Fragment>
                             );
                         });
@@ -399,12 +398,12 @@ const Tooltip = ({ onClose, item, context, value, clickPosition, dataSet }) => {
                 //const prodCost = (nodeCost * dailySpot) / dataSet.coinsRatio;
                 dailyCoinsCost = ((Item[seedortry] + oilCost + toolCost) / harvestNb) * dailySpot;
                 dailySflCost = (dailyCoinsCost / dataSet.coinsRatio);
-                const txtOilQuantTotal = Item.greenhouse && <span> Oil: {oilQuant * itemSpot}{imgOil}</span>;
+                const txtOilQuantTotal = Item.greenhouse && <span> Oil: {oilQuant * dailySpot}{imgOil}</span>;
                 const txt1harvest = <span> {!Item.greenhouse ? <div>For first harvest :</div> : null}</span>;
-                const txtSeed = <div> - Seeds: {frmtNb(Item[seedortry] * itemSpot)}{imgcoins} {txtOilQuantTotal}
-                    {'('}{frmtNb(((Item[seedortry] + oilCost) * itemSpot) / dataSet.coinsRatio)}{imgsfl}{')'}</div>;
-                const txtTool = <span> {!Item.greenhouse ? <div>- {imgTool} cost {toolCost * itemSpot}{imgcoins}
-                    {' ('}{frmtNb((toolCost * itemSpot) / dataSet.coinsRatio)}{imgsfl}{')'}</div> : null}</span>;
+                const txtSeed = <div> - Seeds: {frmtNb(Item[seedortry] * dailySpot)}{imgcoins} {txtOilQuantTotal}
+                    {'('}{frmtNb(((Item[seedortry] + oilCost) * dailySpot) / dataSet.coinsRatio)}{imgsfl}{')'}</div>;
+                const txtTool = <span> {!Item.greenhouse ? <div>- {imgTool} cost {toolCost * dailySpot}{imgcoins}
+                    {' ('}{frmtNb((toolCost * dailySpot) / dataSet.coinsRatio)}{imgsfl}{')'}</div> : null}</span>;
                 const txtNbHarvest = <span> {!Item.greenhouse ? <div>For {harvestNb} harvests = {frmtNb(dailySflCost)}{imgsfl}</div> : null}</span>;
                 txtCompo = <div>{txt1harvest}{txtSeed}{dataSet.nft["Foreman Beaver"][activeortry] ? null : txtTool}{txtNbHarvest}</div>;
             }
@@ -553,6 +552,8 @@ const Tooltip = ({ onClose, item, context, value, clickPosition, dataSet }) => {
                         }
                         if (booststable["Cabbage Boy"]?.tryit && nftitem === "Karkinos") { isBoostValid = false; }
                         if (boost?.boostit === "fruit" && nftitem === "Fruit Picker Apron" && item !== "Apple" && item !== "Orange" && item !== "Blueberry" && item !== "Banana") { isBoostValid = false; }
+                        if (nftitem === "No Axe No Worries" && Item.greenhouse) { isBoostValid = false; }
+                        if (nftitem === "Feller's Discount" && Item.greenhouse) { isBoostValid = false; }
                     }
                     return isBoostValid;
                 });
