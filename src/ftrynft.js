@@ -443,7 +443,7 @@ function ModalTNFT({ onClose, frmid, coinsRatio, API_URL, dataSet }) {
             </td>
             <td className="tdcenter">{value.price}</td>
             <td className="tdcenter">{value.pricem || 0}</td>
-            <td className="tdcenter">{isupply}</td>
+            <td className="tdcenter" onClick={(e) => handleTooltip(item, "trynftsupply", "nft", e, dataSet)}>{isupply}</td>
             <td className="tditemnft" style={{ color: `rgb(190, 190, 190)` }}>{value.boost}</td>
           </tr>
         );
@@ -473,7 +473,7 @@ function ModalTNFT({ onClose, frmid, coinsRatio, API_URL, dataSet }) {
             </td>
             <td className="tdcenter">{valuew.price}</td>
             <td className="tdcenter">{valuew.pricem || 0}</td>
-            <td className="tdcenter">{isupplyw}</td>
+            <td className="tdcenter" onClick={(e) => handleTooltip(itemw, "trynftsupply", "nftw", e, dataSet)}>{isupplyw}</td>
             <td className="tditemnft" style={{ color: `rgb(190, 190, 190)` }}>{valuew.boost}</td>
           </tr>
         );

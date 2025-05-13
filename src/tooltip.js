@@ -122,7 +122,7 @@ const Tooltip = ({ onClose, item, context, value, clickPosition, dataSet }) => {
                                 </React.Fragment>
                             );
                         });
-                        prodCost = toolCost / dataSet.coinsRatio;
+                        //prodCost = toolCost / dataSet.coinsRatio;
                         txtCost = (
                             <><div>{toolCompo} {'('}{frmtNb(prodCost)}{imgsfl}{')'}</div></>
                         );
@@ -511,7 +511,7 @@ const Tooltip = ({ onClose, item, context, value, clickPosition, dataSet }) => {
         }
         if (context === "trynft") {
             const booststable = { ...dataSet.skilllgc, ...dataSet.skill, ...dataSet.buildng, ...dataSet.nft, ...dataSet.nftw, ...dataSet.bud };
-            const imtemimg = <img src={Item.img ?? imgna} alt={item} style={{ width: "22px", height: "22px" }} />;
+            const imtemimg = <img src={Item?.img ?? imgna} alt={item} style={{ width: "22px", height: "22px" }} />;
             let filteredBoosts = [];
             let txtItem = "";
             const filterBoosts = (item, boosttype) => {
@@ -595,6 +595,30 @@ const Tooltip = ({ onClose, item, context, value, clickPosition, dataSet }) => {
                     <div>Then on main page you can switch Activeset/Tryset to see differences</div>
                 </>
             );
+        }
+        if (context === "trynftsupply") {
+            if (value === "nft") {
+                const nftItem = dataSet.nft[item] ? dataSet.nft[item] : null;
+                const imtemimg = <img src={nftItem?.img ?? imgna} alt={item} style={{ width: "22px", height: "22px" }} />;
+                txt = (
+                    <><div>{imtemimg}{item} supply</div>
+                        <div>In farms inventory {nftItem.inv || nftItem.supply || 0}</div>
+                        <div>Listed {nftItem.listed || 0}</div>
+                        <div>Banned {nftItem.banned || 0}</div>
+                        <div>On chain {nftItem.onchain || 0}</div></>
+                );
+            }
+            if (value === "nftw") {
+                const nftItem = dataSet.nftw[item] ? dataSet.nftw[item] : null;
+                const imtemimg = <img src={nftItem?.img ?? imgna} alt={item} style={{ width: "22px", height: "22px" }} />;
+                txt = (
+                    <><div>{imtemimg}{item} supply</div>
+                        <div>In farms inventory {nftItem.inv || nftItem.supply || 0}</div>
+                        <div>Listed {nftItem.listed || 0}</div>
+                        <div>Banned {nftItem.banned || 0}</div>
+                        <div>On chain {nftItem.onchain || 0}</div></>
+                );
+            }
         }
         if (context === "trades") {
             const trades = dataSet.ftrades;

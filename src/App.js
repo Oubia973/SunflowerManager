@@ -15,7 +15,7 @@ import { setHome } from './setHome.js';
 //import xrespPrice from './respPrice.json';
 //import xrespBumpkin from './respBumpkin.json';
 
-const runLocal = false;
+const runLocal = true;
 const API_URL = runLocal ? "" : process.env.REACT_APP_API_URL;
 
 var vversion = 1.02;
@@ -432,6 +432,28 @@ function App() {
           setNotifiedTimers((prevTimers) => [...prevTimers, index]);
           console.log(`Creating notification for index ${index}`);
         } */
+
+  }
+  async function subscribeToPush() {
+    const registration = await navigator.serviceWorker.ready;
+
+    const subscription = await registration.pushManager.subscribe({
+      userVisibleOnly: true,
+      applicationServerKey: urlBase64ToUint8Array('<TA_PUBLIC_KEY>')
+    });
+    await fetch('/api/save-subscription', {
+      method: 'POST',
+      body: JSON.stringify(subscription),
+      headers: { 'Content-Type': 'application/json' },
+    });
+  }
+  function urlBase64ToUint8Array(base64String) {
+    const padding = '='.repeat((4 - base64String.length % 4) % 4);
+    const base64 = (base64String + padding)
+      .replace(/\-/g, '+').replace(/_/g, '/');
+
+    const rawData = atob(base64);
+    return Uint8Array.from([...rawData].map(char => char.charCodeAt(0)));
   }
   /* const startTimer = (timestamp) => {
     setActiveTimers((prevTimers) => [...prevTimers, timestamp]);
@@ -550,6 +572,7 @@ function App() {
   };
   const handleButtonClick = async (reset) => {
     //if (Notification.permission !== 'granted') { Notification.requestPermission() }
+    //subscribeToPush();
     activeTimers.forEach(timerId => {
       clearInterval(timerId);
     });
@@ -2399,6 +2422,9 @@ function App() {
       let vTodayTotal = 0;
       let toolcostTodayTotal = 0;
       let dugTotal = 0;
+      let ratioTotal = 0;
+      const imgCoins = <img src={imgcoins} alt={''} className="itico" title="Coins" />;
+      const imgSfl = <img src={imgsfl} alt={''} className="itico" title="Flower" />;
       const tableContent = bountyKeys.map(element => {
         const cobj = bounty[element];
         const bntName = element;
@@ -2411,6 +2437,7 @@ function App() {
         const valuetoday = ivtoday > 0 ? parseFloat(ivtoday / coinsRatio).toFixed(3) : '';
         const itoolctoday = TryChecked ? cobj.toolctodaytry : cobj.toolctoday;
         const toolcostToday = itoolctoday > 0 ? parseFloat(itoolctoday / coinsRatio).toFixed(3) : '';
+        const ratioCoins = itoolctoday > 0 ? parseFloat(ivtoday / toolcostToday).toFixed(0) : '';
         valueTotal += Number(value);
         vTodayTotal += Number(valuetoday);
         toolcostTodayTotal += Number(toolcostToday);
@@ -2423,9 +2450,11 @@ function App() {
             {xListeColBounty[3][1] === 1 ? <td className="tdcenter">{qtoday > 0 ? qtoday : ""}</td> : null}
             {xListeColBounty[4][1] === 1 ? <td className="tdcenter">{valuetoday > 0 ? valuetoday : ""}</td> : null}
             {xListeColBounty[5][1] === 1 ? <td className="tdcenter">{toolcostToday > 0 ? toolcostToday : ""}</td> : null}
+            {xListeColBounty[5][1] === 1 ? <td className="tdcenter">{ratioCoins > 0 ? ratioCoins : ""}</td> : null}
           </tr>
         );
       });
+      ratioTotal = (vTodayTotal * coinsRatio) / toolcostTodayTotal;
       const tableHeader = (
         <thead>
           <tr>
@@ -2436,6 +2465,7 @@ function App() {
             {xListeColBounty[3][1] === 1 ? <th className="thcenter">Today</th> : null}
             {xListeColBounty[4][1] === 1 ? <th className="thcenter">Value</th> : null}
             {xListeColBounty[5][1] === 1 ? <th className="thcenter">Tool cost</th> : null}
+            {xListeColBounty[5][1] === 1 ? <th className="thcenter">Ratio <div>{imgCoins}/{imgSfl}</div></th> : null}
           </tr>
           <tr>
             <td></td>
@@ -2445,6 +2475,7 @@ function App() {
             {xListeColBounty[3][1] === 1 ? <td className="tdcenter"></td> : null}
             {xListeColBounty[4][1] === 1 ? <td className="tdcenter">{parseFloat(vTodayTotal).toFixed(3)}</td> : null}
             {xListeColBounty[5][1] === 1 ? <td className="tdcenter">{parseFloat(toolcostTodayTotal).toFixed(3)}</td> : null}
+            {xListeColBounty[5][1] === 1 ? <td className="tdcenter">{parseFloat(ratioTotal).toFixed(0)}</td> : null}
           </tr>
         </thead>
       );
@@ -3820,10 +3851,6 @@ function App() {
         <img src={ico} alt={''} className="nftico" />
       )
     });
-    /* if (table.length > 0) {
-      var poulette = <img src="./icon/nft/poulte.png" alt={''} className="poulteico" />;
-      MutItems.unshift(poulette);
-    } */
     setmutData(MutItems);
   }
   function setsTickets(tabletk) {
@@ -3854,6 +3881,15 @@ function App() {
 
   useEffect(() => {
     loadCookie();
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('/service-worker.js')
+        .then(registration => {
+          //console.log('Service Worker enregistré avec succès:', registration);
+        })
+        .catch(error => {
+          console.error('Erreur lors de l\'enregistrement du Service Worker:', error);
+        });
+    }
   }, []);
   const intervalRef = useRef(null);
   useEffect(() => {
@@ -4242,12 +4278,12 @@ function App() {
         )}
         {showfDlvr && (
           <ModalDlvr
-          onClose={() => { handleClosefDlvr() }}
-          tableData={deliveriesData}
-          imgtkt={imgtkt}
-          coinsRatio={coinsRatio}
-          TryChecked={TryChecked}
-          handleTryCheckedChange={handleTryCheckedChange}
+            onClose={() => { handleClosefDlvr() }}
+            tableData={deliveriesData}
+            imgtkt={imgtkt}
+            coinsRatio={coinsRatio}
+            TryChecked={TryChecked}
+            handleTryCheckedChange={handleTryCheckedChange}
           />
         )}
         {showCadre && (

@@ -125,7 +125,7 @@ function ModalDlvr({ onClose, tableData, imgtkt, coinsRatio, handleTryCheckedCha
               <th className="thcenter">Reward</th>
               <th>Cost</th>
               <th>
-                <div className="selectquantback" style={{ top: `4px` }}><FormControl variant="standard" id="formselectquant" className="selectquant" size="small">
+                <div className="selectquantback" style={{ top: `1px` }}><FormControl variant="standard" id="formselectquant" className="selectquant" size="small">
                   <InputLabel>Cost</InputLabel>
                   <Select value={selectedCost} onChange={handleChangeCost}>
                     <MenuItem value="shop">Shop</MenuItem>
@@ -198,18 +198,65 @@ function ModalDlvr({ onClose, tableData, imgtkt, coinsRatio, handleTryCheckedCha
       //const costp2p = selectedCost === "shop" ? frmtNb(item[1].costs) : selectedCost === "trader" ? frmtNb(item[1].costt) : selectedCost === "nifty" ? frmtNb(item[1].costn) : selectedCost === "opensea" ? frmtNb(item[1].costo) : 0;
       const imgRew = <img src={item[1].rewardimg} alt="" title={item[1].rewarditem} style={{ width: '15px', height: '15px' }} />;
       const imgitem = item[1].itemimg !== imgna && <img src={item[1].itemimg} alt="" title={item[1].item} style={{ width: '20px', height: '20px' }} />;
-      return (
+      const isAnimal = "";
+      const isFower = "";
+      const lvlTxt = "";
+      /* return (
         <tr key={index}>
           <td className="tdcenter">{imgitem ? imgitem : item[1].item}</td>
           <td className="tdcenter">{item[1].lvl}</td>
           <td className="tdcenter">{item[1][key("reward")]}{imgRew}</td>
           <td className="tdcenter">{item[1].completed ? item[1].completedAt === 0 ? ximgrdy : ximgyes : ximgno}</td>
         </tr>
-      )
+      ) */
+      const rewardStyle = {
+        backgroundColor: item[1].completed ? 'rgb(0, 129, 39)' : 'rgb(148, 118, 35)', // Vert si completed, jaune sinon
+        color: 'white',
+        padding: '5px',
+        borderRadius: '5px',
+        textAlign: 'center',
+        fontSize: '12px',
+        marginTop: '5px',
+        height: '14px',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+      };
+      const lvlStyle = {
+        height: '14px',
+        backgroundColor: 'rgb(112, 112, 112)',
+        padding: '2px 3px',
+        borderRadius: '5px',
+        fontSize: '14px',
+        textAlign: 'center',
+        marginBottom: '6px',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+      };
+      return (
+        <div
+          key={index}
+          style={{
+            display: 'inline-block',
+            width: '55px',
+            margin: '4px',
+            textAlign: 'center',
+            border: '1px solid #ccc',
+            borderRadius: '10px',
+            padding: '5px',
+            boxShadow: '0 2px 5px rgba(0, 0, 0, 0.1)',
+          }}
+        >
+          <div style={lvlStyle}>{item[1].lvl}</div>
+          {imgitem}
+          <div style={rewardStyle}>{item[1][key("reward")]}{imgRew}</div>
+        </div>
+      );
     });
     const bountyContent = (
       <>
-        <table>
+        {/* <table>
           <thead>
             <tr>
               <th>Item</th>
@@ -221,7 +268,10 @@ function ModalDlvr({ onClose, tableData, imgtkt, coinsRatio, handleTryCheckedCha
           <tbody>
             {bountyItems}
           </tbody>
-        </table>
+        </table> */}
+        <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'flex-start' }}>
+          {bountyItems}
+        </div>
       </>
     )
     settableBounties(bountyContent);
@@ -249,7 +299,7 @@ function ModalDlvr({ onClose, tableData, imgtkt, coinsRatio, handleTryCheckedCha
         boxShadow: '0 2px 5px rgba(0, 0, 0, 0.1)', // Ajoute une ombre pour le style
         gap: '10px'
       }}>
-        <h1 style={{ margin: 0 }}>Deliveries</h1>
+        <h2 style={{ margin: 0 }}>Deliveries Chores Bounties</h2>
         <div>
           <button onClick={closeModal} class="button"><img src="./icon/ui/cancel.png" alt="" className="resico" /></button>
         </div>

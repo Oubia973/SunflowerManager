@@ -38,6 +38,18 @@
   display: block;
   height: 145px;
 }
+
+.tabletrades {
+  border-collapse: collapse;
+  width: auto;
+  table-layout: fixed;
+  white-space: nowrap;
+  margin-top: 0px;
+  border-left: 0px solid rgb(83, 51, 51);
+  border-right: 0px solid rgb(83, 51, 51);
+  border-bottom: 0px solid rgb(83, 51, 51);
+}
+
 .App-h1 {
   background-color: #15171b;
   height: 55px;
@@ -667,18 +679,6 @@ input[type="checkbox"].checkbox-disabled:checked {
   overflow-y: auto;
   max-height: calc(100vh - (155px));
 }
-
-.tabletrades {
-  border-collapse: collapse;
-  width: auto;
-  table-layout: fixed;
-  white-space: nowrap;
-  margin-top: 0px;
-  border-left: 0px solid rgb(83, 51, 51);
-  border-right: 0px solid rgb(83, 51, 51);
-  border-bottom: 0px solid rgb(83, 51, 51);
-}
-
 
 .table {
   border-collapse: collapse;
