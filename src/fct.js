@@ -66,7 +66,7 @@ export function ColorValue(value, minValue = 1, maxValue = 10) {
   if (value <= minValue) {
     return "red";
   }
-  if (value === Infinity) {
+  if (!isFinite(value)) {
     return `rgb(${0}, ${255}, ${0})`;
   }
   /* if (value >= maxV) {

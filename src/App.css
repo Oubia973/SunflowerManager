@@ -2,7 +2,6 @@
   --background-color: rgb(24, 12, 6);
   --text-color: rgb(255, 255, 255);
 }
-
 .App {
   background-color: var(--background-color);
   color: var(--text-color);
@@ -30,24 +29,21 @@
   color: white;
 }
 .top-frame {
-  overflow-x: auto;
-  overflow-y: hidden;
-  max-width: 100%;
-  top: 0;
   position: sticky;
-  display: block;
-  height: 145px;
+  height: auto;
+  top: 0;
+  z-index: 10; /* Assurez-vous que cette section reste au-dessus des autres */
+  background-color: var(--background-color); /* Fond pour éviter les chevauchements */
+  display: flex;
+  flex-direction: column;
+  overflow: hidden; /* Empêche le contenu de déborder */
 }
 
 .tabletrades {
-  border-collapse: collapse;
-  width: auto;
-  table-layout: fixed;
-  white-space: nowrap;
-  margin-top: 0px;
-  border-left: 0px solid rgb(83, 51, 51);
-  border-right: 0px solid rgb(83, 51, 51);
-  border-bottom: 0px solid rgb(83, 51, 51);
+  position: relative; /* Permet à cette section de défiler normalement */
+  overflow-x: auto; /* Active le défilement horizontal si nécessaire */
+  white-space: nowrap; /* Empêche le contenu de se casser sur plusieurs lignes */
+  margin-top: 0px; /* Ajoutez un espace si nécessaire */
 }
 
 .App-h1 {
@@ -126,12 +122,14 @@
 
 .don {
   position: absolute;
-  top: 0px;
-  right: 25px;
+  top: 4px;
+  right: 0px;
   text-align: right;
   font-size: 10px;
   color: rgba(173, 173, 173, 0.671);
-  pointer-events: none;
+  margin: 0;
+  padding: 0;
+  line-height: 0.01;
 }
 
 .selectopt {
@@ -477,6 +475,31 @@ input[type="checkbox"].checkbox-disabled:checked {
   background-color: #222;
   padding: 10px;
 }
+.collapsible-content-th {
+  position: relative;
+  text-align: center;
+  font-size: 13px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: clip;
+}
+@media (max-width: 510px) {
+  [class^="collapsible"] {
+    font-size: 0.95em;
+    gap: 1px;
+    padding: 1px 1px;
+  }
+}
+@media (max-width: 410px) {
+  [class^="collapsible"] {
+    font-size: 0.90em;
+  }
+}
+@media (max-width: 340px) {
+  [class^="collapsible"] {
+    font-size: 0.85em;
+  }
+}
 
 .modal {
   position: fixed;
@@ -486,7 +509,7 @@ input[type="checkbox"].checkbox-disabled:checked {
   height: 100%;
   background-color: var(--background-color);
   display: flex;
-  align-items: center;
+  /* align-items: center; */
   justify-content: center;
   z-index: 990;
   overflow-y: auto;
@@ -518,13 +541,13 @@ input[type="checkbox"].checkbox-disabled:checked {
 .button-group {
   display: flex;
   justify-content: space-between;
-  margin-bottom: 10px;
+  margin-bottom: 5px;
 }
 
 .button-group-right {
   display: flex;
   justify-content: flex-end;
-  gap: 10px;
+  gap: 5px;
 }
 
 .modalgraph {
@@ -625,22 +648,39 @@ input[type="checkbox"].checkbox-disabled:checked {
   pointer-events: auto;
 }
 
+.tooltip-wrapper.open .tooltip {
+  transform: scale(1);
+}
+
 .tooltip {
   position: absolute;
   transform: scale(0);
+  opacity: 0;
   background: rgba(0, 0, 0, 1);
   color: white;
   padding: 15px;
   border-radius: 8px;
   box-shadow: 0 5px 15px rgba(0, 0, 0, 1);
-  transition: transform 0.4s ease, left 0.4s ease, top 0.4s ease;
+  transition: transform 0.5s ease, opacity 0.3s ease;
   border: 2px solid rgba(156, 58, 58, 0.39);
+  max-height: 80vh;
+  max-width: 95vw;
+  overflow-y: auto;
 }
-
 .tooltip-wrapper.open .tooltip {
   transform: scale(1);
+  opacity: 1;
 }
-
+.tooltip::-webkit-scrollbar {
+  width: 8px;
+}
+.tooltip::-webkit-scrollbar-thumb {
+  background-color: #7a7a7a;
+  border-radius: 4px;
+}
+.tooltip::-webkit-scrollbar-track {
+  background-color: #1d1d1d;
+}
 .itico {
   height: 17px;
   width: 17px;
@@ -1110,35 +1150,6 @@ th {
   max-height: 100vh;
   max-height: 80vh;
   overflow: hidden;
-}
-
-.tooltip {
-  position: absolute;
-  transform: scale(0);
-  opacity: 0;
-  background: rgba(0, 0, 0, 1);
-  color: white;
-  padding: 15px;
-  border-radius: 8px;
-  box-shadow: 0 5px 15px rgba(0, 0, 0, 1);
-  transition: transform 0.5s ease, opacity 0.3s ease;
-  border: 2px solid rgba(156, 58, 58, 0.39);
-  max-height: 80vh;
-  overflow-y: auto;
-}
-.tooltip-wrapper.open .tooltip {
-  transform: scale(1);
-  opacity: 1;
-}
-.tooltip::-webkit-scrollbar {
-  width: 8px;
-}
-.tooltip::-webkit-scrollbar-thumb {
-  background-color: #7a7a7a;
-  border-radius: 4px;
-}
-.tooltip::-webkit-scrollbar-track {
-  background-color: #1d1d1d;
 }
 
 .left-content {

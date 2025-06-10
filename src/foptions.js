@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 
-function ModalOptions({ onClose, dataSet, onFarmTimeChange, onMaxBBChange, onCoinsRatioChange, onAnimalLvlChange }) {
+function ModalOptions({ onClose, dataSet, onOptionChange, API_URL }) {
     const [isOpen, setIsOpen] = useState(false);
     const [justOpened, setJustOpened] = useState(true);
     //const [pos, setPos] = useState({ x: clickPosition.x, y: clickPosition.y });
@@ -10,34 +10,52 @@ function ModalOptions({ onClose, dataSet, onFarmTimeChange, onMaxBBChange, onCoi
         setIsOpen(false);
         setTimeout(onClose, 300);
     };
-    const handleMaxBBChange = (event) => {
-        if (event.target && event.target.value !== undefined) {
-            const newValue = event.target.value;
-            onMaxBBChange(newValue);
-        }
-    };
-    const handleFarmTimeChange = (event) => {
-        if (event.target && event.target.value !== undefined) {
-            const newValue = event.target.value;
-            onFarmTimeChange(newValue);
-        }
-    };
-    const handleAnimalLvlChange = (event) => {
-        if (event.target && event.target.value !== undefined) {
-            const newValue = event.target.value;
-            onAnimalLvlChange(newValue);
-        }
-    };
-    const handleCoinsRatioChange = (event) => {
-        if (event.target && event.target.value !== undefined) {
-            const newValue = event.target.value;
-            onCoinsRatioChange(newValue);
-        }
-    };
-    const handleClickOutside = (event) => {
-        if (justOpened) return;
-        if (!event.target.closest(".tooltip")) {
-            closeModal();
+    const handleDonClick = (address, element) => {
+        const textarea = document.createElement('textarea');
+        textarea.value = address;
+        document.body.appendChild(textarea);
+        textarea.select();
+        const success = document.execCommand('copy');
+        if (success) {
+            const tooltip = document.createElement('div');
+            tooltip.classList.add('tooltipfrmid');
+            tooltip.textContent = address + ' copied !';
+            const rect = element.getBoundingClientRect();
+            tooltip.style.top = rect.top + 40 + 'px';
+            tooltip.style.left = rect.left - 70 + 'px';
+            document.body.appendChild(tooltip);
+            setTimeout(() => {
+                document.body.removeChild(tooltip);
+            }, 2000);
+            document.body.removeChild(textarea);
+        };
+    }
+    const resetTax = async () => {
+        try {
+            const headers = {
+                frmid: dataSet.farmId,
+                //xoptions: dataSet.options,
+            };
+            const response = await fetch(API_URL + "/settax", {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(headers)
+                //headers: headers
+            });
+            if (response.ok) {
+                const responseData = await response.json();
+                dataSet.tradeTax = responseData.tradeTax;
+            } else {
+                if (response.status === 429) {
+                    console.log('Too many requests, wait a few seconds');
+                } else {
+                    console.log(`Error : ${response.status}`);
+                }
+            }
+        } catch (error) {
+            console.log(`Error : ${error}`);
         }
     };
     useEffect(() => {
@@ -73,10 +91,28 @@ function ModalOptions({ onClose, dataSet, onFarmTimeChange, onMaxBBChange, onCoi
                 }}>
                 <button onClick={closeModal} class="button" align="right" position='absolute'><img src="./icon/ui/cancel.png" alt="" className="resico" /></button>
                 <span style={{ fontWeight: "bold", fontSize: "16px" }}>Preferences</span>
-                <div><input type="text" onChange={handleFarmTimeChange} value={dataSet.inputFarmTime || ""} style={{ textAlign: "left", width: "30px" }} />Hours you can check your farm daily</div>
-                <div><input type="text" onChange={handleMaxBBChange} value={dataSet.inputMaxBB || ""} style={{ textAlign: "left", width: "30px" }} />Restock daily</div>
-                <div><input type="text" onChange={handleCoinsRatioChange} value={dataSet.coinsRatio || ""} style={{ textAlign: "left", width: "30px" }} />Coins/flower</div>
-                <div><input type="text" onChange={handleAnimalLvlChange} value={dataSet.inputAnimalLvl || ""} style={{ textAlign: "left", width: "30px" }} />Animal lvl</div>
+                <div><input type="text" onChange={onOptionChange} value={dataSet.inputFarmTime || ""}
+                    name={"FarmTime"} style={{ textAlign: "left", width: "30px" }} />Hours you can check your farm daily</div>
+                <div><input type="text" onChange={onOptionChange} value={dataSet.inputMaxBB || ""}
+                    name={"MaxBB"} style={{ textAlign: "left", width: "30px" }} />Restock daily</div>
+                <div><input type="text" onChange={onOptionChange} value={dataSet.coinsRatio || ""}
+                    name={"CoinsRatio"} style={{ textAlign: "left", width: "30px" }} />Coins/flower</div>
+                <div><input type="text" onChange={onOptionChange} value={dataSet.tradeTax || ""}
+                    name={"tradeTax"} style={{ textAlign: "left", width: "30px" }} />Trade Tax
+                    <button onClick={resetTax} class="button" align="right" position='absolute'><img src="./icon/ui/refresh.png" alt="" className="resico" /></button></div>
+                <div><input type="text" onChange={onOptionChange} value={dataSet.inputAnimalLvl || ""}
+                    name={"AnimalLvl"} style={{ textAlign: "left", width: "30px" }} />Animal lvl</div>
+                <div><input type="checkbox" onChange={onOptionChange} checked={!!dataSet.useNotifications}
+                    name={"useNotifications"} style={{ textAlign: "left", width: "30px" }} />Notifications</div>
+                {dataSet.isAbo ? (<>
+                    <div><input type="checkbox" onChange={onOptionChange} checked={!!dataSet.usePriceFood}
+                        name={"usePriceFood"} style={{ textAlign: "left", width: "30px" }} />Use cheaper food for animals</div>
+                </>) : null}
+                <div className="don">
+                    <a id="copy-link" href="#" onClick={(event) => handleDonClick("0xAc3c7f9f1f8492Cc10A4fdb8C738DD82013d61dA", event.target)} title="Clic to copy">
+                        0xAc3c7f9f1f8492Cc10A4fdb8C738DD82013d61dA</a>
+                    <p>if you want to give me a coffee : </p>
+                </div>
             </div>
         </div>
     );

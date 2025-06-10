@@ -285,18 +285,18 @@ function ModalDlvr({ onClose, tableData, imgtkt, coinsRatio, handleTryCheckedCha
   return (
     <div className="modal">
       <div style={{
-        position: 'fixed', // Fixe le cadre par rapport à la fenêtre
-        top: 0, // Positionne le cadre en haut
-        left: 0, // Positionne le cadre à gauche
-        width: '100%', // Prend toute la largeur de la fenêtre
-        height: '40px', // Ajuste la hauteur
-        padding: '5px', // Espacement interne
-        backgroundColor: '#222', // Couleur de fond
-        display: 'flex', // Aligne les éléments horizontalement
-        justifyContent: 'left', // Espace entre les éléments
-        alignItems: 'center', // Centre les éléments verticalement
-        zIndex: 1000, // Assure que le cadre reste au-dessus des autres éléments
-        boxShadow: '0 2px 5px rgba(0, 0, 0, 0.1)', // Ajoute une ombre pour le style
+        position: 'fixed',
+        top: 0,
+        left: 0,
+        width: '100%',
+        height: '40px',
+        padding: '5px',
+        backgroundColor: '#222',
+        display: 'flex',
+        justifyContent: 'left',
+        alignItems: 'center',
+        zIndex: 1000,
+        boxShadow: '0 2px 5px rgba(0, 0, 0, 0.1)',
         gap: '10px'
       }}>
         <h2 style={{ margin: 0 }}>Deliveries Chores Bounties</h2>
@@ -328,7 +328,7 @@ function ModalDlvr({ onClose, tableData, imgtkt, coinsRatio, handleTryCheckedCha
       </div>
       <div className="modal-content"
         style={{
-          marginTop: '50px', // Ajoute un espace sous le cadre
+          marginTop: '50px',
         }}>
         {tableDeliveries}
         <h2>Chores</h2>

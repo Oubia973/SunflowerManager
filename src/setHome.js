@@ -32,6 +32,7 @@ export function setHome(dataSet, xListeColBounty, handleHomeClic, isOpen) {
             const choresDone = dataSet.orderstable?.choresdone || 0;
             const bountiesCount = dataSet.orderstable?.bountiescount || 0;
             const bountiesDone = dataSet.orderstable?.bountiesdone || 0;
+            const tradeTax = (100 - dataSet.options.tradeTax) / 100;
             const leftPanel = (
                 <div className="home-left-panel">
                     {/* <img src="./path/to/your/image.png" alt="Farm" className="home-left-panel-image" /> */}
@@ -45,8 +46,9 @@ export function setHome(dataSet, xListeColBounty, handleHomeClic, isOpen) {
                     </div>
                 </div>
             );
+            const corpsCatName = "Crops growing";
             const categories = [
-                { name: "Crops", img: <img src={"./icon/res/sunflower.png"} alt="" className="nodico" title="Crops" /> },
+                { name: corpsCatName, img: <img src={"./icon/res/sunflower.png"} alt="" className="nodico" title="Crops" /> },
                 { name: "Fruits", img: <img src={"./icon/res/apple.png"} alt="" className="nodico" title="Fruits" /> },
                 { name: "Greenhouse", img: <img src={"./icon/res/rice.png"} alt="" className="nodico" title="Greenhouse" /> },
                 { name: "Wood", img: <img src={"./icon/res/wood.png"} alt="" className="nodico" title="Wood" /> },
@@ -73,7 +75,7 @@ export function setHome(dataSet, xListeColBounty, handleHomeClic, isOpen) {
                 let profitTotal = 0;
 
                 let Items = {};
-                if (bntName === "Crops") {
+                if (bntName === corpsCatName) {
                     Items = Object.entries(dataSet.it)
                         .filter(([key, item]) => item.cat === "crop" && item.rdyat > 0 && !item.greenhouse)
                         .map(([key, item]) => ({ ...item, name: key }));
@@ -95,17 +97,17 @@ export function setHome(dataSet, xListeColBounty, handleHomeClic, isOpen) {
                 }
                 if (bntName === "Minerals") {
                     Items = Object.entries(dataSet.it)
-                        .filter(([key, item]) => item.cat === "mineral" && item.rdyat > 0)
+                        .filter(([key, item]) => (item.cat === "mineral" || key === "Crimstone") && item.rdyat > 0)
                         .map(([key, item]) => ({ ...item, name: key }));
                 }
                 if (bntName === "Henhouse") {
                     Items = Object.entries(dataSet.it)
-                        .filter(([key, item]) => item.cat === "animal" && item.animal === "Chicken" && item.rdyat > 0)
+                        .filter(([key, item]) => item.scat === "henhouse" && item.rdyat > 0)
                         .map(([key, item]) => ({ ...item, name: key }));
                 }
                 if (bntName === "Barn") {
                     Items = Object.entries(dataSet.it)
-                        .filter(([key, item]) => item.cat === "animal" && item.animal !== "Chicken" && item.rdyat > 0)
+                        .filter(([key, item]) => item.scat === "barn" && item.rdyat > 0)
                         .map(([key, item]) => ({ ...item, name: key }));
                 }
                 /* if (bntName === "Cooking") {
@@ -117,33 +119,63 @@ export function setHome(dataSet, xListeColBounty, handleHomeClic, isOpen) {
 
                 let tableData = null;
 
-                if (bntName === "Crops" || bntName === "Fruits" || bntName === "Greenhouse" || bntName === "Wood" || bntName === "Minerals"
+                if (bntName === corpsCatName || bntName === "Fruits" || bntName === "Greenhouse" || bntName === "Wood" || bntName === "Minerals"
                     || bntName === "Henhouse" || bntName === "Barn") {
-                    Object.keys(Items).map((item, itemIndex) => {
-                        //plantedTotal += Number(Items[item][plantedValue]);
-                        if (Items[item].name === "Feather") { Items[item][key("nodecost")] = 0 };
-                        if (Items[item].name === "Leather") { Items[item][key("nodecost")] = 0 };
-                        if (Items[item].name === "Merino Wool") { Items[item][key("nodecost")] = 0 };
-                        const nbHarvest = (Items[item][key("nbharvest")]) || 1;
-                        costTotal += Number(((Items[item][key("nodecost")] * Items[item][plantedValue]) / nbHarvest) / dataSet.coinsRatio);
-                        marketTotal += Number(Items[item]["costp2pt"] * Items[item][harvestValue]) * 0.9;
-                    });
+
+                    if (bntName === "Henhouse" || bntName === "Barn") {
+                        Object.keys(Items).map((item, itemIndex) => {
+                            //plantedTotal += Number(Items[item][plantedValue]);
+                            let animalCost = 0;
+                            Object.keys(dataSet.animals[Items[item]?.animal]).map(animalItem => {
+                                animalCost += dataSet.animals[Items[item]?.animal][animalItem][key("costFood")] || 0;
+                                //console.log(Items[item].animal + ": " + animalCost);
+                            });
+                            if (Items[item].name === "Feather") { animalCost = 0 };
+                            if (Items[item].name === "Leather") { animalCost = 0 };
+                            if (Items[item].name === "Merino Wool") { animalCost = 0 };
+                            costTotal += Number((animalCost) / dataSet.options.coinsRatio);
+                            marketTotal += Number(Items[item]["costp2pt"] * Items[item][harvestValue]) * tradeTax;
+                        });
+                    } else {
+                        Object.keys(Items).map((item, itemIndex) => {
+                            const nbHarvest = (Items[item][key("nbharvest")]) || 1;
+                            costTotal += Number(((Items[item][key("nodecost")] * Items[item][plantedValue]) / nbHarvest) / dataSet.options.coinsRatio);
+                            marketTotal += Number(Items[item]["costp2pt"] * Items[item][harvestValue]) * tradeTax;
+                        });
+                    }
+
                     tableData = <><thead>
                         <tr>
-                            {xListeColBounty[1][1] === 1 ? <th className="thcenter">Item</th> : null}
-                            {xListeColBounty[2][1] === 1 ? <th className="thcenter">{plantedHeader}</th> : null}
-                            {xListeColBounty[3][1] === 1 ? <th className="thcenter">{harvestHeader}</th> : null}
-                            {xListeColBounty[4][1] === 1 ? <th className="thcenter">Cost</th> : null}
-                            {xListeColBounty[5][1] === 1 ? <th className="thcenter">Market</th> : null}
-                            {xListeColBounty[5][1] === 1 ? <th className="thcenter">Profit</th> : null}
+                            {xListeColBounty[1][1] === 1 ? <th className="collapsible-content-th">Item</th> : null}
+                            {xListeColBounty[2][1] === 1 ? <th className="collapsible-content-th">{plantedHeader}</th> : null}
+                            {xListeColBounty[3][1] === 1 ? <th className="collapsible-content-th">{harvestHeader}</th> : null}
+                            {xListeColBounty[4][1] === 1 ? <th className="collapsible-content-th">Cost</th> : null}
+                            {xListeColBounty[5][1] === 1 ? <th className="collapsible-content-th">Market</th> : null}
+                            {xListeColBounty[5][1] === 1 ? <th className="collapsible-content-th">Profit</th> : null}
                         </tr>
                     </thead>
                         <tbody>
                             {Object.keys(Items).map((item, itemIndex) => {
-                                const nbHarvest = (Items[item][key("nbharvest")]) || 1;
-                                const harvestCost = ((Items[item][key("nodecost")] * Items[item][plantedValue]) / nbHarvest) / dataSet.coinsRatio;
-                                const harvestCostp2pt = (Items[item]["costp2pt"] * Items[item][harvestValue]) * 0.9;
-                                const harvestProfit = Number(frmtNb(harvestCostp2pt - harvestCost));
+                                let nbHarvest = 0;
+                                let harvestCost = 0;
+                                let harvestCostp2pt = 0;
+                                let harvestProfit = 0;
+                                if (Items[item].scat === "henhouse" || Items[item].scat === "barn") {
+                                    let animalCost = 0;
+                                    Object.keys(dataSet.animals[Items[item]?.animal]).map(animalItem => {
+                                        animalCost += dataSet.animals[Items[item]?.animal][animalItem][key("costFood")] || 0;
+                                        if (Items[item].name === "Feather") { animalCost = 0 };
+                                        if (Items[item].name === "Leather") { animalCost = 0 };
+                                        if (Items[item].name === "Merino Wool") { animalCost = 0 };
+                                        //console.log(Items[item].animal + ": " + dataSet.animals[Items[item]?.animal][animalItem].food + ": " + animalCost);
+                                    });
+                                    harvestCost = (animalCost) / dataSet.options.coinsRatio;
+                                } else {
+                                    nbHarvest = (Items[item][key("nbharvest")]) || 1;
+                                    harvestCost = ((Items[item][key("nodecost")] * Items[item][plantedValue]) / nbHarvest) / dataSet.options.coinsRatio;
+                                }
+                                harvestCostp2pt = (Items[item]["costp2pt"] * Items[item][harvestValue]) * tradeTax;
+                                harvestProfit = Number(frmtNb(harvestCostp2pt - harvestCost));
                                 return (
                                     <tr key={itemIndex}>
                                         {xListeColBounty[1][1] === 1 && (

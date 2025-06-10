@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { FormControl, InputLabel, Select, MenuItem } from '@mui/material';
 import Tooltip from "./tooltip.js";
+import { frmtNb, ColorValue, Timer } from './fct.js';
 
 let showNFT = true;
 let showNFTW = false;
@@ -8,7 +9,7 @@ let showCraft = false;
 let showBud = false;
 let showSkill = false;
 
-function ModalTNFT({ onClose, frmid, coinsRatio, API_URL, dataSet }) {
+function ModalTNFT({ onClose, frmid, coinsRatio, API_URL, dataSet, onReset }) {
   const [tableNFT, settableNFT] = useState([]);
   const [tableContent, settableContent] = useState([]);
   const [nfttry, setnfttry] = useState(dataSet.nft);
@@ -24,6 +25,8 @@ function ModalTNFT({ onClose, frmid, coinsRatio, API_URL, dataSet }) {
   const [Fishingtry, setFishingtry] = useState(dataSet.fishingDetails);
   const [TotalCostDisplay, setTotalCostDisplay] = useState("market");
   const [tooltipData, setTooltipData] = useState(null);
+  const [tableFlexDirection, setTableFlexDirection] = useState('row');
+  const [tableView, setTableView] = useState('both');
 
   const closeModal = () => {
     //onClose(ittry, foodtry, fishtry, bountytry, nfttry, nftwtry, buildtry, skilltry, budtry, Fishingtry, bTrynft, bTrynftw, bTrybuild, bTryskill, bTrybud, dataSet);
@@ -50,86 +53,49 @@ function ModalTNFT({ onClose, frmid, coinsRatio, API_URL, dataSet }) {
   }
   const Refresh = async () => {
     try {
-      //supCoinsRatio (it, coinsRatio);
-      /* const bTrynftArray = Object.entries(bTrynft).map(([key, value]) => ({ name: key, value }));
-      const bTrynftwArray = Object.entries(bTrynftw).map(([key, value]) => ({ name: key, value }));
-      const bTrybuildArray = Object.entries(bTrybuild).map(([key, value]) => ({ name: key, value }));
-      const bTryskillArray = Object.entries(bTryskill).map(([key, value]) => ({ name: key, value }));
-      const bTrybudArray = Object.entries(bTrybud).map(([key, value]) => ({ name: key, value }));
-      const requestBody = JSON.stringify({
-        frmid: frmid,
-        coinsRatio: coinsRatio,
-        inputKeep: 0,
-        bTrynft: bTrynftArray,
-        bTrynftw: bTrynftwArray,
-        bTrybuild: bTrybuildArray,
-        bTryskill: bTryskillArray,
-        bTrybud: bTrybudArray,
-      }); */
-
       let bTrynft = {};
       let bTrynftw = {};
       let bTrybuild = {};
       let bTryskill = {};
       let bTryskilllgc = {};
       let bTrybud = {};
-      function filterTryit(xnft, xnftw, xskill, xskilllgc, xbuildng, xbud) {
+      let bBuyit = {};
+      function filterTryit(xnft, xnftw, xskill, xskilllgc, xbuildng, xbud, xit) {
         Object.entries(xnft).forEach(([item]) => { bTrynft[item] = xnft[item].tryit; });
         Object.entries(xnftw).forEach(([item]) => { bTrynftw[item] = xnftw[item].tryit; });
         Object.entries(xskill).forEach(([item]) => { bTryskill[item] = xskill[item].tryit; });
         Object.entries(xskilllgc).forEach(([item]) => { bTryskilllgc[item] = xskilllgc[item].tryit; });
         Object.entries(xbuildng).forEach(([item]) => { bTrybuild[item] = xbuildng[item].tryit; });
         Object.entries(xbud).forEach(([item]) => { bTrybud[item] = xbud[item].tryit; });
+        Object.entries(xit).forEach(([item]) => { bBuyit[item] = xit[item]?.buyit; });
       }
-      filterTryit(nfttry, nftwtry, skilltry, skilllgctry, buildtry, budtry);
-
+      filterTryit(nfttry, nftwtry, skilltry, skilllgctry, buildtry, budtry, ittry);
+      /* const xOptions = {
+        inputKeep: 0,
+        inputFarmTime: dataSet.options.inputFarmTime,
+        inputMaxBB: dataSet.options.inputMaxBB,
+        inputAnimalLvl: dataSet.options.inputAnimalLvl,
+        coinsRatio: dataSet.options.coinsRatio,
+        usePriceFood: dataSet.options.usePriceFood,
+      } */
       const headers = {
         frmid: frmid,
-        coinsRatio: coinsRatio,
-        inputKeep: 0,
-        inputFarmTime: dataSet.inputFarmTime,
-        inputAnimalLvl: dataSet.inputAnimalLvl,
-        xtrynft: JSON.stringify(bTrynft),
-        xtrynftw: JSON.stringify(bTrynftw),
-        xtrybuild: JSON.stringify(bTrybuild),
-        xtryskill: JSON.stringify(bTryskill),
-        xtryskilllgc: JSON.stringify(bTryskilllgc),
-        xtrybud: JSON.stringify(bTrybud),
+        xoptions: dataSet.options,
+        xtrynft: bTrynft,
+        xtrynftw: bTrynftw,
+        xtrybuild: bTrybuild,
+        xtryskill: bTryskill,
+        xtryskilllgc: bTryskilllgc,
+        xtrybud: bTrybud,
+        xbuyit: bBuyit,
       };
-
-      /* const bTrynftArray = Object.entries(nfttry).map(([key, value]) => ({ name: key, value }));
-      const bTrynftwArray = Object.entries(nftwtry).map(([key, value]) => ({ name: key, value }));
-      const bTrybuildArray = Object.entries(buildtry).map(([key, value]) => ({ name: key, value }));
-      const bTryskillArray = Object.entries(skilltry).map(([key, value]) => ({ name: key, value }));
-      const bTrybudArray = Object.entries(budtry).map(([key, value]) => ({ name: key, value }));
-      const xbTrynft = bTrynftArray.reduce((acc, item) => { acc[item.name] = item.value; return acc; }, {});
-      const xbTrynftw = bTrynftwArray.reduce((acc, item) => { acc[item.name] = item.value; return acc; }, {});
-      const xbTrybuild = bTrybuildArray.reduce((acc, item) => { acc[item.name] = item.value; return acc; }, {});
-      const xbTryskill = bTryskillArray.reduce((acc, item) => { acc[item.name] = item.value; return acc; }, {});
-      const xbTrybud = bTrybudArray.reduce((acc, item) => { acc[item.name] = item.value; return acc; }, {});
-      const headers = {
-        frmid: frmid,
-        coinsRatio: coinsRatio,
-        inputKeep: 0,
-        inputAnimalLvl: inputAnimalLvl,
-        xtrynft: JSON.stringify(xbTrynft),
-        xtrynftw: JSON.stringify(xbTrynftw),
-        xtrybuild: JSON.stringify(xbTrybuild),
-        xtryskill: JSON.stringify(xbTryskill),
-        xtrybud: JSON.stringify(xbTrybud),
-      }; */
-
-      /* const response = await fetch(API_URL + "/settry", {
+      const response = await fetch(API_URL + "/settry", {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: requestBody
-      }); */
-      const response = await fetch(API_URL + "/settry", {
-        method: 'GET',
-        //body: requestBody
-        headers: headers
+        body: JSON.stringify(headers)
+        //headers: headers
       });
       if (response.ok) {
         const responseData = await response.json();
@@ -155,6 +121,7 @@ function ModalTNFT({ onClose, frmid, coinsRatio, API_URL, dataSet }) {
         setskilllgctry(responseData.skilllgc);
         setbudtry(responseData.bud);
         setFishingtry(responseData.fishingDetails);
+        onReset(dataSet);
       } else {
         if (response.status === 429) {
           console.log('Too many requests, wait a few seconds');
@@ -333,6 +300,15 @@ function ModalTNFT({ onClose, frmid, coinsRatio, API_URL, dataSet }) {
     }
     setNFT(nfttry, nftwtry, buildtry, skilltry, budtry);
   };
+  const handleBuyitChange = (item) => {
+    setittry(prevIt => {
+      const newIt = { ...prevIt };
+      if (newIt.hasOwnProperty(item)) {
+        newIt[item] = { ...newIt[item], buyit: newIt[item]?.buyit === 1 ? 0 : 1 };
+      }
+      return newIt;
+    });
+  };
   function setContent(xit) {
     if (xit) {
       const itEntries = Object.entries(xit);
@@ -340,20 +316,29 @@ function ModalTNFT({ onClose, frmid, coinsRatio, API_URL, dataSet }) {
         const cobj = xit[item];
         const ico = cobj ? cobj.img : '';
         const ido = cobj ? cobj.id : 0;
-        const costp = cobj ? (cobj.cost / coinsRatio) : 0;
-        const costptry = cobj ? (cobj.costtry / coinsRatio) : 0;
+        const costp = cobj ? (cobj.cost / dataSet.options.coinsRatio) : 0;
+        const costptry = cobj ? (cobj.costtry / dataSet.options.coinsRatio) : 0;
+        const costp2pt = cobj ? cobj.costp2pt : 0;
         const time = cobj ? cobj.time : 0;
         const timetry = cobj ? cobj.timetry : 0;
         const imyield = cobj ? cobj.myield : 0;
         const imyieldtry = cobj ? cobj.myieldtry : 0;
         const iharvest = cobj ? cobj.harvest : 0;
         const iharvesttry = cobj ? cobj.harvesttry : 0;
+        const iharvestdmaxtry = cobj ? cobj.harvestdmaxtry : 0;
+        const ibuyit = cobj ? cobj.buyit : 0;
+        //const idsfl = cobj ? cobj.dsfltry : 0;
+        const tradeTax = (100 - dataSet.options.tradeTax) / 100;
+        let idsfl = !isNaN(((costp2pt * tradeTax) - costptry) * (iharvestdmaxtry)) ? (((costp2pt * tradeTax) - costptry) * (iharvestdmaxtry)) : 0;
+        if ((parseFloat(costp2pt).toFixed(3) === parseFloat(costptry).toFixed(3)) && idsfl < 0) { idsfl = 0; }
         //const iharvestdmax = cobj ? cobj.harvestdmax : 0;
         //const iharvestdmaxtry = cobj ? cobj.harvestdmaxtry : 0;
         const timechg = ((timmeto1(timetry) - timmeto1(time)) / timmeto1(time)) * 100;
         const costpchg = ((costptry - costp) / costp) * 100;
         const imyieldchg = ((imyieldtry - imyield) / imyield) * 100;
         const iharvestchg = ((iharvesttry - iharvest) / iharvest) * 100;
+        const cellDSflStyle = {};
+        cellDSflStyle.color = ColorValue(idsfl, 0, 10);
         return (
           <tr key={index}>
             <td style={{ display: 'none' }}>{ido}</td>
@@ -375,6 +360,11 @@ function ModalTNFT({ onClose, frmid, coinsRatio, API_URL, dataSet }) {
               onClick={(e) => handleTooltip(item, "trynft", "yieldchg", e, dataSet)}>{parseFloat(iharvesttry).toFixed(2)}</td>
             <td className={parseFloat(iharvestchg).toFixed(0) > 0 ? 'chgpos' : parseFloat(iharvestchg).toFixed(0) < 0 ? 'chgneg' : 'chgeq'}
               onClick={(e) => handleTooltip(item, "trynft", "yieldchg", e, dataSet)}>{parseFloat(iharvestchg).toFixed(0)}%</td>
+            <td className="tdcenter">
+              <input type="checkbox" checked={ibuyit} onChange={() => handleBuyitChange(item)} />
+            </td>
+            <td className="tdcenter"
+              onClick={(e) => handleTooltip(item, "dailysfl", "trynft", e, dataSet)} style={{ ...cellDSflStyle }}>{parseFloat(idsfl).toFixed(2)}</td>
           </tr>
         );
       });
@@ -386,13 +376,15 @@ function ModalTNFT({ onClose, frmid, coinsRatio, API_URL, dataSet }) {
               <th className="th-icon">   </th>
               {/* <th>Item</th> */}
               <th>Time</th>
-              <th>Time chg</th>
+              <th>chg</th>
               <th>Cost</th>
-              <th>Cost chg</th>
+              <th>chg</th>
               <th>Yield</th>
-              <th>Yield chg</th>
+              <th>chg</th>
               <th>Harvest</th>
-              <th>Harvest chg</th>
+              <th>chg</th>
+              <th>Buy</th>
+              <th>Daily SFL</th>
             </tr>
           </thead>
           <tbody>
@@ -601,11 +593,35 @@ function ModalTNFT({ onClose, frmid, coinsRatio, API_URL, dataSet }) {
     setContent(ittry);
   }, [ittry, nfttry, nftwtry, buildtry, skilltry, budtry, TotalCostDisplay]);
 
+  const tableStyle = {
+    flexDirection: tableFlexDirection,
+    display: 'flex',
+    flex: 1,
+    minHeight: 0,
+    overflow: 'visible'
+  };
+
   return (
-    <div className="modal">
-      <div className="modal-content">
-        <h2>Try NFT</h2>
-        <div className="button-group">
+    <div style={{
+      position: 'fixed',
+      top: '0',
+      width: '100%',
+      backgroundColor: 'var(--background-color)',
+      justifyContent: 'center',
+      zIndex: '990',
+    }}>
+      <div style={{
+        display: 'flex',
+        flexDirection: 'column',
+        height: '100vh',
+        maxHeight: '100vh'
+      }}>
+        {/* <h2>Try NFT</h2> */}
+        <div style={{
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+        }}>
           <div>
             <button onClick={closeModal} class="button"><img src="./icon/ui/cancel.png" alt="" className="resico" /></button>
             <button onClick={Refresh} class="button"><img src="./icon/ui/refresh.png" alt="" className="resico" /></button>
@@ -613,7 +629,26 @@ function ModalTNFT({ onClose, frmid, coinsRatio, API_URL, dataSet }) {
             <button onClick={Reset}>Reset</button>
             <button onClick={SetZero}>No NFT/Skill</button>
           </div>
-          <div className="button-group-right">
+          <div style={{ display: 'flex', gap: 0, justifyContent: 'center', alignItems: 'center' }}>
+            <button class="button"
+              onClick={() => setTableFlexDirection(dir => dir === 'row' ? 'column' : 'row')}
+            >
+              {tableFlexDirection === 'row' ? <img src="./icon/ui/horizontal.png" alt="" className="resico" /> : <img src="./icon/ui/vertical.png" alt="" className="resico" />}
+            </button>
+            <button class="button"
+              onClick={() => setTableView(view =>
+                view === 'both' ? 'left' : view === 'left' ? 'right' : 'both'
+              )}
+            >
+              {tableView === 'both' ? <img src="./icon/ui/crops.png" alt="" className="resico" /> : tableView === 'left' ? <img src="./icon/ui/lightning.png" alt="" className="resico" />
+                : <img src="./icon/ui/cropslightning.png" alt="" className="resico" />}
+            </button>
+          </div>
+          <div style={{
+            display: 'flex',
+            justifyContent: 'flex-end',
+            flexWrap: 'wrap',
+          }}>
             <button onClick={setCollectibles}>Collectibles</button>
             <button onClick={setWearables}>Wearables</button>
             <button onClick={setCraft}>Craft</button>
@@ -621,13 +656,27 @@ function ModalTNFT({ onClose, frmid, coinsRatio, API_URL, dataSet }) {
             <button onClick={setSkills}>Skills</button>
           </div>
         </div>
-        <div className="content-wrapper">
-          <div className="left-content">
-            <table>{tableContent}</table>
-          </div>
-          <div className="right-content">
-            <table>{tableNFT}</table>
-          </div>
+        <div style={tableStyle}>
+          {(tableView === 'both' || tableView === 'left') && (
+            <div style={{
+              flex: 1,
+              overflow: 'auto',
+              minHeight: 0,
+              display: tableView === 'right' ? 'none' : 'block'
+            }}>
+              <table>{tableContent}</table>
+            </div>
+          )}
+          {(tableView === 'both' || tableView === 'right') && (
+            <div style={{
+              flex: 1,
+              overflow: 'auto',
+              minHeight: 0,
+              display: tableView === 'left' ? 'none' : 'block'
+            }}>
+              <table>{tableNFT}</table>
+            </div>
+          )}
         </div>
       </div>
       {tooltipData && (
@@ -649,42 +698,6 @@ function timmeto1(inputTime) {
   const decimalHours = hours + minutes / 60 + seconds / 3600;
   const normalizedTime = decimalHours / 24;
   return normalizedTime;
-}
-function frmtNb(nombre) {
-  const nombreNumerique = parseFloat(nombre);
-  var nombreStr = nombreNumerique.toString();
-  const positionE = nombreStr.indexOf("e");
-  if (positionE !== -1) {
-    const nombreNumeriqueCorr = Number(nombreStr).toFixed(20);
-    nombreStr = nombreNumeriqueCorr.toString();
-  }
-  if (isNaN(nombreNumerique)) {
-    return "0";
-  }
-  const positionVirgule = nombreStr.indexOf(".");
-  if (positionVirgule !== -1) {
-    let chiffreSupZero = null;
-    for (let i = positionVirgule + 1; i < nombreStr.length; i++) {
-      if (nombreStr[i] !== '0') {
-        chiffreSupZero = i;
-        break;
-      }
-    }
-    if (chiffreSupZero === null || Math.abs(Math.floor(nombre)) > 0) {
-      return nombreNumerique.toFixed(2);
-    } else {
-      return nombreStr.slice(0, chiffreSupZero + 3);
-    }
-  } else {
-    return nombreStr;
-  }
-}
-function supCoinsRatio(xit, coinsRatio) {
-  Object.keys(xit).forEach((item) => {
-    xit[item].cost *= coinsRatio;
-    xit[item].costtry *= coinsRatio;
-    xit[item].shop *= coinsRatio;
-  });
 }
 
 export default ModalTNFT;
