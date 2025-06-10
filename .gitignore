@@ -8,7 +8,7 @@
 
 # production
 /build
-/android
+#/android
 
 # misc
 .DS_Store
@@ -18,7 +18,7 @@
 .env.development.local
 .env.test.local
 .env.production.local
-capacitor.config.ts
+#capacitor.config.ts
 
 /cert
 
