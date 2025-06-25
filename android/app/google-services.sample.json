@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "6580203945",
+    "project_id": "sunflower-manager",
+    "storage_bucket": "sunflower-manager.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:6580203945:android:2b11e68513acacd1b514b8",
+        "android_client_info": {
+          "package_name": "com.sunflower.manager"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "api_key"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

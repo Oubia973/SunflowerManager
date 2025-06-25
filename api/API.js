@@ -13,7 +13,7 @@ const started = Date.now();
 require("colors");
 const axios = require('axios');
 
-const API_URL = "https://sunflower.tchimbedata.com";
+const API_URL = "https://sunflower.ott2tv.com";
 const WEB_PORT = 2003;
 
 const app = express();
@@ -108,7 +108,9 @@ const endpoints = [
   '/get50listing',
   '/getHT',
   '/getHN',
-  '/getHO'
+  '/getHO',,
+  '/save-subscription',
+  '/remove-subscription'
 ];
 
 endpoints.forEach(endpoint => {
