@@ -17,15 +17,17 @@ import { setHome } from './setHome.js';
 //import xrespBumpkin from './respBumpkin.json';
 
 import { Capacitor } from '@capacitor/core';
+import { PushNotifications } from '@capacitor/push-notifications';
 const isNativeApp = Capacitor.isNativePlatform();
 
 const runLocal = true;
 const API_URL = runLocal ? "" : process.env.REACT_APP_API_URL;
 
-var vversion = 0.02;
+var vversion = 0.03;
 let dataSet = {};
 dataSet.options = {};
 dataSet.options.gemRatio = 20;
+dataSet.options.tradeTax = 10;
 
 var dateSeason = "";
 var tktName = "";
@@ -129,7 +131,7 @@ function App() {
   const [inputValue, setInputValue] = useState('');
   const [inputMaxBB, setInputMaxBB] = useState(1);
   const [inputFarmTime, setInputFarmTime] = useState(8);
-  const [inputAnimalLvl, setInputAnimalLvl] = useState(5);
+  //const [inputAnimalLvl, setInputAnimalLvl] = useState(5);
   const [inputCoinsRatio, setInputCoinsRatio] = useState(320);
   const [inputFromLvl, setInputFromLvl] = useState(1);
   const [inputToLvl, setInputToLvl] = useState(30);
@@ -201,8 +203,8 @@ function App() {
     ['Shop price', 1],
     ['Marketplace price', 1],
     ['Withdraw quantity', 1],
-    ['Niftyswap price', 1],
-    ['OpenSea price', 1],
+    ['Niftyswap price', 0],
+    ['OpenSea price', 0],
     ['Yield', 1],
     ['Harvest average', 1],
     ['To harvest', 1],
@@ -494,6 +496,7 @@ function App() {
         await PushNotifications.register();
         PushNotifications.addListener('registration', async (token) => {
           console.log('FCM token:', token.value);
+          dataSet.options.pushToken = token.value;
           const subfarm = {
             farmId: inputValue,
             token: token.value,
@@ -542,7 +545,7 @@ function App() {
   }
   async function unsubscribeFromPush() {
     if (isNativeApp) {
-      const token = await getFCMToken();
+      const token = dataSet.options.pushToken; //await getFCMToken();
       if (token) {
         const subfarm = {
           farmId: inputValue,
@@ -649,6 +652,12 @@ function App() {
     }
     if (isNaN(xvalue)) xvalue = 0;
     if (xvalue < 0) xvalue = 1;
+    if (name.startsWith("animalLvl_")) {
+      const animal = name.replace("animalLvl_", "");
+      dataSet.options.animalLvl[animal] = xvalue;
+      setOptions({ ...dataSet.options, animalLvl: { ...dataSet.options.animalLvl } });
+      return;
+    }
     switch (name) {
       case "MaxBB":
         dataSet.options.inputMaxBB = xvalue;
@@ -667,11 +676,11 @@ function App() {
         dataSet.options.tradeTax = xvalue;
         setInputCoinsRatio(xvalue);
         break;
-      case "AnimalLvl":
+      /* case "AnimalLvl":
         if (xvalue > 15) xvalue = 15;
         dataSet.options.inputAnimalLvl = xvalue;
         setInputAnimalLvl(xvalue);
-        break;
+        break; */
       case "usePriceFood":
         dataSet.options.usePriceFood = xvalue;
         setOptions({ ...dataSet.options });
@@ -1598,7 +1607,7 @@ function App() {
         const iburn = xBurning[burnortry][item] ? xBurning[burnortry][item] : 0;
         const iQuant = selectedQuantity === "daily" ? (ifrmit === 1 ? dailyprod : 0) - iburn : selectedQuantity === "blockbuck" ?
           BBprod : selectedQuantity === "custom" ? cstPrices[xIndex] : itemQuantity;
-        var Ttax = Math.ceil(iQuant / itradmax) * 0.25;
+        var Ttax = 0; //Math.ceil(iQuant / itradmax) * 0.25;
         const nTTax = (dataSet.options.tradeTax) / 100;
         const NTax = 0.05;
         const OTax = 0.05;
@@ -4080,6 +4089,7 @@ function App() {
           console.error('Erreur lors de l\'enregistrement du Service Worker:', error);
         });
     }
+    //setXListeCol();
   }, []);
   const intervalRef = useRef(null);
   useEffect(() => {
@@ -4278,7 +4288,7 @@ function App() {
       } */
     }
   }, [farmData, itData, selectedCurr, selectedQuant, selectedQuantCook, selectedQuantFish, selectedQuantity, selectedQuantityCook, selectedCostCook,
-    selectedReady, selectedDsfl, selectedInv, inputMaxBB, inputKeep, inputFarmTime, inputAnimalLvl, inputCoinsRatio, deliveriesData, HarvestD,
+    selectedReady, selectedDsfl, selectedInv, inputMaxBB, inputKeep, inputFarmTime, inputCoinsRatio, deliveriesData, HarvestD,
     xListeCol, xListeColCook, xListeColFish, xListeColFlower, xListeColExpand, xListeColAnimals, xListeColActivity,
     xListeColActivityItem, CostChecked, TryChecked, BurnChecked, cstPrices, fromtolvltime, inputFromLvl, inputToLvl, fromtoexpand, activityData,
     activityDisplay, ftradesData, isOpen, options]);
@@ -4658,6 +4668,10 @@ function App() {
         vversion = loadedData.vversion;
         setInputValue(loadedData.inputValue);
         dataSet.options = loadedData.xoptions;
+        if (!dataSet.options?.animalLvl) { dataSet.options.animalLvl = {} }
+        if (!dataSet.options?.animalLvl?.Chicken) { dataSet.options.animalLvl.Chicken = 5 }
+        if (!dataSet.options?.animalLvl?.Cow) { dataSet.options.animalLvl.Cow = 5 }
+        if (!dataSet.options?.animalLvl?.Sheep) { dataSet.options.animalLvl.Sheep = 5 }
         setInputKeep(dataSet.options.inputKeep);
         lastClickedInputKeep.current = dataSet.options.inputKeep;
         setInputMaxBB(dataSet.options.inputMaxBB);
@@ -4666,7 +4680,7 @@ function App() {
         setInputFarmTime(dataSet.options.inputFarmTime);
         //vinputFarmTime = loadedData.inputFarmTime;
         //dataSet.inputFarmTime = loadedData.inputFarmTime;
-        setInputAnimalLvl(dataSet.options.inputAnimalLvl);
+        //setInputAnimalLvl(dataSet.options.inputAnimalLvl);
         //vinputAnimalLvl = loadedData.inputAnimalLvl;
         //dataSet.inputAnimalLvl = loadedData.inputAnimalLvl;
         //coinsRatio = loadedData.coinsRatio || 320;
@@ -4684,6 +4698,9 @@ function App() {
         setSelectedQuantCook(loadedData.selectedQuantCook);
         setSelectedQuantFish(loadedData.selectedQuantFish);
         loadedData.xListeCol[16][1] = 1;
+        loadedData.xListeCol[7][1] = 0;
+        loadedData.xListeCol[8][1] = 0;
+        loadedData.xListeCol[9][1] = 0;
         setXListeCol(loadedData.xListeCol);
         setXListeColCook(loadedData.xListeColCook && loadedData.xListeColCook);
         setXListeColFish(loadedData.xListeColFish && loadedData.xListeColFish);
@@ -4730,10 +4747,15 @@ function App() {
     function DefaultOptions() {
       dataSet.options.inputMaxBB = 1;
       dataSet.options.inputFarmTime = 15;
-      dataSet.options.inputAnimalLvl = 5;
+      //dataSet.options.inputAnimalLvl = 5;
       dataSet.options.coinsRatio = 320;
       dataSet.options.inputKeep = 3;
       dataSet.options.gemRatio = 20;
+      dataSet.options.tradeTax = 10;
+      if (!dataSet.options?.animalLvl) { dataSet.options.animalLvl = {} }
+      if (!dataSet.options?.animalLvl?.Chicken) { dataSet.options.animalLvl.Chicken = 5 }
+      if (!dataSet.options?.animalLvl?.Cow) { dataSet.options.animalLvl.Cow = 5 }
+      if (!dataSet.options?.animalLvl?.Sheep) { dataSet.options.animalLvl.Sheep = 5 }
       setOptions(dataSet.options);
     }
   }
@@ -4817,6 +4839,11 @@ function App() {
     dataSet.ftrades = ftrades;
     dataSet.animals = Animals;
     //dataSet.forTry = TryChecked;
+    if (!dataSet.options.animalLvl) {
+      dataSet.options.animalLvl = Object.fromEntries(
+        Object.keys(Animals).map(animal => [animal, 5])
+      );
+    }
   }
 }
 function convTime(nombre) {

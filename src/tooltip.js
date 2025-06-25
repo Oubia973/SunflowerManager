@@ -138,7 +138,7 @@ const Tooltip = ({ onClose, item, context, value, clickPosition, dataSet }) => {
                 const imgFood = <img src={urlImgFood} style={{ width: "20px", height: "20px" }} />
                 txtCost = (
                     <><div>{imgFood}x{frmtNb(aniFoodQuant)} cost {frmtNb(foodCost)}{imgsfl}</div>
-                        <div>for a lvl{dataSet.options.inputAnimalLvl} animal</div></>
+                        <div>for a lvl{dataSet.options.animalLvl[aniName]} animal</div></>
                 );
             }
             if (Item.cat === "fruit") {
@@ -180,6 +180,7 @@ const Tooltip = ({ onClose, item, context, value, clickPosition, dataSet }) => {
             let nodeCost = Item[costortry] * (Item[harvestortry] / itemSpot);
             let txtCompo = "";
             let isFree = Item[costortry] === 0;
+            //let animalCostp2p = 0;
             if (Item?.cat === "crop") {
                 const cropOrGreenhouse = Item.greenhouse ? "greenhouse" : "crop";
                 //itemSpot = dataSet.spot[cropOrGreenhouse];
@@ -243,8 +244,39 @@ const Tooltip = ({ onClose, item, context, value, clickPosition, dataSet }) => {
                     dataSet.it[Item[foodortry]].img ?? imgna;
                 const txtImgFood = <img src={urlImgFood} style={{ width: "22px", height: "22px" }} />;
                 const quantFood = dataSet.it[item][foodquantortry] * itemSpot;
-                const animalLvl = <div> for a lvl{dataSet.options.inputAnimalLvl} animal</div>;
-                txtCompo = <div> Food: {txtImgFood}x{frmtNb(quantFood)} cost {frmtNb((nodeCost * itemSpot) / dataSet.options.coinsRatio)}{imgsfl}{animalLvl}</div>;
+                let txtFoodV = null;
+                let animalCost = 0;
+                if (value > 0) {
+                    let quantfoodortry = ForTry ? "quantfoodtry" : "quantfood";
+                    let costfoodortry = ForTry ? "costFoodtry" : "costFood";
+                    let costfoodp2portry = ForTry ? "costFoodp2ptry" : "costFoodp2p";
+                    const animalV = dataSet.animals[aniName];
+                    const foodTotals = {};
+                    Object.keys(animalV).forEach(animalItem => {
+                        const foodName = animalV[animalItem][foodortry];
+                        const foodQuant = animalV[animalItem][quantfoodortry];
+                        if (!foodTotals[foodName]) foodTotals[foodName] = 0;
+                        foodTotals[foodName] += foodQuant;
+                        animalCost += animalV[animalItem][costfoodortry] || 0;
+                        //animalCostp2p += animalV[animalItem][costfoodp2portry] || 0;
+                    });
+                    const foodList = Object.entries(foodTotals).map(([foodName, totalQuant]) => {
+                        const foodImg = foodName === "Mix"
+                            ? <img src="./icon/res/mixed_grain_v2.webp" style={{ width: "20px", height: "20px" }} />
+                            : <img src={dataSet.it[foodName]?.img ?? imgna} style={{ width: "20px", height: "20px" }} />;
+                        return (
+                            <span key={foodName} style={{ marginRight: 3 }}>
+                                {foodImg}x{frmtNb(totalQuant)}
+                            </span>
+                        );
+                    });
+                    txtFoodV = <span>{foodList}</span>;
+                    nodeCost = animalCost / itemSpot;
+                }
+                const txtFood = value > 0 ? <>{txtFoodV} cost {frmtNb((animalCost) / dataSet.options.coinsRatio)}{imgsfl}</> :
+                    <>Food: {txtImgFood}x{frmtNb(quantFood)} cost {frmtNb((nodeCost * itemSpot) / dataSet.options.coinsRatio)}{imgsfl}</>;
+                const animalLvl = value > 0 ? "" : <div> for a lvl{dataSet.options.animalLvl[aniName]} animal</div>;
+                txtCompo = <div> {txtFood}{animalLvl}</div>;
             }
             if (Item.cat === "fruit") {
                 //const fruitOrGreenhouse = Item.greenhouse ? "greenhouse" : "fruit";
@@ -276,6 +308,7 @@ const Tooltip = ({ onClose, item, context, value, clickPosition, dataSet }) => {
             //const prodCost = Item[costortry] / dataSet.options.coinsRatio;
             let prodCostFinal = !isFree ? (nodeCost * itemSpot) / dataSet.options.coinsRatio : 0;
             const harvestCostp2pt = (Item.costp2pt * tradeTax) * (value > 0 ? value : Item[harvestortry]);
+            //const harvestCostp2pt = (value > 0 && Item?.cat === "animal") ? animalCostp2p : (Item.costp2pt * tradeTax) * (value > 0 ? value : Item[harvestortry]);
             const txtProdCost = !isFree && <div>Your production cost: {txtCompo}</div>;
             const profit = harvestCostp2pt - prodCostFinal;
             const profitMul = harvestCostp2pt / prodCostFinal;
@@ -371,7 +404,7 @@ const Tooltip = ({ onClose, item, context, value, clickPosition, dataSet }) => {
                 }
             }
             if (Item.cat === "animal") {
-                //const aniName = Item.animal;
+                const aniName = Item.animal;
                 dailySpot = cycleD * itemSpot;
                 const urlImgFood = Item[foodortry] === "Mix" ? "./icon/res/mixed_grain_v2.webp" :
                     dataSet.it[Item[foodortry]].img ?? imgna;
@@ -382,7 +415,7 @@ const Tooltip = ({ onClose, item, context, value, clickPosition, dataSet }) => {
                 dailyCoinsCost = dailySpot * Item[foodcostortry];
                 dailySflCost = (dailyCoinsCost / dataSet.options.coinsRatio);
                 const txtCompos = <div>{imgFood}x{frmtNb(foodQuant)} cost {frmtNb(dailyCoinsCost)}{imgcoins} {'('}{frmtNb(dailySflCost)}{imgsfl}{')'}</div>;
-                const txtAnimals = <div> with {itemSpot}animals lvl{dataSet.options.inputAnimalLvl} </div>;
+                const txtAnimals = <div> with {itemSpot}animals lvl{dataSet.options.animalLvl[aniName]} </div>;
                 txtCompo = <div>{txtCompos}{txtAnimals}</div>;
             }
             if (Item.cat === "fruit") {

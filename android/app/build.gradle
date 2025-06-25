@@ -1,11 +1,5 @@
 apply plugin: 'com.android.application'
 
-buildscript {
-  dependencies {
-    classpath 'com.google.gms:google-services:4.3.15'
-  }
-}
-
 android {
     namespace "com.sunflower.manager"
     compileSdk rootProject.ext.compileSdkVersion

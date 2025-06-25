@@ -3,7 +3,9 @@
   "version": "1.0.0",
   "scripts": {
     "start": "react-scripts start",
-    "build": "react-scripts build"
+    "build": "react-scripts build",
+    "capacitor copy": "npx cap copy android",
+    "capacitor sync": "npx cap sync android"
   },
   "keywords": [],
   "author": "",
@@ -11,7 +13,7 @@
   "dependencies": {
     "@capacitor/android": "^7.3.0",
     "@capacitor/cli": "^7.3.0",
-    "@capacitor/core": "^7.3.0",
+    "@capacitor/core": "^7.4.0",
     "@capacitor/push-notifications": "^7.0.1",
     "@emotion/react": "^11.14.0",
     "@emotion/styled": "^11.14.0",

@@ -816,7 +816,7 @@ th {
 }
 
 .tdcentergreen {
-  background-color: rgba(0, 110, 0, 0.39);
+  /* background-color: rgba(0, 110, 0, 0.39); */
   position: relative;
   text-align: center;
   border-left: 1px solid rgb(83, 51, 51);

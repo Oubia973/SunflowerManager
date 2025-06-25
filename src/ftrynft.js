@@ -165,7 +165,7 @@ function ModalTNFT({ onClose, frmid, coinsRatio, API_URL, dataSet, onReset }) {
         bud[key].tryit = bud[key].isactive;
         setbudtry(bud);
       }
-      setNFT(nfttry, nftwtry, buildtry, skilltry, budtry);
+      setNFT(nfttry, nftwtry, buildtry, skilltry, skilllgctry, budtry);
     } catch (error) {
       console.log(`Error : ${error}`);
     }
@@ -202,7 +202,7 @@ function ModalTNFT({ onClose, frmid, coinsRatio, API_URL, dataSet, onReset }) {
         bud[key].tryit = 0;
         setbudtry(bud);
       }
-      setNFT(nfttry, nftwtry, buildtry, skilltry, budtry);
+      setNFT(nfttry, nftwtry, buildtry, skilltry, skilllgctry, budtry);
     } catch (error) {
       console.log(`Error : ${error}`);
     }
@@ -214,7 +214,7 @@ function ModalTNFT({ onClose, frmid, coinsRatio, API_URL, dataSet, onReset }) {
       showCraft = false;
       showBud = false;
       showSkill = false;
-      setNFT(nfttry, nftwtry, buildtry, skilltry, budtry);
+      setNFT(nfttry, nftwtry, buildtry, skilltry, skilllgctry, budtry);
     } catch (error) {
       console.log(`Error : ${error}`);
     }
@@ -226,7 +226,7 @@ function ModalTNFT({ onClose, frmid, coinsRatio, API_URL, dataSet, onReset }) {
       showCraft = false;
       showBud = false;
       showSkill = false;
-      setNFT(nfttry, nftwtry, buildtry, skilltry, budtry);
+      setNFT(nfttry, nftwtry, buildtry, skilltry, skilllgctry, budtry);
     } catch (error) {
       console.log(`Error : ${error}`);
     }
@@ -238,7 +238,7 @@ function ModalTNFT({ onClose, frmid, coinsRatio, API_URL, dataSet, onReset }) {
       showCraft = true;
       showBud = false;
       showSkill = false;
-      setNFT(nfttry, nftwtry, buildtry, skilltry, budtry);
+      setNFT(nfttry, nftwtry, buildtry, skilltry, skilllgctry, budtry);
     } catch (error) {
       console.log(`Error : ${error}`);
     }
@@ -250,7 +250,7 @@ function ModalTNFT({ onClose, frmid, coinsRatio, API_URL, dataSet, onReset }) {
       showCraft = false;
       showBud = true;
       showSkill = false;
-      setNFT(nfttry, nftwtry, buildtry, skilltry, budtry);
+      setNFT(nfttry, nftwtry, buildtry, skilltry, skilllgctry, budtry);
     } catch (error) {
       console.log(`Error : ${error}`);
     }
@@ -262,7 +262,7 @@ function ModalTNFT({ onClose, frmid, coinsRatio, API_URL, dataSet, onReset }) {
       showCraft = false;
       showBud = false;
       showSkill = true;
-      setNFT(nfttry, nftwtry, buildtry, skilltry, budtry);
+      setNFT(nfttry, nftwtry, buildtry, skilltry, skilllgctry, budtry);
     } catch (error) {
       console.log(`Error : ${error}`);
     }
@@ -293,12 +293,17 @@ function ModalTNFT({ onClose, frmid, coinsRatio, API_URL, dataSet, onReset }) {
       skill[item].tryit = skill[item].tryit === 1 ? 0 : 1;
       setskilltry(skill);
     }
+    let skilllgc = skilllgctry;
+    if (skilllgc.hasOwnProperty(item)) {
+      skilllgc[item].tryit = skilllgc[item].tryit === 1 ? 0 : 1;
+      setskilllgctry(skilllgc);
+    }
     let bud = budtry;
     if (bud.hasOwnProperty(item)) {
       bud[item].tryit = bud[item].tryit === 1 ? 0 : 1;
       setbudtry(bud);
     }
-    setNFT(nfttry, nftwtry, buildtry, skilltry, budtry);
+    setNFT(nfttry, nftwtry, buildtry, skilltry, skilllgctry, budtry);
   };
   const handleBuyitChange = (item) => {
     setittry(prevIt => {
@@ -396,7 +401,7 @@ function ModalTNFT({ onClose, frmid, coinsRatio, API_URL, dataSet, onReset }) {
       //tableContent = xtableContent;
     }
   }
-  function setNFT(xnft, xnftw, xbuild, xskill, xbud) {
+  function setNFT(xnft, xnftw, xbuild, xskill, xskilllgc, xbud) {
     let totalCost = 0;
     let totalCostM = 0;
     let totalCostactiv = 0;
@@ -405,6 +410,7 @@ function ModalTNFT({ onClose, frmid, coinsRatio, API_URL, dataSet, onReset }) {
     const nftwEntries = xnftw && Object.entries(xnftw);
     const buildEntries = xbuild && Object.entries(xbuild);
     const skillEntries = xskill && Object.entries(xskill);
+    const skilllgcEntries = xskilllgc && Object.entries(xskilllgc);
     const budEntries = xbud && Object.entries(xbud);
     const imgOS = <img src='./icon/ui/openseaico.png' alt={''} className="nftico" />;
     const imgexchng = <img src='./icon/ui/exchange.png' alt={''} className="nftico" />;
@@ -494,10 +500,27 @@ function ModalTNFT({ onClose, frmid, coinsRatio, API_URL, dataSet, onReset }) {
       }
     }
     if (skillEntries && showSkill) {
+      let tierPoints = {};
+      const catPoints = {
+        Crops: { 2: 3, 3: 7 },
+        Fruits: { 2: 2, 3: 5 },
+        Trees: { 2: 2, 3: 5 },
+        Fishing: { 2: 2, 3: 5 },
+        Animals: { 2: 3, 3: 7 },
+        Greenhouse: { 2: 2, 3: 5 },
+        Mining: { 2: 3, 3: 7 },
+        Cooking: { 2: 2, 3: 5 },
+        "Bees Flowers": { 2: 2, 3: 5 },
+        Machinery: { 2: 2, 3: 5 },
+        Compost: { 2: 3, 3: 7 }
+      };
       for (const [items, values] of skillEntries) {
+        if (!tierPoints[xskill[items].cat]) { tierPoints[xskill[items].cat] = {}; }
+        if (!tierPoints[xskill[items].cat][xskill[items].tier]) { tierPoints[xskill[items].cat][xskill[items].tier] = 0; }
         if (values.tryit) {
           totalCost += Number(values.points);
           totalCostM += Number(values.pricem) || 0;
+          tierPoints[xskill[items].cat][xskill[items].tier] += Number(values.points);
         }
         if (values.isactive) {
           totalCostactiv += Number(values.points);
@@ -505,12 +528,52 @@ function ModalTNFT({ onClose, frmid, coinsRatio, API_URL, dataSet, onReset }) {
         }
         const cellStyle = {};
         cellStyle.backgroundColor = xskill[items].tier === 1 ? `rgba(0, 116, 25, 0.63)` : xskill[items].tier === 2 ? `rgba(0, 2, 116, 0.63)` : `rgba(114, 116, 0, 0.63)`;
+        if (xskill[items].tier === 2 && (catPoints[xskill[items].cat][2] > tierPoints[xskill[items].cat][1] || 0)) {
+          cellStyle.backgroundColor = `rgba(255, 94, 94, 0.63)`;
+        }
+        if (xskill[items].tier === 3 && (catPoints[xskill[items].cat][3] > ((tierPoints[xskill[items].cat][1] || 0) + (tierPoints[xskill[items].cat][2] || 0)))) {
+          cellStyle.backgroundColor = `rgba(255, 94, 94, 0.63)`;
+        }
         NFT.push(
           <tr key={items}>
             <td className="tditemright" style={cellStyle}>{items}</td>
             <td className="tdcenter" id="iccolumn"><i><img src={values.img} alt={''} className="nftico" /></i></td>
             <td className="tdcenter">
               <input type="checkbox" checked={xskill[items].tryit} onChange={() => handleTryitChange(items)} />
+            </td>
+            <td className="tdcenter">
+              <input type="checkbox" className={'checkbox-disabled'} checked={values.isactive} />
+            </td>
+            <td className="tditemnft" style={{ color: `rgb(190, 190, 190)` }}>{values.boost}</td>
+          </tr>
+        );
+      }
+    }
+    if (skilllgcEntries && showSkill) {
+      NFT.push(
+      <tr>
+        <td colSpan={5} style={{ textAlign: "center", fontWeight: "bold" }}>
+          Badges (Legacy skills not obtainable anymore)
+        </td>
+      </tr>
+      );
+      for (const [items, values] of skilllgcEntries) {
+        /* if (values.tryit) {
+          totalCost += Number(values.points);
+          totalCostM += Number(values.pricem) || 0;
+        }
+        if (values.isactive) {
+          totalCostactiv += Number(values.points);
+          totalCostactivM += Number(values.pricem) || 0;
+        } */
+        const cellStyle = {};
+        //cellStyle.backgroundColor = xskill[items].tier === 1 ? `rgba(0, 116, 25, 0.63)` : xskill[items].tier === 2 ? `rgba(0, 2, 116, 0.63)` : `rgba(114, 116, 0, 0.63)`;
+        NFT.push(
+          <tr key={items}>
+            <td className="tditemright" style={cellStyle}>{items}</td>
+            <td className="tdcenter" id="iccolumn"><i><img src={values.img} alt={''} className="nftico" /></i></td>
+            <td className="tdcenter">
+              <input type="checkbox" checked={xskilllgc[items].tryit} onChange={() => handleTryitChange(items)} />
             </td>
             <td className="tdcenter">
               <input type="checkbox" className={'checkbox-disabled'} checked={values.isactive} />
@@ -589,9 +652,9 @@ function ModalTNFT({ onClose, frmid, coinsRatio, API_URL, dataSet, onReset }) {
     Refresh();
   }, []);
   useEffect(() => {
-    setNFT(nfttry, nftwtry, buildtry, skilltry, budtry);
+    setNFT(nfttry, nftwtry, buildtry, skilltry, skilllgctry, budtry);
     setContent(ittry);
-  }, [ittry, nfttry, nftwtry, buildtry, skilltry, budtry, TotalCostDisplay]);
+  }, [ittry, nfttry, nftwtry, buildtry, skilltry, skilllgctry, budtry, TotalCostDisplay]);
 
   const tableStyle = {
     flexDirection: tableFlexDirection,

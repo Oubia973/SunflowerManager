@@ -6,6 +6,7 @@ function ModalOptions({ onClose, dataSet, onOptionChange, API_URL }) {
     //const [pos, setPos] = useState({ x: clickPosition.x, y: clickPosition.y });
     //const [inputFarmTime, setInputFarmTime] = useState(dataSet.inputFarmTime);
     //const [inputMaxBB, setInputMaxBB] = useState(dataSet.inputFarmTime);
+
     const closeModal = () => {
         setIsOpen(false);
         setTimeout(onClose, 300);
@@ -76,6 +77,7 @@ function ModalOptions({ onClose, dataSet, onOptionChange, API_URL }) {
             window.removeEventListener('click', handleClickOutside);
         };
     }, [justOpened]); */
+
     return (
         <div className={`tooltip-wrapper ${isOpen ? "open" : ""}`}>
             <div className="tooltip"
@@ -100,8 +102,23 @@ function ModalOptions({ onClose, dataSet, onOptionChange, API_URL }) {
                 <div><input type="text" onChange={onOptionChange} value={dataSet.tradeTax || ""}
                     name={"tradeTax"} style={{ textAlign: "left", width: "30px" }} />Trade Tax
                     <button onClick={resetTax} class="button" align="right" position='absolute'><img src="./icon/ui/refresh.png" alt="" className="resico" /></button></div>
-                <div><input type="text" onChange={onOptionChange} value={dataSet.inputAnimalLvl || ""}
-                    name={"AnimalLvl"} style={{ textAlign: "left", width: "30px" }} />Animal lvl</div>
+                {dataSet.animalLvl && Object.entries(dataSet.animalLvl).map(([animal, lvl]) => (
+                    <div key={animal}>
+                        <input
+                            type="text"
+                            name={`animalLvl_${animal}`}
+                            value={lvl}
+                            onChange={e => onOptionChange({
+                                target: {
+                                    name: `animalLvl_${animal}`,
+                                    value: e.target.value
+                                }
+                            })}
+                            style={{ textAlign: "left", width: "25px" }}
+                        />
+                        <label style={{ marginRight: "8px" }}>{animal} lvl</label>
+                    </div>
+                ))}
                 <div><input type="checkbox" onChange={onOptionChange} checked={!!dataSet.useNotifications}
                     name={"useNotifications"} style={{ textAlign: "left", width: "30px" }} />Notifications</div>
                 {dataSet.isAbo ? (<>
