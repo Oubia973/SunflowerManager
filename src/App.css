@@ -2,20 +2,31 @@
   --background-color: rgb(24, 12, 6);
   --text-color: rgb(255, 255, 255);
 }
+
+html,
+body {
+  padding-top: env(safe-area-inset-top);
+  box-sizing: border-box;
+}
+
 .App {
   background-color: var(--background-color);
   color: var(--text-color);
 }
+
 .App::-webkit-scrollbar {
   width: 8px;
   height: 8px;
 }
+
 .App::-webkit-scrollbar-thumb {
   background-color: #7a7a7a;
 }
+
 .App::-webkit-scrollbar-track {
   background-color: #1d1d1d;
 }
+
 .App-header {
   background-color: #1a1d22;
   /* min-height: 60vh; */
@@ -28,22 +39,30 @@
   /*calc(10px + 2vmin);*/
   color: white;
 }
+
 .top-frame {
   position: sticky;
   height: auto;
   top: 0;
-  z-index: 10; /* Assurez-vous que cette section reste au-dessus des autres */
-  background-color: var(--background-color); /* Fond pour éviter les chevauchements */
+  z-index: 10;
+  /* Assurez-vous que cette section reste au-dessus des autres */
+  background-color: var(--background-color);
+  /* Fond pour éviter les chevauchements */
   display: flex;
   flex-direction: column;
-  overflow: hidden; /* Empêche le contenu de déborder */
+  overflow: hidden;
+  /* Empêche le contenu de déborder */
 }
 
 .tabletrades {
-  position: relative; /* Permet à cette section de défiler normalement */
-  overflow-x: auto; /* Active le défilement horizontal si nécessaire */
-  white-space: nowrap; /* Empêche le contenu de se casser sur plusieurs lignes */
-  margin-top: 0px; /* Ajoutez un espace si nécessaire */
+  position: relative;
+  /* Permet à cette section de défiler normalement */
+  overflow-x: auto;
+  /* Active le défilement horizontal si nécessaire */
+  white-space: nowrap;
+  /* Empêche le contenu de se casser sur plusieurs lignes */
+  margin-top: 0px;
+  /* Ajoutez un espace si nécessaire */
 }
 
 .App-h1 {
@@ -55,6 +74,7 @@
   justify-content: center;
   font-size: 12px;
 }
+
 .h1-container {
   background-color: #15171b;
   display: flex;
@@ -65,12 +85,14 @@
   /*calc(10px + 2vmin);*/
   color: rgb(253, 223, 55);
 }
+
 .App-logo {
   display: flex;
   height: 30px;
   width: 30px;
   pointer-events: none;
 }
+
 .vertical {
   position: absolute;
   top: 0;
@@ -79,6 +101,7 @@
   flex-direction: column;
   gap: 0px;
 }
+
 .horizontal {
   display: flex;
   align-items: center;
@@ -89,10 +112,12 @@
   display: flex;
   justify-content: space-between;
 }
+
 .buttons-container {
   display: flex;
   align-items: center;
 }
+
 .balance-container {
   display: flex;
   align-items: center;
@@ -118,6 +143,12 @@
   transform: translate(-50%, -50%);
   width: 20px;
   height: 20px;
+}
+.small-btn {
+  width: 24px;
+  height: 24px;
+  min-width: 24px;
+  min-height: 24px;
 }
 
 .don {
@@ -475,6 +506,7 @@ input[type="checkbox"].checkbox-disabled:checked {
   background-color: #222;
   padding: 10px;
 }
+
 .collapsible-content-th {
   position: relative;
   text-align: center;
@@ -483,6 +515,7 @@ input[type="checkbox"].checkbox-disabled:checked {
   overflow: hidden;
   text-overflow: clip;
 }
+
 @media (max-width: 510px) {
   [class^="collapsible"] {
     font-size: 0.95em;
@@ -490,11 +523,13 @@ input[type="checkbox"].checkbox-disabled:checked {
     padding: 1px 1px;
   }
 }
+
 @media (max-width: 410px) {
   [class^="collapsible"] {
     font-size: 0.90em;
   }
 }
+
 @media (max-width: 340px) {
   [class^="collapsible"] {
     font-size: 0.85em;
@@ -667,20 +702,25 @@ input[type="checkbox"].checkbox-disabled:checked {
   max-width: 95vw;
   overflow-y: auto;
 }
+
 .tooltip-wrapper.open .tooltip {
   transform: scale(1);
   opacity: 1;
 }
+
 .tooltip::-webkit-scrollbar {
   width: 8px;
 }
+
 .tooltip::-webkit-scrollbar-thumb {
   background-color: #7a7a7a;
   border-radius: 4px;
 }
+
 .tooltip::-webkit-scrollbar-track {
   background-color: #1d1d1d;
 }
+
 .itico {
   height: 17px;
   width: 17px;

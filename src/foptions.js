@@ -1,4 +1,6 @@
 import React, { useEffect, useState } from 'react';
+import DropdownCheckbox from './listcol.js';
+//import { FormControl, InputLabel, Select, MenuItem, Switch, FormControlLabel } from '@mui/material';
 
 function ModalOptions({ onClose, dataSet, onOptionChange, API_URL }) {
     const [isOpen, setIsOpen] = useState(false);
@@ -99,9 +101,11 @@ function ModalOptions({ onClose, dataSet, onOptionChange, API_URL }) {
                     name={"MaxBB"} style={{ textAlign: "left", width: "30px" }} />Restock daily</div>
                 <div><input type="text" onChange={onOptionChange} value={dataSet.coinsRatio || ""}
                     name={"CoinsRatio"} style={{ textAlign: "left", width: "30px" }} />Coins/flower</div>
-                <div><input type="text" onChange={onOptionChange} value={dataSet.tradeTax || ""}
-                    name={"tradeTax"} style={{ textAlign: "left", width: "30px" }} />Trade Tax
-                    <button onClick={resetTax} class="button" align="right" position='absolute'><img src="./icon/ui/refresh.png" alt="" className="resico" /></button></div>
+                <div style={{ display: "flex", alignItems: "center", gap: 2 }}><input type="text" onChange={onOptionChange} value={dataSet.tradeTax || ""}
+                    name={"tradeTax"} style={{ textAlign: "left", width: "30px" }} />
+                    <button onClick={resetTax} class="button small-btn" align="right" position='absolute'><img src="./icon/ui/refresh.png" alt="" className="resico" /></button>
+                    Trade Tax
+                </div>
                 {dataSet.animalLvl && Object.entries(dataSet.animalLvl).map(([animal, lvl]) => (
                     <div key={animal}>
                         <input
@@ -119,11 +123,24 @@ function ModalOptions({ onClose, dataSet, onOptionChange, API_URL }) {
                         <label style={{ marginRight: "8px" }}>{animal} lvl</label>
                     </div>
                 ))}
-                <div><input type="checkbox" onChange={onOptionChange} checked={!!dataSet.useNotifications}
-                    name={"useNotifications"} style={{ textAlign: "left", width: "30px" }} />Notifications</div>
+                <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                    <input
+                        type="checkbox"
+                        onChange={onOptionChange}
+                        checked={!!dataSet.useNotifications}
+                        name={"useNotifications"}
+                        style={{ width: "18px", height: "18px", marginRight: 6 }}
+                    />
+                    <span style={{ fontSize: 15, marginRight: 6 }}>Notifications</span>
+                    <DropdownCheckbox
+                        options={dataSet.notifList}
+                        onChange={onOptionChange}
+                        listIcon={"./options.png"}
+                    />
+                </div>
                 {dataSet.isAbo ? (<>
                     <div><input type="checkbox" onChange={onOptionChange} checked={!!dataSet.usePriceFood}
-                        name={"usePriceFood"} style={{ textAlign: "left", width: "30px" }} />Use cheaper food for animals</div>
+                        name={"usePriceFood"} style={{ width: "18px", height: "18px", marginRight: 12 }} />Use cheaper food for animals</div>
                 </>) : null}
                 <div className="don">
                     <a id="copy-link" href="#" onClick={(event) => handleDonClick("0xAc3c7f9f1f8492Cc10A4fdb8C738DD82013d61dA", event.target)} title="Clic to copy">

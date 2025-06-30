@@ -7,6 +7,15 @@ const config: CapacitorConfig = {
   server: {
     url: 'https://sunflower.ott2tv.com',
     cleartext: false
+  },
+  plugins: {
+    SplashScreen: {
+      androidScaleType: "CENTER_CROP",
+      androidImmersive: false
+    },
+    StatusBar: {
+      overlaysWebView: false
+    }
   }
 };
 

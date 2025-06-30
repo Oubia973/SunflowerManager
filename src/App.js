@@ -18,9 +18,11 @@ import { setHome } from './setHome.js';
 
 import { Capacitor } from '@capacitor/core';
 import { PushNotifications } from '@capacitor/push-notifications';
+import { StatusBar, Style } from '@capacitor/status-bar';
+//StatusBar.setStyle({ style: Style.Light });
 const isNativeApp = Capacitor.isNativePlatform();
 
-const runLocal = true;
+const runLocal = false;
 const API_URL = runLocal ? "" : process.env.REACT_APP_API_URL;
 
 var vversion = 0.03;
@@ -28,6 +30,7 @@ let dataSet = {};
 dataSet.options = {};
 dataSet.options.gemRatio = 20;
 dataSet.options.tradeTax = 10;
+//dataSet.options.notifList = [];
 
 var dateSeason = "";
 var tktName = "";
@@ -126,8 +129,9 @@ function App() {
     inputAnimalLvl: 5,
     inputCoinsRatio: 320,
     usePriceFood: false,
-    useNotifications: false,
   })
+  const [useNotif, setuseNotif] = useState(false);
+  const [notifListInitial, setNotifListInitial] = useState(null);
   const [inputValue, setInputValue] = useState('');
   const [inputMaxBB, setInputMaxBB] = useState(1);
   const [inputFarmTime, setInputFarmTime] = useState(8);
@@ -334,6 +338,7 @@ function App() {
   };
   const handleButtonOptionsClick = () => {
     setInitialDataSet(JSON.parse(JSON.stringify(dataSet)));
+    setNotifListInitial(JSON.stringify(dataSet.options.notifList));
     setShowOptions(true);
   };
   const handleButtonHelpClick = () => {
@@ -405,6 +410,9 @@ function App() {
   const handleCloseOptions = () => {
     setShowOptions(false);
     setCookie();
+    if (notifListInitial && JSON.stringify(dataSet.options.notifList) !== notifListInitial) {
+      UpdateNotifList();
+    }
   };
   const handleCloseHelp = () => {
     setShowHelp(false);
@@ -535,6 +543,18 @@ function App() {
       console.log('Notif on');
     }
   }
+  async function UpdateNotifList() {
+    const subfarm = {
+      farmId: inputValue,
+      notifList: Object.fromEntries(dataSet.options.notifList)
+    }
+    await fetch('/notiflist-subscription', {
+      method: 'POST',
+      body: JSON.stringify(subfarm),
+      headers: { 'Content-Type': 'application/json' },
+    });
+    //console.log('FCM subscription saved');
+  }
   function urlBase64ToUint8Array(base64String) {
     const padding = '='.repeat((4 - base64String.length % 4) % 4);
     const base64 = (base64String + padding)
@@ -650,6 +670,24 @@ function App() {
       xvalue = Number(eventOrValue);
       name = fieldName;
     }
+    if (!name) {
+      if (Array.isArray(eventOrValue)) {
+        if (JSON.stringify(dataSet.options.notifList) !== JSON.stringify(eventOrValue)) {
+          dataSet.options.notifList = eventOrValue;
+          setOptions({ ...dataSet.options, notifList: eventOrValue });
+          //UpdateNotifListDebounced();
+        }
+        return;
+      }
+      return;
+    }
+    /* let notifListTimeout;
+    function UpdateNotifListDebounced() {
+      clearTimeout(notifListTimeout);
+      notifListTimeout = setTimeout(() => {
+        UpdateNotifList();
+      }, 300);
+    } */
     if (isNaN(xvalue)) xvalue = 0;
     if (xvalue < 0) xvalue = 1;
     if (name.startsWith("animalLvl_")) {
@@ -692,7 +730,8 @@ function App() {
           unsubscribeFromPush();
         } */
         dataSet.options.useNotifications = xvalue;
-        setOptions({ ...dataSet.options });
+        //setOptions({ ...dataSet.options });
+        setuseNotif(xvalue);
         /* setOptions(prev => {
           const newOptions = { ...prev, useNotifications: xvalue };
           return newOptions;
@@ -1555,6 +1594,9 @@ function App() {
         const absDifference = Math.abs(difference);
         const isNegativeDifference = difference < 0;
         const hoardPercentage = Math.floor((absDifference / maxh) * 100);
+        const bswarm = item === "Honey" && it["Honey"].swarm;
+        const needslove = (item === "Egg" || item === "Milk" || item === "Wool") && it[item].needlove;
+        const issick = (item === "Egg" || item === "Milk" || item === "Wool") && it[item].issick;
         let spotNb = 0;
         let istockorhoard = 0;
         let spotImage = "";
@@ -1570,9 +1612,6 @@ function App() {
         if (item === "Flower") { spotNb = spot.flower; istockorhoard = istock; spotImage = imgflowerbed; }
         if (item === "Milk" || item === "Leather") { spotNb = spot.cow; istockorhoard = istock; spotImage = imgcow; }
         if (item === "Wool" || item === "Merino Wool") { spotNb = spot.sheep; istockorhoard = istock; spotImage = imgsheep; }
-        const bswarm = item === "Honey" && it["Honey"].swarm;
-        const needslove = (item === "Egg" || item === "Milk" || item === "Wool") && it[item].needlove;
-        const issick = (item === "Egg" || item === "Milk" || item === "Wool") && it[item].issick;
         if (icat === "fruit") { spotNb = spot.fruit; istockorhoard = istock * (4 + buildng["Immortal Pear"].isactive); spotImage = imgwood; }
         const hrvststk = (Math.floor(istockorhoard / spotNb) > 0 ? Math.floor(istockorhoard / spotNb) : 1);
         const hrvststkfrt = (Math.floor(istockorhoard / iplanted) > 0 ? Math.floor(istockorhoard / iplanted) : 1);
@@ -4047,7 +4086,7 @@ function App() {
       const cobj = nft[table[index][0].name];
       const ico = cobj ? cobj.img : '';
       return (
-        <img src={ico} alt={''} className="nftico" />
+        <img src={ico} alt={''} className="nftico" title={table[index][0].name} />
       )
     });
     setmutData(MutItems);
@@ -4079,6 +4118,7 @@ function App() {
   const fishcosts = fishingDetails && (parseFloat(fishingDetails.casts * xfishcost).toFixed(3) + "/" + parseFloat(xfishcastmax * xfishcost).toFixed(3));
 
   useEffect(() => {
+    StatusBar.setOverlaysWebView({ overlay: false });
     loadCookie();
     if ('serviceWorker' in navigator) {
       navigator.serviceWorker.register('/service-worker.js')
@@ -4313,7 +4353,7 @@ function App() {
       if (inputValue) { unsubscribeFromPush(); }
     }
     // eslint-disable-next-line
-  }, [options]);
+  }, [useNotif]);
 
   return (
     <>
@@ -4839,10 +4879,26 @@ function App() {
     dataSet.ftrades = ftrades;
     dataSet.animals = Animals;
     //dataSet.forTry = TryChecked;
-    if (!dataSet.options.animalLvl) {
+    if (!dataSet.options?.animalLvl) {
       dataSet.options.animalLvl = Object.fromEntries(
         Object.keys(Animals).map(animal => [animal, 5])
       );
+    }
+    if (!dataSet.options?.notifList) {
+      dataSet.options.notifList = Object.keys(it)
+        .filter(key =>
+          !(it[key]?.matcat === 2) &&
+          !(key === "Wild Mushroom") &&
+          !(key === "Magic Mushroom")
+        )
+        .map(key => [key, 1]);
+      dataSet.options.notifList.push(['Bee Swarm', 1]);
+    }
+    if (!dataSet.options.notifList.some(([key]) => key === 'Market Sold')) {
+      dataSet.options.notifList.push(['Market Sold', 1]);
+    }
+    if (!dataSet.options.notifList.some(([key]) => key === 'Animal needs love')) {
+      dataSet.options.notifList.push(['Animal needs love', 1]);
     }
   }
 }

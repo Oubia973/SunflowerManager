@@ -7,30 +7,6 @@ self.addEventListener('push', async function (event) {
     items = Object.keys(data);
   }
 
-  /* const iconMap = {
-    'Crop': '🌱',
-    'Alert': '🚨',
-    'Carrot': '🥕',
-    'Wheat': '🌾',
-  };
-   const emojis = {
-        "Tree": "🌳", "Stone": "🪨", "Iron": "⚒️", "Gold": "⚜️", "Crimstone": "💎", "Sunstone": "🏵️", "Oil": "🛢️",
-        "Sunflower": "🌻", "Potato": "🥔", "Pumpkin": "🎃", "Carrot": "🥕", "Corn": "🌽", "Wheat": "🌾", "Cabbage": "🥬", "Broccoli": "🥦",
-        "Tomato": "🍅", "Apple": "🍎", "Banana": "🍌", "Orange": "🍊", "Lemon": "🍋", "Blueberry": "🫐",
-        "Chicken": "🐔", "Cow": "🐄", "Sheep": "🐑",
-        "Rice": "🍚", "Olive": "🫒", "Grape": "🍇",
-        "Beehive": "🍯",
-        "Mushroom": "🍄", "Magic Mushroom": "🍄‍🟫",
-        "Mashed Potato": "🥔", "Pumpkin Soup": "🍲", "Mushroom Soup": "🍄",
-        "Pancakes": "🥞", "Apple Pie": "🥧", "Honey Cake": "🍰",
-        "Cheese": "🧀", "Apple Juice": "🧃", "Premium Composter": "♻️",
-        "Turbo Composter": "⚡", "Compost Bin": "🗂️",
-    };
-  const bodyText = items.map(item => {
-    const emoji = iconMap[item] || '🔔';
-    return `${emoji} ${item}`;
-  }).join('\n'); */
-
   const existingNotifications = await self.registration.getNotifications({ tag: 'sunflowerman-notif' });
   let previousItems = [];
   if (existingNotifications.length > 0) {
