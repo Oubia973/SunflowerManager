@@ -138,6 +138,8 @@ function ModalOptions({ onClose, dataSet, onOptionChange, API_URL }) {
                         listIcon={"./options.png"}
                     />
                 </div>
+                <div><input type="checkbox" onChange={onOptionChange} checked={!!dataSet.toolsBurn}
+                    name={"toolsBurn"} style={{ width: "18px", height: "18px", marginRight: 12 }} />Ressources burned by tools in daily numbers</div>
                 {dataSet.isAbo ? (<>
                     <div><input type="checkbox" onChange={onOptionChange} checked={!!dataSet.usePriceFood}
                         name={"usePriceFood"} style={{ width: "18px", height: "18px", marginRight: 12 }} />Use cheaper food for animals</div>

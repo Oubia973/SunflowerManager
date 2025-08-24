@@ -37,6 +37,24 @@ export function frmtNb(nombre) {
   }
 }
 
+export function convTime(nombre) {
+  if (nombre > 0 && nombre !== Infinity) {
+    //if (nombre === "-Infinity" || nombre === "Infinity" || nombre === 0 || nombre === NaN) { return "00:00:00" }
+    const heures = Math.floor(nombre * 24);
+    const minutes = Math.floor(nombre * 24 * 60) % 60;
+    const secondes = Math.floor(nombre * 24 * 60 * 60) % 60;
+    const jours = Math.floor(heures / 24);
+    const heuresFormat = heures % 24;
+    const jourStr = jours > 0 ? jours.toString().padStart(2, '0') + ':' : '';
+    const heureStr = heuresFormat.toString().padStart(2, '0');
+    const minuteStr = minutes.toString().padStart(2, '0');
+    const secondeStr = secondes.toString().padStart(2, '0');
+    return jourStr + heureStr + ':' + minuteStr + ':' + secondeStr;
+  } else {
+    return '00:00:00';
+  }
+}
+
 export function convtimenbr(tempsFormat) {
   if (tempsFormat !== "" && tempsFormat !== 0) {
     const tempsArray = tempsFormat.split(':');

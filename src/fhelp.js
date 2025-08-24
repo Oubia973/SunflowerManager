@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 
-function ModalHelp({ onClose }) {
+function ModalHelp({ onClose, image }) {
     const [isOpen, setIsOpen] = useState(false);
     const [justOpened, setJustOpened] = useState(true);
     //const [pos, setPos] = useState({ x: clickPosition.x, y: clickPosition.y });
@@ -37,7 +37,7 @@ function ModalHelp({ onClose }) {
     return (
         <div className={`tooltip-wrapper ${isOpen ? "open" : ""}`}>
             {/* <img src="./help.png" alt={''} style={{ width: '622px', height: '571px' }} /> */}
-            <img src="./help.png" alt={''} />
+            <img src={image} alt={''} />
         </div>
     );
 }

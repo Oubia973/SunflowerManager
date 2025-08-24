@@ -9,6 +9,7 @@ import Help from './fhelp.js';
 import Cadre from './animodal.js';
 import Tooltip from "./tooltip.js";
 import DropdownCheckbox from './listcol.js';
+import CounterInput from "./counterinput.js";
 import { FormControl, InputLabel, Select, MenuItem, Switch, FormControlLabel } from '@mui/material';
 import { frmtNb, ColorValue, Timer } from './fct.js';
 import { setHome } from './setHome.js';
@@ -22,7 +23,7 @@ import { StatusBar, Style } from '@capacitor/status-bar';
 //StatusBar.setStyle({ style: Style.Light });
 const isNativeApp = Capacitor.isNativePlatform();
 
-const runLocal = false;
+const runLocal = true;
 const API_URL = runLocal ? "" : process.env.REACT_APP_API_URL;
 
 var vversion = 0.03;
@@ -89,6 +90,7 @@ var taxFreeSFL = 0;
 var bFarmit = [];
 var bCookit = [];
 var bBuyit = [];
+var bSpottry = [];
 /* var bTrynft = [];
 var bTrynftw = [];
 var bTrybuild = [];
@@ -118,6 +120,8 @@ var cstPricesb = [10000, 5000, 1000, 1000, 1000, 1000, 1000, 1000, 1000, 1000, 1
 var platformListings = "Trades";
 //var coinsRatio = 320;
 
+let helpImage = "./image/helpgeneral.jpg";
+
 //var testb = false;
 
 function App() {
@@ -129,6 +133,7 @@ function App() {
     inputAnimalLvl: 5,
     inputCoinsRatio: 320,
     usePriceFood: false,
+    toolsBurn: true,
   })
   const [useNotif, setuseNotif] = useState(false);
   const [notifListInitial, setNotifListInitial] = useState(null);
@@ -159,6 +164,7 @@ function App() {
   const [fishData, setfishData] = useState(null);
   const [flowerData, setflowerData] = useState(null);
   const [bountyData, setbountyData] = useState(null);
+  const [craftData, setcraftData] = useState(null);
   const [animalData, setanimalData] = useState(null);
   const [expandData, setexpandData] = useState(null);
   const [mapData, setMapData] = useState(null);
@@ -342,6 +348,7 @@ function App() {
     setShowOptions(true);
   };
   const handleButtonHelpClick = () => {
+    helpImage = "./image/helpgeneral.jpg";
     setShowHelp(true);
   };
   const handleClosefTNFT = (xdataSet) => {
@@ -723,6 +730,10 @@ function App() {
         dataSet.options.usePriceFood = xvalue;
         setOptions({ ...dataSet.options });
         break;
+      case "toolsBurn":
+        dataSet.options.toolsBurn = xvalue;
+        setOptions({ ...dataSet.options });
+        break;
       case "useNotifications":
         /* if (xvalue === true) {
           subscribeToPush();
@@ -769,6 +780,7 @@ function App() {
       var bTryskilllgcArray = [];
       var bTrybudArray = [];
       var bBuyitArray = [];
+      var bSpottryArray = [];
       if (localStorage.getItem("SFLManData") !== null) {
         const cookieValue = localStorage.getItem("SFLManData");
         var loadedData = JSON.parse(cookieValue);
@@ -779,6 +791,7 @@ function App() {
         bTryskilllgcArray = loadedData.bTryskilllgc.length > 0 ? loadedData.bTryskilllgc.reduce((acc, item) => { acc[item.name] = item.value; return acc; }, {}) : "";
         bTrybudArray = loadedData.bTrybud.length > 0 ? loadedData.bTrybud.reduce((acc, item) => { acc[item.name] = item.value; return acc; }, {}) : "";
         bBuyitArray = loadedData.bBuyit.length > 0 ? loadedData.bBuyit.reduce((acc, item) => { acc[item.name] = item.value; return acc; }, {}) : "";
+        bSpottryArray = loadedData.bSpottry.length > 0 ? loadedData.bSpottry.reduce((acc, item) => { acc[item.name] = item.value; return acc; }, {}) : "";
       }
       username = "";
       if (reset) { setFarmData([]); }
@@ -800,6 +813,7 @@ function App() {
               xtryskilllgc: bTryskilllgcArray,
               xtrybud: bTrybudArray,
               xbuyit: bBuyitArray,
+              xspottry: bSpottryArray,
             }),
           });
           if (response.status === 202) {
@@ -912,7 +926,7 @@ function App() {
             setReqState('');
             setFarmData(responseData.frmData);
             setBumpkinData(responseData.Bumpkin);
-            getPlanted(it);
+            //getPlanted(it);
             //NFTPrice();
             setfTrades();
             setdeliveriesData(responseData.orderstable);
@@ -1575,8 +1589,8 @@ function App() {
         const rharvesttry = cobj.harvesttry ? cobj.harvesttry : 0;
         const iharvestdmax = cobj.harvestdmax ? cobj.harvestdmax : 0;
         const iharvestdmaxtry = cobj.harvestdmaxtry ? cobj.harvestdmaxtry : 0;
-        const icycledmax = cobj.dailycycle ? cobj.dailycycle : 0;
-        const icycledmaxtry = cobj.dailycycletry ? cobj.dailycycletry : 0;
+        const idailycycle = cobj.dailycycle ? cobj.dailycycle : 0;
+        const idailycycletry = cobj.dailycycletry ? cobj.dailycycletry : 0;
         const irestockmax = cobj.restockmax ? cobj.restockmax : 0;
         const irestockmaxtry = cobj.restockmaxtry ? cobj.restockmaxtry : 0;
         const i2bharvest = cobj ? cobj.tobharvest : 0;
@@ -1625,10 +1639,12 @@ function App() {
         //const BBprod = (((item === "Wood" && nft["Foreman Beaver"].isactive === 1) || item === "Egg" ? maxh : hrvststk * iharvest));
         const BBprod = !TryChecked ? irestockmax : irestockmaxtry;
         const hrvststkx = (icat === "fruit" ? hrvststkfrt : item === "Egg" ? hrvststkegg : hrvststk);
-        const hrvstd = (BBd <= MaxBB ? (Math.ceil(hrvststkx * BBd)) : (Math.ceil(hrvststkx * MaxBB))) > 0 ? (BBd <= MaxBB ? (Math.ceil(hrvststkx * BBd)) :
-          (Math.ceil(hrvststkx * MaxBB))) : 1;
-        const hrvstdmx = (BBdmx <= MaxBB ? (Math.ceil(hrvststk * BBdmx)) : (Math.ceil(hrvststk * MaxBB))) > 0 ? (BBdmx <= MaxBB ? (Math.ceil(hrvststk * BBdmx)) :
-          (Math.ceil(hrvststk * MaxBB))) : 1;
+        /* const hrvstd = (BBd <= MaxBB ? (Math.ceil(hrvststkx * BBd)) : (Math.ceil(hrvststkx * MaxBB))) > 0 ? (BBd <= MaxBB ? (Math.ceil(hrvststkx * BBd)) :
+          (Math.ceil(hrvststkx * MaxBB))) : 1; */
+        /* const hrvstdmx = (BBdmx <= MaxBB ? (Math.ceil(hrvststk * BBdmx)) : (Math.ceil(hrvststk * MaxBB))) > 0 ? (BBdmx <= MaxBB ? (Math.ceil(hrvststk * BBdmx)) :
+          (Math.ceil(hrvststk * MaxBB))) : 1; */
+        const hrvstd = idailycycle;
+        const hrvstdmx = idailycycle;
         if (!TryChecked) { HrvstMax[item] = hrvstdmx } else { HrvstMaxtry[item] = hrvstdmx }
         if (!TryChecked) { if (!xHrvst[item] || xHrvst[item] > HrvstMax[item]) { xHrvst[item] = HrvstMax[item] } }
         else { if (!xHrvsttry[item] || xHrvsttry[item] > HrvstMaxtry[item]) { xHrvsttry[item] = HrvstMaxtry[item] } }
@@ -1767,7 +1783,8 @@ function App() {
         const xDsfl = selectedDsfl === "max" ? (getMaxValue(puTrad * (1 - nTTax), puNiftyWthdr * (1 - NTax), puOSWthdr * (1 - OTax))) :
           selectedDsfl === "trader" ? puTrad * (1 - nTTax) : selectedDsfl === "nifty" ? puNiftyWthdr * (1 - NTax) : selectedDsfl === "opensea" ? puOSWthdr * (1 - OTax) : 0;
         //const Dsfl = (xDsfl - convPricep) * dailyprodmx;
-        const Dsfl = cobj?.buyit ? 0 : (xDsfl - convPricep) * (!TryChecked ? iharvestdmax : iharvestdmaxtry);
+        //const Dsfl = cobj?.buyit ? 0 : (xDsfl - convPricep) * (!TryChecked ? iharvestdmax : iharvestdmaxtry);
+        const Dsfl = (!TryChecked ? cobj.dailysfl : cobj.dailysfltry);
         //const titleTrad = selectedQuant !== "unit" ? Math.ceil(iQuant / itradmax) + " * (" + itradmax + " * " + puTrad + " - 0.25$)" : "";
         const titleTrad = ""; // selectedQuant !== 'unit' ? frmtNb(Math.ceil(iQuant / itradmax)) + ` x (${frmtNb(itradmax)} x ${frmtNb(puTrad)}) - ${frmtNb(TaxTradSfl)}SFL(0.25$)` : "";
         const titleNifty = ""; // selectedQuant !== "unit" ? frmtNb(iQuant * 0.7) + " x " + frmtNb(puNifty) + " - 5%" : "";
@@ -1843,6 +1860,13 @@ function App() {
                 <img src="/icon/ui/arrow_up-1.png" alt="Minus" onClick={() => handleDecrement(item, TryChecked)} style={{ width: '11px', height: '11px' }} />
                 {bhrvstItem}
                 <img src="/icon/ui/arrow_up.png" alt="Plus" onClick={() => handleIncrement(item, TryChecked, hrvstd)} style={{ width: '11px', height: '11px' }} />
+                {/* <CounterInput
+                  value={bhrvstItem}
+                  onChange={value => handleSpottryChange(item, value)}
+                  min={0}
+                  max={99}
+                  activate={TryChecked}
+                /> */}
               </td>) : ("")}
               {xListeCol[2][1] === 1 ? selectedQuantity === "custom" ?
                 (<td className="tdcenter" style={{ ...cellStyle, color: `rgb(160, 160, 160)` }}><div
@@ -2728,6 +2752,78 @@ function App() {
     }
   }
 
+  function setCraftBox() {
+    if (farmData.inventory) {
+      const Keys = Object.keys(craft);
+      const imgCoins = <img src={imgcoins} alt={''} className="itico" title="Coins" />;
+      const imgSfl = <img src={imgsfl} alt={''} className="itico" title="Flower" />;
+      const tableContent = Keys.map(element => {
+        const cobj = craft[element];
+        const itemName = element;
+        const ico = <img src={cobj.img} alt={''} className="nodico" title={itemName} />;
+        const itime = TryChecked ? cobj.timetry : cobj.time;
+        const stock = cobj.stock > 0 ? cobj.stock : '';
+        const icost = TryChecked ? cobj.costtry / dataSet.options.coinsRatio : cobj.cost / dataSet.options.coinsRatio;
+        const icostm = cobj.costp2pt;
+        let icompoimg = [];
+        for (let key in cobj.compo) {
+          const compoQuant = cobj.compo[key];
+          let icompoToAdd = imgna;
+          if (it[key]) { icompoToAdd = it[key].img; }
+          if (bounty[key]) { icompoToAdd = bounty[key].img; }
+          if (flower[key]) { icompoToAdd = flower[key].img; }
+          if (craft[key]) { icompoToAdd = craft[key].img; }
+          icompoimg.push(
+            <span key={key}>
+              {compoQuant}
+              <img src={icompoToAdd} alt="" class="itico" title={key} />
+            </span>
+          );
+        }
+        return (
+          <tr>
+            <td id="iccolumn">{ico}</td>
+            {xListeColBounty[0][1] === 1 ? <td className="tditem">{itemName}</td> : null}
+            {xListeColBounty[1][1] === 1 ? <td className="tdcenter">{stock}</td> : null}
+            {xListeColBounty[2][1] === 1 ? <td className="tdcenter">{itime}</td> : null}
+            {xListeColBounty[3][1] === 1 ? <td className="tdcenter"
+              onClick={(e) => handleTooltip(itemName, "craftcompo", 0, e, dataSet)}>{icompoimg}</td> : null}
+            {xListeColBounty[4][1] === 1 ? <td className="tdcenter">{parseFloat(icost).toFixed(3)}</td> : null}
+            {xListeColBounty[5][1] === 1 ? <td className="tdcenter">{parseFloat(icostm).toFixed(3)}</td> : null}
+          </tr>
+        );
+      });
+      const tableHeader = (
+        <thead>
+          <tr>
+            <th className="th-icon"></th>
+            {xListeColBounty[0][1] === 1 ? <th className="thcenter">Name</th> : null}
+            {xListeColBounty[1][1] === 1 ? <th className="thcenter">Stock</th> : null}
+            {xListeColBounty[2][1] === 1 ? <th className="thcenter">Time</th> : null}
+            {xListeColBounty[3][1] === 1 ? <th className="thcenter">Compos</th> : null}
+            {xListeColBounty[4][1] === 1 ? <th className="thcenter">Prod price</th> : null}
+            {xListeColBounty[5][1] === 1 ? <th className="thcenter">Market price</th> : null}
+          </tr>
+        </thead>
+      );
+
+      const table = (
+        <>
+          <table className="table">
+            {tableHeader}
+            <tbody>
+              {tableContent}
+            </tbody>
+          </table>
+        </>
+      );
+
+      setcraftData(table);
+      setMutants(mutantchickens);
+      setsTickets(sTickets);
+    }
+  }
+
   function setAnimals() {
     if (Animals) {
       let table = [];
@@ -3016,6 +3112,8 @@ function App() {
           const colorAmount = (Greenproc || GreenprocGH) ? 'red' : 'white';
           const rdyAtIndex = rdyAtMap.get(item.rdyAt);
           const backColor = (item.type === "crop" && isGA) ? getBackgroundColor(rdyAtIndex) : 'transparent';
+          const mapX = item?.x || "";
+          const mapY = item?.y || "";
           if (Greenproc) {
             lastGreenProc = rdyAtIndex;
           }
@@ -3076,7 +3174,7 @@ function App() {
                 fontSize: '11px'
               }}>
                 {rdyAtIndex}
-                {{x},{y}}
+                {mapX}{","}{mapY}
               </span> */}
             </td>
           );
@@ -3974,6 +4072,7 @@ function App() {
     var bTryskilllgcArray = [];
     var bTrybudArray = [];
     var bBuyitArray = [];
+    var bSpottryArray = [];
     if (!onlyPrices) {
       if (localStorage.getItem("SFLManData") !== null) {
         const cookieValue = localStorage.getItem("SFLManData");
@@ -3985,6 +4084,7 @@ function App() {
         bTryskilllgcArray = loadedData.bTryskilllgc.length > 0 ? loadedData.bTryskilllgc.reduce((acc, item) => { acc[item.name] = item.value; return acc; }, {}) : "";
         bTrybudArray = loadedData.bTrybud.length > 0 ? loadedData.bTrybud.reduce((acc, item) => { acc[item.name] = item.value; return acc; }, {}) : "";
         bBuyitArray = loadedData.bBuyit.length > 0 ? loadedData.bBuyit.reduce((acc, item) => { acc[item.name] = item.value; return acc; }, {}) : "";
+        bSpottryArray = loadedData.bSpottry.length > 0 ? loadedData.bSpottry.reduce((acc, item) => { acc[item.name] = item.value; return acc; }, {}) : "";
       }
     }
     let vHeaders = onlyPrices ? {
@@ -3999,6 +4099,7 @@ function App() {
       xtryskilllgc: bTryskilllgcArray,
       xtrybud: bTrybudArray,
       xbuyit: bBuyitArray,
+      xspottry: bSpottryArray,
     };
     const response = await fetch(API_URL + "/getdatacrypto", {
       //method: 'GET',
@@ -4047,7 +4148,7 @@ function App() {
         dataSet.farmData = responseData.allData.frmData;
         setBumpkinData(responseData.allData.Bumpkin);
         //MergeIt(responseData.allData.it, it);
-        setPlanted(responseData.allData.it);
+        //setPlanted(responseData.allData.it);
         getFarmit(it);
         getCookit(food);
         //getBuyit(it, bBuyitArray);
@@ -4272,6 +4373,16 @@ function App() {
     if (selectedInv === "bounty") {
       try {
         setBounty();
+        if (farmData.balance) { setCookie() }
+      } catch (error) {
+        //localStorage.clear();
+        //console.log("Error, cleared local data");
+        console.log(error);
+      }
+    }
+    if (selectedInv === "craft") {
+      try {
+        setCraftBox();
         if (farmData.balance) { setCookie() }
       } catch (error) {
         //localStorage.clear();
@@ -4517,6 +4628,7 @@ function App() {
                       <MenuItem value="flower"><img src="./icon/flower/red_pansy.webp" alt="" className="itico" />Flower</MenuItem>
                       <MenuItem value="bounty"><img src="./icon/tools/sand_shovel.png" alt="" className="itico" />Dig</MenuItem>
                       <MenuItem value="animal"><img src={imgchkn} alt="" className="itico" />Animals</MenuItem>
+                      <MenuItem value="craft"><img src="./icon/craft/bee_box.webp" alt="" className="itico" />Craft</MenuItem>
                       <MenuItem value="map"><img src="./icon/ui/world.png" alt="" className="itico" />Map</MenuItem>
                       <MenuItem value="expand"><img src="./icon/tools/hammer.png" alt="" className="itico" />Expand</MenuItem>
                       {isAbo ? <MenuItem value="activity"><img src="./icon/ui/stopwatch.png" alt="" className="itico" />Activity</MenuItem> : null}
@@ -4556,6 +4668,7 @@ function App() {
                 ),
                 flower: flowerData || null,
                 bounty: bountyData || null,
+                craft: craftData || null,
                 animal: animalData || null,
                 map: mapData || null,
                 expand: expandData || null,
@@ -4584,7 +4697,14 @@ function App() {
         )}
         {showfTNFT && (
           <ModalTNFT onClose={(dataSet) => { handleClosefTNFT(dataSet) }}
-            frmid={lastClickedInputValue.current} coinsRatio={dataSet.options.coinsRatio} API_URL={API_URL} dataSet={dataSet} onReset={handleRefreshfTNFT} />
+            frmid={lastClickedInputValue.current}
+            coinsRatio={dataSet.options.coinsRatio}
+            API_URL={API_URL}
+            dataSet={dataSet}
+            onReset={handleRefreshfTNFT}
+            TryChecked={TryChecked}
+            handleTryCheckedChange={handleTryCheckedChange}
+          />
         )}
         {showfDlvr && (
           <ModalDlvr
@@ -4600,7 +4720,7 @@ function App() {
           <Cadre onClose={handleCloseCadre} tableData={listingsData} Platform={platformListings} frmid={lastClickedInputValue.current} />
         )}
         {showHelp && (
-          <Help onClose={handleCloseHelp} />
+          <Help onClose={handleCloseHelp} image={helpImage} />
         )}
         {tooltipData && (
           <Tooltip
@@ -4623,6 +4743,9 @@ function App() {
       const bBuyitArray = Object.entries(dataSet.it)
         .filter(([item, obj]) => obj && obj.buyit !== undefined && obj.buyit !== null)
         .map(([item, obj]) => ({ name: item, value: obj.buyit }));
+      const bSpottryArray = Object.entries(dataSet.it)
+        .filter(([item, obj]) => obj && obj.spottry !== undefined && obj.spottry !== null)
+        .map(([item, obj]) => ({ name: item, value: obj.spottry }));
       const filteredTryit = filterTryit(true);
       const bTrynftArray = filteredTryit.bTrynftArray;
       const bTrynftwArray = filteredTryit.bTrynftwArray;
@@ -4662,7 +4785,7 @@ function App() {
         xListeColExpand: xListeColExpand,
         xListeColActivity: xListeColActivity,
         xListeColActivityItem: xListeColActivityItem,
-        TryChecked: TryChecked,
+        TryChecked: false, //TryChecked,
         CostChecked: CostChecked,
         xHrvst: xHrvstArray,
         xHrvsttry: xHrvsttryArray,
@@ -4671,6 +4794,7 @@ function App() {
         bFarmit: bFarmitArray,
         bCookit: bCookitArray,
         bBuyit: bBuyitArray,
+        bSpottry: bSpottryArray,
         bTrynft: bTrynftArray,
         bTrynftw: bTrynftwArray,
         bTrybuild: bTrybuildArray,
@@ -4755,6 +4879,7 @@ function App() {
         bFarmit = loadedData.bFarmit.reduce((acc, item) => { acc[item.name] = item.value; return acc; }, {});
         bCookit = loadedData.bCookit.reduce((acc, item) => { acc[item.name] = item.value; return acc; }, {});
         bBuyit = loadedData.bBuyit.reduce((acc, item) => { acc[item.name] = item.value; return acc; }, {});
+        bSpottry = loadedData.bSpottry.reduce((acc, item) => { acc[item.name] = item.value; return acc; }, {});
 
         let bTrynft = loadedData.bTrynft.reduce((acc, item) => { acc[item.name] = item.value; return acc; }, {});
         let bTrynftw = loadedData.bTrynftw.reduce((acc, item) => { acc[item.name] = item.value; return acc; }, {});
@@ -4779,10 +4904,11 @@ function App() {
         DefaultOptions();
       }
     }
-    catch {
+    catch (error) {
       localStorage.removeItem("SFLManData");
       //localStorage.clear();
       console.log("Error, cleared local data");
+      console.log(error);
     }
     function DefaultOptions() {
       dataSet.options.inputMaxBB = 1;
@@ -4893,6 +5019,12 @@ function App() {
         )
         .map(key => [key, 1]);
       dataSet.options.notifList.push(['Bee Swarm', 1]);
+    }
+    if (dataSet.options.notifList.some(([key]) => key === 'Wild Mushroom')) {
+      dataSet.options.notifList = dataSet.options.notifList.filter(([key]) => key !== 'Wild Mushroom');
+    }
+    if (dataSet.options.notifList.some(([key]) => key === 'Magic Mushroom')) {
+      dataSet.options.notifList = dataSet.options.notifList.filter(([key]) => key !== 'Magic Mushroom');
     }
     if (!dataSet.options.notifList.some(([key]) => key === 'Market Sold')) {
       dataSet.options.notifList.push(['Market Sold', 1]);
