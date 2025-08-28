@@ -13,9 +13,10 @@ let showSkill = false;
 
 let helpImage = "./image/helptrynft.jpg";
 
-function ModalTNFT({ onClose, frmid, coinsRatio, API_URL, dataSet, onReset, handleTryCheckedChange, TryChecked }) {
+function ModalTNFT({ onClose, frmid, coinsRatio, API_URL, dataSet, dataSetFarm, onReset, handleTryCheckedChange, TryChecked }) {
   const [tableNFT, settableNFT] = useState([]);
   const [tableContent, settableContent] = useState([]);
+  const [xdataSetFarm, setdataSetFarm] = useState(dataSetFarm);
   const [nfttry, setnfttry] = useState(dataSet.nft);
   const [nftwtry, setnftwtry] = useState(dataSet.nftw);
   const [ittry, setittry] = useState(dataSet.it);
@@ -24,6 +25,7 @@ function ModalTNFT({ onClose, frmid, coinsRatio, API_URL, dataSet, onReset, hand
   const [bountytry, setbountytry] = useState(dataSet.bounty);
   const [buildtry, setbuildtry] = useState(dataSet.buildng);
   const [skilltry, setskilltry] = useState(dataSet.skill);
+  const [shrinetry, setshrinetry] = useState(dataSetFarm.shrine);
   const [skilllgctry, setskilllgctry] = useState(dataSet.skilllgc);
   const [budtry, setbudtry] = useState(dataSet.bud);
   const [Fishingtry, setFishingtry] = useState(dataSet.fishingDetails);
@@ -49,7 +51,7 @@ function ModalTNFT({ onClose, frmid, coinsRatio, API_URL, dataSet, onReset, hand
 
   const closeModal = () => {
     //onClose(ittry, foodtry, fishtry, bountytry, nfttry, nftwtry, buildtry, skilltry, budtry, Fishingtry, bTrynft, bTrynftw, bTrybuild, bTryskill, bTrybud, dataSet);
-    onClose(dataSet);
+    onClose(dataSet, xdataSetFarm);
   };
   const handleChangeTotalCostDisplay = (event) => {
     const selectedValue = event.target.value;
@@ -84,19 +86,21 @@ function ModalTNFT({ onClose, frmid, coinsRatio, API_URL, dataSet, onReset, hand
       let bTryskill = {};
       let bTryskilllgc = {};
       let bTrybud = {};
+      let bTryshrine = {};
       let bBuyit = {};
       let bSpottry = {};
-      function filterTryit(xnft, xnftw, xskill, xskilllgc, xbuildng, xbud, xit) {
+      function filterTryit(xnft, xnftw, xskill, xskilllgc, xbuildng, xbud, xshrine, xit) {
         Object.entries(xnft).forEach(([item]) => { bTrynft[item] = xnft[item].tryit; });
         Object.entries(xnftw).forEach(([item]) => { bTrynftw[item] = xnftw[item].tryit; });
         Object.entries(xskill).forEach(([item]) => { bTryskill[item] = xskill[item].tryit; });
         Object.entries(xskilllgc).forEach(([item]) => { bTryskilllgc[item] = xskilllgc[item].tryit; });
         Object.entries(xbuildng).forEach(([item]) => { bTrybuild[item] = xbuildng[item].tryit; });
         Object.entries(xbud).forEach(([item]) => { bTrybud[item] = xbud[item].tryit; });
+        Object.entries(xshrine).forEach(([item]) => { bTryshrine[item] = xshrine[item].tryit; });
         Object.entries(xit).forEach(([item]) => { bBuyit[item] = xit[item]?.buyit; });
         Object.entries(xit).forEach(([item]) => { bSpottry[item] = xit[item]?.spottry; });
       }
-      filterTryit(nfttry, nftwtry, skilltry, skilllgctry, buildtry, budtry, ittry);
+      filterTryit(nfttry, nftwtry, skilltry, skilllgctry, buildtry, budtry, shrinetry, ittry);
       /* const xOptions = {
         inputKeep: 0,
         inputFarmTime: dataSet.options.inputFarmTime,
@@ -114,6 +118,7 @@ function ModalTNFT({ onClose, frmid, coinsRatio, API_URL, dataSet, onReset, hand
         xtryskill: bTryskill,
         xtryskilllgc: bTryskilllgc,
         xtrybud: bTrybud,
+        xtryshrine: bTryshrine,
         xbuyit: bBuyit,
         xspottry: bSpottry,
       };
@@ -127,6 +132,7 @@ function ModalTNFT({ onClose, frmid, coinsRatio, API_URL, dataSet, onReset, hand
       });
       if (response.ok) {
         const responseData = await response.json();
+        setdataSetFarm(responseData);
         dataSet.it = responseData.it;
         dataSet.food = responseData.food;
         dataSet.fish = responseData.fish;
@@ -148,8 +154,9 @@ function ModalTNFT({ onClose, frmid, coinsRatio, API_URL, dataSet, onReset, hand
         setskilltry(responseData.skill);
         setskilllgctry(responseData.skilllgc);
         setbudtry(responseData.bud);
+        setshrinetry(responseData.shrine);
         setFishingtry(responseData.fishingDetails);
-        onReset(dataSet);
+        //onReset(dataSet, xdataSetFarm);
       } else {
         if (response.status === 429) {
           console.log('Too many requests, wait a few seconds');
@@ -457,7 +464,7 @@ function ModalTNFT({ onClose, frmid, coinsRatio, API_URL, dataSet, onReset, hand
       //tableContent = xtableContent;
     }
   }
-  function setNFT(xnft, xnftw, xbuild, xskill, xskilllgc, xbud) {
+  function setNFT(xnft, xnftw, xbuild, xskill, xskilllgc, xbud, xshrine) {
     let totalCost = 0;
     let totalCostM = 0;
     let totalCostactiv = 0;
@@ -708,9 +715,9 @@ function ModalTNFT({ onClose, frmid, coinsRatio, API_URL, dataSet, onReset, hand
     Refresh();
   }, []);
   useEffect(() => {
-    setNFT(nfttry, nftwtry, buildtry, skilltry, skilllgctry, budtry);
+    setNFT(nfttry, nftwtry, buildtry, skilltry, skilllgctry, budtry, shrinetry);
     setContent(ittry);
-  }, [ittry, nfttry, nftwtry, buildtry, skilltry, skilllgctry, budtry, TotalCostDisplay, TryChecked]);
+  }, [xdataSetFarm, ittry, nfttry, nftwtry, buildtry, skilltry, skilllgctry, budtry, TotalCostDisplay, TryChecked]);
 
   const tableStyle = {
     flexDirection: tableFlexDirection,

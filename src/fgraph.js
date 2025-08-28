@@ -51,7 +51,7 @@ function ModalGraph({ onClose, graphtype, frmid, it, API_URL }) {
         xformdate = "D";
       }
       let fetchtype = "";
-      if (graphtype === "Trader") { fetchtype = API_URL + "/getHT" }
+      if (graphtype === "Marketplace") { fetchtype = API_URL + "/getHT" }
       if (graphtype === "Nifty") { fetchtype = API_URL + "/getHN" }
       if (graphtype === "OpenSea") { fetchtype = API_URL + "/getHO" }
       const response = await fetch(fetchtype, {
@@ -79,10 +79,10 @@ function ModalGraph({ onClose, graphtype, frmid, it, API_URL }) {
     <div className="modalgraph">
       <div className="modalgraph-buttons">
         <h2>{graphtype}</h2>
-        <button onClick={closeModal}>Close</button>
-        <button onClick={handlePriceClick}>Prices</button>
+        <button onClick={closeModal} class="button"><img src="./icon/ui/cancel.png" alt="" className="resico" /></button>
+        {/* <button onClick={handlePriceClick}>Prices</button>
         {(graphtype === "OpenSea") && <button onClick={handleSupplyClick}>Supply</button>}
-        {(graphtype === "Trader" || graphtype === "OpenSea") && <button onClick={handleTradesClick}>Trades number</button>}
+        {(graphtype === "Trader" || graphtype === "OpenSea") && <button onClick={handleTradesClick}>Trades number</button>} */}
         <div className="selectgraphdateback">
           <FormControl id="formselectgraphdate" className="selectgraphdate" size="small">
             <InputLabel></InputLabel>

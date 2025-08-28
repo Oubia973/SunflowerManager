@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import DropdownCheckbox from './listcol.js';
-//import { FormControl, InputLabel, Select, MenuItem, Switch, FormControlLabel } from '@mui/material';
+import { FormControl, InputLabel, Select, MenuItem, Switch, FormControlLabel } from '@mui/material';
 
 function ModalOptions({ onClose, dataSet, onOptionChange, API_URL }) {
     const [isOpen, setIsOpen] = useState(false);
@@ -95,12 +95,30 @@ function ModalOptions({ onClose, dataSet, onOptionChange, API_URL }) {
                 }}>
                 <button onClick={closeModal} class="button" align="right" position='absolute'><img src="./icon/ui/cancel.png" alt="" className="resico" /></button>
                 <span style={{ fontWeight: "bold", fontSize: "16px" }}>Preferences</span>
-                <div><input type="text" onChange={onOptionChange} value={dataSet.inputFarmTime || ""}
+                <div><input type="text" onChange={onOptionChange} value={dataSet.inputFarmTime || 0}
                     name={"FarmTime"} style={{ textAlign: "left", width: "30px" }} />Hours you can check your farm daily</div>
-                <div><input type="text" onChange={onOptionChange} value={dataSet.inputMaxBB || ""}
+                <div><input type="text" onChange={onOptionChange} value={dataSet.inputMaxBB || 0}
                     name={"MaxBB"} style={{ textAlign: "left", width: "30px" }} />Restock daily</div>
-                <div><input type="text" onChange={onOptionChange} value={dataSet.coinsRatio || ""}
+                <div><input type="text" onChange={onOptionChange} value={dataSet.coinsRatio || 0}
                     name={"CoinsRatio"} style={{ textAlign: "left", width: "30px" }} />Coins/flower</div>
+                {dataSet.isAbo ? (<><div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}><input type="text" onChange={onOptionChange} value={dataSet.gemsRatio || 0}
+                    name={"GemsRatio"} style={{ textAlign: "left", width: "30px" }} />Gems/flower : Gem Pack
+                    <div className="selectinvback" style={{ display: 'flex', alignItems: 'left', height: '20px', width: '75px', margin: "0", padding: "0" }}>
+                        <FormControl variant="standard" id="formselectinv" className="selectinv" size="small">
+                            <InputLabel></InputLabel>
+                            <Select value={dataSet.gemsPack} onChange={onOptionChange}>
+                                <MenuItem value="100">100</MenuItem>
+                                <MenuItem value="650">650</MenuItem>
+                                <MenuItem value="1350">1350</MenuItem>
+                                <MenuItem value="2800">2800</MenuItem>
+                                <MenuItem value="7400">7400</MenuItem>
+                                <MenuItem value="15500">15500</MenuItem>
+                                <MenuItem value="200000">200000</MenuItem>
+                            </Select>
+                        </FormControl>
+                    </div>
+                </div>
+                </>) : null}
                 <div style={{ display: "flex", alignItems: "center", gap: 2 }}><input type="text" onChange={onOptionChange} value={dataSet.tradeTax || ""}
                     name={"tradeTax"} style={{ textAlign: "left", width: "30px" }} />
                     <button onClick={resetTax} class="button small-btn" align="right" position='absolute'><img src="./icon/ui/refresh.png" alt="" className="resico" /></button>

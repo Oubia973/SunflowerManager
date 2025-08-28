@@ -863,6 +863,15 @@ th {
   border-right: 1px solid rgb(83, 51, 51);
 }
 
+.tdleft {
+  position: relative;
+  text-align: left;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: clip;
+  padding-right: 3px;
+}
+
 .tditem {
   width: 20px;
   position: relative;

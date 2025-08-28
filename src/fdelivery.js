@@ -4,6 +4,7 @@ import Tooltip from "./tooltip.js";
 const imgno = './icon/ui/cancel.png';
 const imgyes = './icon/ui/confirm.png';
 const imgrdy = './icon/ui/expression_alerted.png';
+const imgheart = './icon/ui/expression_love.png';
 const imgsfl = './icon/res/flowertoken.webp';
 const imgcoins = './icon/res/coins.png';
 const imggems = './icon/res/gem.webp';
@@ -23,6 +24,7 @@ function ModalDlvr({ onClose, tableData, imgtkt, coinsRatio, handleTryCheckedCha
   const ximgno = <img src={imgno} alt="" />;
   const ximgyes = <img src={imgyes} alt="" />;
   const ximgrdy = <img src={imgrdy} alt="" />;
+  const ximgheart = <img src={imgheart} alt="" style={{ width: '12px', height: '12px' }} />;
   const imgtktname = imgtkt.split('/').pop();
   const imgbtkt = <img src={imgtkt} alt="" title="TKT" style={{ width: '15px', height: '15px' }} />;
   const imgbsfl = <img src={imgsfl} alt="" title="SFL" style={{ width: '15px', height: '15px' }} />;
@@ -78,6 +80,7 @@ function ModalDlvr({ onClose, tableData, imgtkt, coinsRatio, handleTryCheckedCha
       const iscoins = correspondancetkn && correspondancetkn[1] === "coins.png";
       const isgems = correspondancetkn && correspondancetkn[1] === "gems.png";
       const quantreward = correspondance && Number(correspondance[1]);
+      const imgComplete = OrderItem.completed ? ximgyes : (OrderItem.instock || 0) > 0 ? ximgheart : ximgno;
       //const coinrewardconvertsfl = iscoins && quantreward + imgbcoins + '(' + quantreward / 320 + imgbsfl + ')';
       //const textReward = iscoins ? coinrewardconvertsfl : issfl ? quantreward + imgbsfl : quantreward + imgbtkt;
       const txtcoinsconv = '(' + frmtNb(quantreward / coinsRatio);
@@ -101,7 +104,7 @@ function ModalDlvr({ onClose, tableData, imgtkt, coinsRatio, handleTryCheckedCha
         <tr key={index}>
           <td id="iccolumn" className="tdcenter"><img src={xfrom} alt="" title={ofrom} style={{ width: '25px', height: '25px' }} /></td>
           <td className="tdcenter" dangerouslySetInnerHTML={{ __html: OrderItem.items }}></td>
-          <td className="tdcenter">{OrderItem.completed ? ximgyes : ximgno}</td>
+          <td className="tdcenter">{imgComplete}</td>
           {/* <td className="tdcenter" dangerouslySetInnerHTML={{ __html: OrderItem.reward }}>{coinrewardconvertsfl}</td> */}
           <td className="tdcenter">{textReward}</td>
           <td className="tdcenter">{frmtNb(OrderItem[key("cost")] / coinsRatio)}</td>
@@ -163,9 +166,11 @@ function ModalDlvr({ onClose, tableData, imgtkt, coinsRatio, handleTryCheckedCha
     const choreItems = choreEntries.map((item, index) => {
       //const costp2p = selectedCost === "shop" ? frmtNb(item[1].costs) : selectedCost === "trader" ? frmtNb(item[1].costt) : selectedCost === "nifty" ? frmtNb(item[1].costn) : selectedCost === "opensea" ? frmtNb(item[1].costo) : 0;
       const imgRew = <img src={item[1].rewardimg} alt="" title={item[1].rewarditem} style={{ width: '15px', height: '15px' }} />;
+      const itemImg = <img src={item[1].itemimg} alt="" title={item[1].item} style={{ width: '20px', height: '20px' }} />;
       return (
         <tr key={index}>
-          <td className="tdcenter">{item[1].description}</td>
+          <td className="tdleft">{item[1].description}</td>
+          <td className="tdcenter">{itemImg}</td>
           <td className="tdcenter">{PBar(item[1].progress, item[1].progressstart, item[1].requirement)}</td>
           <td className="tdcenter">{item[1].completed ? item[1].completedAt === undefined ? ximgrdy : ximgyes : ximgno}</td>
           <td className="tdcenter">{item[1].reward}{imgRew}</td>
@@ -179,6 +184,7 @@ function ModalDlvr({ onClose, tableData, imgtkt, coinsRatio, handleTryCheckedCha
           <thead>
             <tr>
               <th>Activity</th>
+              <th> </th>
               <th> </th>
               <th> </th>
               <th>Reward</th>
@@ -198,9 +204,7 @@ function ModalDlvr({ onClose, tableData, imgtkt, coinsRatio, handleTryCheckedCha
       //const costp2p = selectedCost === "shop" ? frmtNb(item[1].costs) : selectedCost === "trader" ? frmtNb(item[1].costt) : selectedCost === "nifty" ? frmtNb(item[1].costn) : selectedCost === "opensea" ? frmtNb(item[1].costo) : 0;
       const imgRew = <img src={item[1].rewardimg} alt="" title={item[1].rewarditem} style={{ width: '15px', height: '15px' }} />;
       const imgitem = item[1].itemimg !== imgna && <img src={item[1].itemimg} alt="" title={item[1].item} style={{ width: '20px', height: '20px' }} />;
-      const isAnimal = "";
-      const isFower = "";
-      const lvlTxt = "";
+      const bColor = item[1].completed ? 'rgb(0, 129, 39)' : (item[1].instock || 0) > 0 ? 'rgb(148, 118, 35)' : 'rgba(148, 52, 35, 1)';
       /* return (
         <tr key={index}>
           <td className="tdcenter">{imgitem ? imgitem : item[1].item}</td>
@@ -210,7 +214,7 @@ function ModalDlvr({ onClose, tableData, imgtkt, coinsRatio, handleTryCheckedCha
         </tr>
       ) */
       const rewardStyle = {
-        backgroundColor: item[1].completed ? 'rgb(0, 129, 39)' : 'rgb(148, 118, 35)', // Vert si completed, jaune sinon
+        backgroundColor: bColor,
         color: 'white',
         padding: '5px',
         borderRadius: '5px',

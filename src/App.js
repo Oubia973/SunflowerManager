@@ -29,7 +29,7 @@ const API_URL = runLocal ? "" : process.env.REACT_APP_API_URL;
 var vversion = 0.03;
 let dataSet = {};
 dataSet.options = {};
-dataSet.options.gemRatio = 20;
+dataSet.options.gemsRatio = 20;
 dataSet.options.tradeTax = 10;
 //dataSet.options.notifList = [];
 
@@ -38,7 +38,9 @@ var tktName = "";
 var imgtkt = "";
 
 const imgsfl = './icon/res/flowertoken.webp';
+const imgSFL = <img src={imgsfl} alt={''} className="itico" title="Flower" />;
 const imgcoins = './icon/res/coins.png';
+const imgCoins = <img src={imgcoins} alt={''} className="itico" title="Coins" />;
 const imgxp = './icon/ui/level_up.png';
 const imgcrop = './icon/res/soil.png';
 const imgwood = './icon/res/harvested_tree.png';
@@ -79,6 +81,7 @@ var sTickets = [];
 var fishingDetails = "";
 var ftrades = {};
 var Animals = {};
+var CropMachine = {};
 var isleMap = {};
 //var frmOwner = "";
 var username = "";
@@ -89,6 +92,7 @@ var taxFreeSFL = 0;
 
 var bFarmit = [];
 var bCookit = [];
+var bCustomSeedCM = [];
 var bBuyit = [];
 var bSpottry = [];
 /* var bTrynft = [];
@@ -132,6 +136,8 @@ function App() {
     inputFarmTime: 8,
     inputAnimalLvl: 5,
     inputCoinsRatio: 320,
+    gemsRatio: 20,
+    gemsPack: 20,
     usePriceFood: false,
     toolsBurn: true,
   })
@@ -155,6 +161,7 @@ function App() {
   const lastClickedInputValue = useRef('');
   const lastClickedInputKeep = useRef('');
   const [farmData, setFarmData] = useState([]);
+  const [dataSetFarm, setdataSetFarm] = useState({});
   const [bumpkinData, setBumpkinData] = useState([]);
   const [reqState, setReqState] = useState("");
   const [homeData, sethomeData] = useState(null);
@@ -165,6 +172,7 @@ function App() {
   const [flowerData, setflowerData] = useState(null);
   const [bountyData, setbountyData] = useState(null);
   const [craftData, setcraftData] = useState(null);
+  const [cropMachineData, setcropMachineData] = useState(null);
   const [animalData, setanimalData] = useState(null);
   const [expandData, setexpandData] = useState(null);
   const [mapData, setMapData] = useState(null);
@@ -193,6 +201,8 @@ function App() {
   const [selectedExpandType, setSelectedExpandType] = useState("spring");
   const [activityDisplay, setActivityDisplay] = useState("item");
   const [selectedInv, setSelectedInv] = useState('home');
+  const [selectedCMSeedMax, setselectedCMSeedMax] = useState(true);
+  const [selectedDigCur, setSelectedDigCur] = useState('sfl');
   const [activeTimers, setActiveTimers] = useState([]);
   const [notifiedTimers, setNotifiedTimers] = useState([]);
   const [GraphType, setGraphType] = useState('');
@@ -212,6 +222,7 @@ function App() {
     ['Production cost', 1],
     ['Shop price', 1],
     ['Marketplace price', 1],
+    ['Ratio coins/flower', 1],
     ['Withdraw quantity', 1],
     ['Niftyswap price', 0],
     ['OpenSea price', 0],
@@ -351,11 +362,14 @@ function App() {
     helpImage = "./image/helpgeneral.jpg";
     setShowHelp(true);
   };
-  const handleClosefTNFT = (xdataSet) => {
+  const handleClosefTNFT = (xdataSet, xdataSetFarm) => {
     dataSet = xdataSet;
+    setdataSetFarm(xdataSetFarm);
     it = dataSet.it;
     food = dataSet.food;
     fish = dataSet.fish;
+    bounty = dataSet.bounty;
+    craft = dataSet.craft;
     nft = dataSet.nft;
     nftw = dataSet.nftw;
     buildng = dataSet.buildng;
@@ -363,6 +377,7 @@ function App() {
     skilllgc = dataSet.skilllgc;
     bud = dataSet.bud;
     fishingDetails = dataSet.fishingDetails;
+    Animals = xdataSetFarm.Animals;
     //setTryit(nft, nftw, skill, buildng, bud);
     //getFarmit(it);
     //setPlanted(ittry);
@@ -380,11 +395,14 @@ function App() {
     //setCookie();
     setShowfTNFT(false);
   };
-  const handleRefreshfTNFT = (xdataSet) => {
+  const handleRefreshfTNFT = (xdataSet, xdataSetFarm) => {
     dataSet = xdataSet;
+    setdataSetFarm(xdataSetFarm);
     it = dataSet.it;
     food = dataSet.food;
     fish = dataSet.fish;
+    bounty = dataSet.bounty;
+    craft = dataSet.craft;
     nft = dataSet.nft;
     nftw = dataSet.nftw;
     buildng = dataSet.buildng;
@@ -483,6 +501,10 @@ function App() {
   const handleChangeDsfl = (event) => {
     const selectedValue = event.target.value;
     setSelectedDsfl(selectedValue);
+  }
+  const handleChangeDigCur = (event) => {
+    const selectedValue = event.target.value;
+    setSelectedDigCur(selectedValue);
   }
   /* const handleTimerFinish = (index) => {
     setActiveTimers((prevTimers) => prevTimers.filter((_, i) => i !== index));
@@ -717,6 +739,10 @@ function App() {
         dataSet.options.coinsRatio = xvalue;
         setInputCoinsRatio(xvalue);
         break;
+      case "GemsRatio":
+        dataSet.options.gemsRatio = xvalue;
+        setInputCoinsRatio(xvalue);
+        break;
       case "tradeTax":
         dataSet.options.tradeTax = xvalue;
         setInputCoinsRatio(xvalue);
@@ -832,6 +858,7 @@ function App() {
             }
           } else if (response.status === 200) {
             const responseData = await response.json();
+            setdataSetFarm(responseData);
             username = responseData.username;
             isAbo = responseData.isabo;
             dataSet.options.isAbo = responseData.isabo;
@@ -961,7 +988,7 @@ function App() {
   };
 
   const handleTraderClick = () => {
-    setGraphType("Trader");
+    setGraphType("Marketplace");
     setShowfGraph(true);
   };
   const handleNiftyClick = () => {
@@ -1188,6 +1215,7 @@ function App() {
           {xListeCol[3][1] === 1 ? (<td className="ttcenter"></td>) : ("")}
           {xListeCol[4][1] === 1 ? (<td className="ttcenter">{parseFloat(inventoryItemsCrop.totcCost).toFixed(2)}</td>) : ("")}
           {xListeCol[5][1] === 1 ? (<td className="ttcenter">{parseFloat(inventoryItemsCrop.totcShop).toFixed(2)}</td>) : ("")}
+          {xListeCol[5][1] === 1 ? (<td className="ttcenterbrd"></td>) : ("")}
           {xListeCol[6][1] === 1 ? (<td className="ttcenterbrd">{parseFloat(inventoryItemsCrop.totcTrader).toFixed(2)}</td>) : ("")}
           {xListeCol[17][1] === 1 && xListeCol[6][1] === 1 ? (<td className="ttcenter"></td>) : ("")}
           {xListeCol[7][1] === 1 ? (<td className="ttcenter" style={{ color: `rgb(160, 160, 160)` }}></td>) : ("")}
@@ -1229,6 +1257,7 @@ function App() {
           {xListeCol[3][1] === 1 ? (<td className="ttcenter"></td>) : ("")}
           {xListeCol[4][1] === 1 ? (<td className="ttcenter">{parseFloat(inventoryItemsRes.totcCost).toFixed(2)}</td>) : ("")}
           {xListeCol[5][1] === 1 ? (<td className="ttcenter">{parseFloat(inventoryItemsRes.totcShop).toFixed(2)}</td>) : ("")}
+          {xListeCol[5][1] === 1 ? (<td className="ttcenterbrd"></td>) : ("")}
           {xListeCol[6][1] === 1 ? (<td className="ttcenterbrd">{parseFloat(inventoryItemsRes.totcTrader).toFixed(2)}</td>) : ("")}
           {xListeCol[17][1] === 1 && xListeCol[6][1] === 1 ? (<td className="ttcenter"></td>) : ("")}
           {xListeCol[7][1] === 1 ? (<td className="ttcenter" style={{ color: `rgb(160, 160, 160)` }}></td>) : ("")}
@@ -1270,6 +1299,7 @@ function App() {
           {xListeCol[3][1] === 1 ? (<td className="ttcenter"></td>) : ("")}
           {xListeCol[4][1] === 1 ? (<td className="ttcenter">{parseFloat(inventoryItemsAnml.totcCost).toFixed(2)}</td>) : ("")}
           {xListeCol[5][1] === 1 ? (<td className="ttcenter">{parseFloat(inventoryItemsAnml.totcShop).toFixed(2)}</td>) : ("")}
+          {xListeCol[5][1] === 1 ? (<td className="ttcenterbrd"></td>) : ("")}
           {xListeCol[6][1] === 1 ? (<td className="ttcenterbrd">{parseFloat(inventoryItemsAnml.totcTrader).toFixed(2)}</td>) : ("")}
           {xListeCol[17][1] === 1 && xListeCol[6][1] === 1 ? (<td className="ttcenter"></td>) : ("")}
           {xListeCol[7][1] === 1 ? (<td className="ttcenter" style={{ color: `rgb(160, 160, 160)` }}></td>) : ("")}
@@ -1312,6 +1342,7 @@ function App() {
           {xListeCol[3][1] === 1 ? (<td className="ttcenter"></td>) : ("")}
           {xListeCol[4][1] === 1 ? (<td className="ttcenter">{parseFloat(inventoryItemsFruit.totcCost).toFixed(2)}</td>) : ("")}
           {xListeCol[5][1] === 1 ? (<td className="ttcenter">{parseFloat(inventoryItemsFruit.totcShop).toFixed(2)}</td>) : ("")}
+          {xListeCol[5][1] === 1 ? (<td className="ttcenterbrd"></td>) : ("")}
           {xListeCol[6][1] === 1 ? (<td className="ttcenterbrd">{parseFloat(inventoryItemsFruit.totcTrader).toFixed(2)}</td>) : ("")}
           {xListeCol[17][1] === 1 && xListeCol[6][1] === 1 ? (<td className="ttcenter"></td>) : ("")}
           {xListeCol[7][1] === 1 ? (<td className="ttcenter" style={{ color: `rgb(160, 160, 160)` }}></td>) : ("")}
@@ -1367,6 +1398,7 @@ function App() {
                   {xListeCol[3][1] === 1 ? (<td className="tdcenter" style={{ color: `rgb(200, 200, 200)` }}></td>) : ("")}
                   {xListeCol[4][1] === 1 ? (<td className="tdcenter">{frmtNb(icost)}</td>) : ("")}
                   {xListeCol[5][1] === 1 ? (<td className="tdcenter"></td>) : ("")}
+                  {xListeCol[5][1] === 1 ? (<td className="tdcenterbrd"></td>) : ("")}
                   {xListeCol[6][1] === 1 ? (<td className="tdcenterbrd">{frmtNb(pTrad)}</td>) : ("")}
                   {xListeCol[17][1] === 1 && xListeCol[6][1] === 1 ? (<td className="tdcenter"></td>) : ("")}
                   {xListeCol[7][1] === 1 ? (<td className="tdcenter"></td>) : ("")}
@@ -1429,6 +1461,7 @@ function App() {
                     onChange={handleCostCheckedChange} onClick={(e) => e.stopPropagation()} /></div>
                 </th>) : ("")}
                 {xListeCol[5][1] === 1 ? (<th className="thcenter">Betty</th>) : ("")}
+                {xListeCol[5][1] === 1 ? (<th className="thcenter">Ratio<div>{imgCoins}/{imgSFL}</div></th>) : ("")}
                 {xListeCol[6][1] === 1 ? (<th className="thtrad" onClick={() => handleTraderClick()}><div className="overlay-trad"></div>Market</th>) : ("")}
                 {xListeCol[17][1] === 1 && xListeCol[6][1] === 1 ? (<th className="thcenter" onClick={(e) => handleTooltip("coef", "th", "", e, "")}>Coef</th>) : ("")}
                 {xListeCol[7][1] === 1 ? (<th className="thcenter" style={{ color: `rgb(160, 160, 160)` }}
@@ -1476,6 +1509,7 @@ function App() {
                   {xListeCol[3][1] === 1 ? (<td className="ttcenter"></td>) : ("")}
                   {xListeCol[4][1] === 1 ? (<td className="ttcenter">{parseFloat(totCost).toFixed(2)}</td>) : ("")}
                   {xListeCol[5][1] === 1 ? (<td className="ttcenter">{parseFloat(totShop).toFixed(2)}</td>) : ("")}
+                  {xListeCol[5][1] === 1 ? (<td className="ttcenterbrd"></td>) : ("")}
                   {xListeCol[6][1] === 1 ? (<td className="ttcenterbrd">{parseFloat(totTrader).toFixed(2)}</td>) : ("")}
                   {xListeCol[17][1] === 1 && xListeCol[6][1] === 1 ? (<td className="ttcenter"></td>) : ("")}
                   {xListeCol[7][1] === 1 ? (<td className="ttcenter" style={{ color: `rgb(160, 160, 160)` }}></td>) : ("")}
@@ -1545,6 +1579,17 @@ function App() {
     const imgsummer = <img src="./icon/ui/summer.webp" alt={''} className="seasonico" title="Summer" />;
     const imgautumn = <img src="./icon/ui/autumn.webp" alt={''} className="seasonico" title="Autumn" />;
     const imgfullmoon = <img src="./icon/ui/full_moon.png" alt={''} className="seasonico" title="Full Moon" />;
+    let maxCoinRatio = 0;
+    let indexCoinRatio = 0;
+    let iR = 0;
+    for (let itemR in dataSet.it) {
+      const xcoinsRatio = TryChecked ? dataSet.it[itemR].coinratiotry : dataSet.it[itemR].coinratio;;
+      if (xcoinsRatio > maxCoinRatio) {
+        maxCoinRatio = xcoinsRatio;
+        indexCoinRatio = iR;
+      }
+      iR++;
+    }
     const inventoryItems = sortedInventoryItems.map(([item, quantity], index) => {
       let xIndex = index;
       const firstind = index === invIndex - tableLen;
@@ -1578,7 +1623,7 @@ function App() {
         //const ximgtrdOS = frmOwner === priceDataO[i].makerof ? <img src={imgtrd} alt="" /> : "";
         const maxh = cobj ? cobj.hoard : 0;
         var costp = cobj ? !TryChecked ? (cobj.cost / dataSet.options.coinsRatio) : (cobj.costtry / dataSet.options.coinsRatio) : 0;
-        var pShop = cobj ? (cobj.shop / dataSet.options.coinsRatio) : 0;
+        var pShop = cobj ? ((!TryChecked ? cobj.shop : cobj.shoptry) / dataSet.options.coinsRatio) : 0;
         var time = cobj ? !TryChecked ? cobj.time : cobj.timetry : 0;
         const timmenbr = convtimenbr(time);
         const rtimmenbr = convtimenbr(cobj.time);
@@ -1832,6 +1877,13 @@ function App() {
         marketDataTooltip.itemQuant = selectedQuant !== "unit" ? iQuant : 1;
         marketDataTooltip.itemPrice = selectedQuant !== "unit" ? puTrad * iQuant : puTrad;
         marketDataTooltip.CostChecked = CostChecked;
+        const xcoinsRatio = TryChecked ? cobj.coinratiotry : cobj.coinratio;//1 / pTrad * (pShop * dataSet.options.coinsRatio); //(pShop * dataSet.options.coinsRatio) / pTrad;
+        const cellCoinRatioStyle = {};
+        if (indexCoinRatio === xIndex) {
+          cellCoinRatioStyle.backgroundColor = 'rgba(13, 63, 21, 0.71)';
+        }
+        cellCoinRatioStyle.borderBottom = cellStyle.borderBottom;
+        cellCoinRatioStyle.borderTop = cellStyle.borderTop;
         return (
           <>
             <tr key={xIndex}>
@@ -1877,6 +1929,7 @@ function App() {
               {xListeCol[3][1] === 1 ? (<td className="tdcenter" style={{ ...cellStyle, color: `rgb(200, 200, 200)` }}>{time}</td>) : ("")}
               {xListeCol[4][1] === 1 ? (<td className="tdcenter" style={cellStyle} onClick={(e) => handleTooltip(item, "costp", costp, e, dataSet)}>{frmtNb(costp)}</td>) : ("")}
               {xListeCol[5][1] === 1 ? (<td className="tdcenter" style={cellStyle}>{frmtNb(pShop)}</td>) : ("")}
+              {xListeCol[5][1] === 1 ? (<td className="tdcenterbrd" style={cellCoinRatioStyle}>{xcoinsRatio > 0 ? frmtNb(xcoinsRatio) : ""}</td>) : ("")}
               {xListeCol[6][1] === 1 ? (<td className={parseFloat(pTrad).toFixed(20) === getMaxValue(pTrad, pNifty, pOS) ? 'tdcentergreen' : 'tdcenterbrd'}
                 onClick={(e) => handleTooltip(item, "market", marketDataTooltip, e, dataSet)} style={cellStyle} title={titleTrad} >{puTrad !== 0 ? frmtNb(pTrad) : ""}{ximgtrd}</td>) : ("")}
               {xListeCol[17][1] === 1 && xListeCol[6][1] === 1 ? (<td style={{ ...cellStyle, color: colorT, textAlign: 'center', fontSize: '8px' }}
@@ -1906,7 +1959,7 @@ function App() {
               {xListeCol[15][1] === 1 ? (<td className="tdcenter" style={{ ...cellStyle, ...cellDSflStyle }}
                 title={titleDsfl} onClick={(e) => handleTooltip(item, "dailysfl", costp, e, dataSet)}>
                 {parseFloat(Dsfl).toFixed(2)}</td>) : ("")}
-              {xListeCol[16][1] === 1 ? (<td className="tdcenter" style={{ ...cellStyle, color: `rgb(160, 160, 160)` }}>{dailyprodmx > 0 ? parseFloat(dailyprodmx).toFixed(2) : ""}</td>) : ("")}
+              {xListeCol[16][1] === 1 ? (<td className="tdcenter" style={{ ...cellStyle, color: `rgb(160, 160, 160)` }}>{parseFloat(dailyprodmx).toFixed(2)}</td>) : ("")}
             </tr>
           </>
         );
@@ -2662,31 +2715,46 @@ function App() {
       let ratioTotal = 0;
       let vTodayPatternTotal = 0;
       let toolcostTodayPatternTotal = 0;
+      let ratioPTotal = 0;
+      const CurDec = selectedDigCur === "coins" ? 0 : 3;
       const imgCoins = <img src={imgcoins} alt={''} className="itico" title="Coins" />;
       const imgSfl = <img src={imgsfl} alt={''} className="itico" title="Flower" />;
+      const dataSetDig = {};
       const tableContent = bountyKeys.map(element => {
         const cobj = bounty[element];
         const bntName = element;
         const ico = <img src={cobj.img} alt={''} className="nodico" title={bntName} />;
         const stock = cobj.stock > 0 ? cobj.stock : '';
         const icost = TryChecked ? cobj.costtry : cobj.cost;
-        const value = (icost > 0 && !it[bntName]) ? parseFloat((icost * stock) / dataSet.options.coinsRatio).toFixed(3) : '';
+        const xcoinsRatio = (selectedDigCur === "sfl" ? dataSet.options.coinsRatio : 1);
+        const value = (icost > 0 && !it[bntName]) ? parseFloat((icost * stock) / xcoinsRatio).toFixed(CurDec) : '';
         const qtoday = cobj.qtoday > 0 ? cobj.qtoday : '';
         const ivtoday = TryChecked ? cobj.vtodaytry : cobj.vtoday;
-        const valuetoday = ivtoday > 0 ? parseFloat(ivtoday / dataSet.options.coinsRatio).toFixed(3) : '';
+        const valuetoday = ivtoday > 0 ? parseFloat(ivtoday / xcoinsRatio).toFixed(CurDec) : '';
         const itoolctoday = TryChecked ? cobj.toolctodaytry : cobj.toolctoday;
-        const toolcostToday = itoolctoday > 0 ? parseFloat(itoolctoday / dataSet.options.coinsRatio).toFixed(3) : '';
-        const ratioCoins = itoolctoday > 0 ? parseFloat(ivtoday / toolcostToday).toFixed(0) : '';
+        const toolcostToday = itoolctoday > 0 ? parseFloat(itoolctoday / xcoinsRatio).toFixed(CurDec) : '';
+        const ratioCoins = (itoolctoday || 0) > 0 && (ivtoday || 0) > 0 && (toolcostToday || 0) > 0 ? ivtoday / toolcostToday : '';
+        const ratioCoinsS = parseFloat(ratioCoins * (selectedDigCur === "coins" ? dataSet.options.coinsRatio : 1)).toFixed(0);
         const ptoday = cobj.pattern > 0 ? cobj.pattern : '';
         const iptoday = TryChecked ? cobj.ptodaytry : cobj.ptoday;
-        const valueptoday = iptoday > 0 ? parseFloat(iptoday / dataSet.options.coinsRatio).toFixed(3) : '';
+        const valueptoday = iptoday > 0 ? parseFloat(iptoday / xcoinsRatio).toFixed(CurDec) : '';
         const itoolcpattern = TryChecked ? cobj.toolcpatterntry : cobj.toolcpattern;
-        const toolcostpToday = itoolcpattern > 0 ? parseFloat(itoolcpattern / dataSet.options.coinsRatio).toFixed(3) : '';
-        valueTotal += Number(value);
-        vTodayTotal += Number(valuetoday);
-        toolcostTodayTotal += Number(toolcostToday);
-        vTodayPatternTotal += Number(valueptoday);
-        toolcostTodayPatternTotal += Number(toolcostpToday);
+        const toolcostpToday = itoolcpattern > 0 ? parseFloat(itoolcpattern / xcoinsRatio).toFixed(CurDec) : '';
+        const ratioCoinsPattern = (itoolcpattern || 0) > 0 && (iptoday || 0) > 0 && (toolcostpToday || 0) > 0 ? iptoday / toolcostpToday : '';
+        const ratioCoinsPatternS = parseFloat(ratioCoinsPattern * (selectedDigCur === "coins" ? dataSet.options.coinsRatio : 1)).toFixed(0);
+        valueTotal += Number(value || 0);
+        vTodayTotal += Number(valuetoday || 0);
+        toolcostTodayTotal += Number(toolcostToday || 0);
+        vTodayPatternTotal += Number(valueptoday || 0);
+        toolcostTodayPatternTotal += Number(toolcostpToday || 0);
+        const dataSetDig = {};
+        dataSetDig.qtoday = qtoday;
+        dataSetDig.valuetoday = valuetoday;
+        dataSetDig.itoolctoday = toolcostToday;
+        dataSetDig.ratioCoins = ratioCoinsS;
+        dataSetDig.valueptoday = valueptoday;
+        dataSetDig.toolcostpToday = toolcostpToday;
+        dataSetDig.ratioCoinsPattern = ratioCoinsPatternS;
         return (
           <tr>
             <td id="iccolumn">{ico}</td>
@@ -2696,21 +2764,38 @@ function App() {
             {xListeColBounty[3][1] === 1 ? <td className="tdcenter">{qtoday > 0 ? qtoday : ""}</td> : null}
             {xListeColBounty[4][1] === 1 ? <td className="tdcenter">{valuetoday > 0 ? valuetoday : ""}</td> : null}
             {xListeColBounty[5][1] === 1 ? <td className="tdcenter">{toolcostToday > 0 ? toolcostToday : ""}</td> : null}
-            {xListeColBounty[5][1] === 1 ? <td className="tdcenter">{ratioCoins > 0 ? ratioCoins : ""}</td> : null}
+            {xListeColBounty[5][1] === 1 ? <td className="tdcenter"
+              onClick={(e) => handleTooltip(element, "ratiodig", dataSetDig, e, dataSet)}>{ratioCoinsS > 0 ? ratioCoinsS : ""}</td> : null}
             {xListeColBounty[5][1] === 1 ? <td className="tdcenter">{ptoday > 0 ? ptoday : ""}</td> : null}
             {xListeColBounty[5][1] === 1 ? <td className="tdcenter">{valueptoday > 0 ? valueptoday : ""}</td> : null}
             {xListeColBounty[5][1] === 1 ? <td className="tdcenter">{toolcostpToday > 0 ? toolcostpToday : ""}</td> : null}
+            {xListeColBounty[5][1] === 1 ? <td className="tdcenter"
+              onClick={(e) => handleTooltip(element, "ratiodigp", dataSetDig, e, dataSet)}>{ratioCoinsPatternS > 0 ? ratioCoinsPatternS : ""}</td> : null}
           </tr>
         );
       });
-      ratioTotal = (vTodayTotal * dataSet.options.coinsRatio) / toolcostTodayTotal;
+      ratioTotal = ((vTodayTotal * dataSet.options.coinsRatio) / toolcostTodayTotal) || 0;
+      ratioPTotal = ((vTodayPatternTotal * dataSet.options.coinsRatio) / toolcostTodayPatternTotal) || 0;
+      dataSetDig.qtoday = "total";
+      dataSetDig.valuetoday = parseFloat(vTodayTotal).toFixed(CurDec);
+      dataSetDig.itoolctoday = parseFloat(toolcostTodayTotal).toFixed(CurDec);
+      dataSetDig.ratioCoins = parseFloat(ratioTotal).toFixed(0);
+      dataSetDig.valueptoday = parseFloat(vTodayPatternTotal).toFixed(CurDec);
+      dataSetDig.toolcostpToday = parseFloat(toolcostTodayPatternTotal).toFixed(CurDec);
+      dataSetDig.ratioCoinsPattern = parseFloat(ratioPTotal).toFixed(0);
       const tableHeader = (
         <thead>
           <tr>
             <th className="th-icon"></th>
             {xListeColBounty[0][1] === 1 ? <th className="thcenter">Name</th> : null}
             {xListeColBounty[1][1] === 1 ? <th className="thcenter">Stock</th> : null}
-            {xListeColBounty[2][1] === 1 ? <th className="thcenter">Value</th> : null}
+            {xListeColBounty[2][1] === 1 ? <th className="thcenter">
+              <div className="selectquantityback"><FormControl variant="standard" id="formselectquant" className="selectquant" size="small">
+                <InputLabel>Value</InputLabel>
+                <Select value={selectedDigCur} onChange={handleChangeDigCur} onClick={(e) => e.stopPropagation()}>
+                  <MenuItem value="sfl">{imgSfl}</MenuItem>
+                  <MenuItem value="coins">{imgCoins}</MenuItem>
+                </Select></FormControl></div></th> : null}
             {xListeColBounty[3][1] === 1 ? <th className="thcenter">Today</th> : null}
             {xListeColBounty[4][1] === 1 ? <th className="thcenter">Value</th> : null}
             {xListeColBounty[5][1] === 1 ? <th className="thcenter">Tool cost</th> : null}
@@ -2718,19 +2803,23 @@ function App() {
             {xListeColBounty[3][1] === 1 ? <th className="thcenter">Patterns <div>Today</div></th> : null}
             {xListeColBounty[4][1] === 1 ? <th className="thcenter">Patterns <div>Value</div></th> : null}
             {xListeColBounty[5][1] === 1 ? <th className="thcenter">Patterns <div>Tool cost</div></th> : null}
+            {xListeColBounty[5][1] === 1 ? <th className="thcenter">Ratio <div>{imgCoins}/{imgSfl}</div></th> : null}
           </tr>
           <tr>
             <td></td>
             {xListeColBounty[0][1] === 1 ? <td className="tdcenter"></td> : null}
             {xListeColBounty[1][1] === 1 ? <td className="tdcenter"></td> : null}
-            {xListeColBounty[2][1] === 1 ? <td className="tdcenter">{parseFloat(valueTotal).toFixed(3)}</td> : null}
+            {xListeColBounty[2][1] === 1 ? <td className="tdcenter">{parseFloat(valueTotal).toFixed(CurDec)}</td> : null}
             {xListeColBounty[3][1] === 1 ? <td className="tdcenter"></td> : null}
-            {xListeColBounty[4][1] === 1 ? <td className="tdcenter">{parseFloat(vTodayTotal).toFixed(3)}</td> : null}
-            {xListeColBounty[5][1] === 1 ? <td className="tdcenter">{parseFloat(toolcostTodayTotal).toFixed(3)}</td> : null}
-            {xListeColBounty[5][1] === 1 ? <td className="tdcenter">{parseFloat(ratioTotal).toFixed(0)}</td> : null}
+            {xListeColBounty[4][1] === 1 ? <td className="tdcenter">{parseFloat(vTodayTotal).toFixed(CurDec)}</td> : null}
+            {xListeColBounty[5][1] === 1 ? <td className="tdcenter">{parseFloat(toolcostTodayTotal).toFixed(CurDec)}</td> : null}
+            {xListeColBounty[5][1] === 1 ? <td className="tdcenter"
+              onClick={(e) => handleTooltip("Total", "ratiodig", dataSetDig, e, dataSet)}>{parseFloat(ratioTotal).toFixed(0)}</td> : null}
             {xListeColBounty[3][1] === 1 ? <td className="tdcenter"></td> : null}
-            {xListeColBounty[4][1] === 1 ? <td className="tdcenter">{parseFloat(vTodayPatternTotal).toFixed(3)}</td> : null}
-            {xListeColBounty[5][1] === 1 ? <td className="tdcenter">{parseFloat(toolcostTodayPatternTotal).toFixed(3)}</td> : null}
+            {xListeColBounty[4][1] === 1 ? <td className="tdcenter">{parseFloat(vTodayPatternTotal).toFixed(CurDec)}</td> : null}
+            {xListeColBounty[5][1] === 1 ? <td className="tdcenter">{parseFloat(toolcostTodayPatternTotal).toFixed(CurDec)}</td> : null}
+            {xListeColBounty[5][1] === 1 ? <td className="tdcenter"
+              onClick={(e) => handleTooltip("Total", "ratiodigp", dataSetDig, e, dataSet)}>{parseFloat(ratioPTotal).toFixed(0)}</td> : null}
           </tr>
         </thead>
       );
@@ -2801,8 +2890,8 @@ function App() {
             {xListeColBounty[1][1] === 1 ? <th className="thcenter">Stock</th> : null}
             {xListeColBounty[2][1] === 1 ? <th className="thcenter">Time</th> : null}
             {xListeColBounty[3][1] === 1 ? <th className="thcenter">Compos</th> : null}
-            {xListeColBounty[4][1] === 1 ? <th className="thcenter">Prod price</th> : null}
-            {xListeColBounty[5][1] === 1 ? <th className="thcenter">Market price</th> : null}
+            {xListeColBounty[4][1] === 1 ? <th className="thcenter">Prod {imgSfl}</th> : null}
+            {xListeColBounty[5][1] === 1 ? <th className="thcenter">Market {imgSfl}</th> : null}
           </tr>
         </thead>
       );
@@ -2819,6 +2908,88 @@ function App() {
       );
 
       setcraftData(table);
+      setMutants(mutantchickens);
+      setsTickets(sTickets);
+    }
+  }
+
+  function setCropMachine() {
+    if (farmData.inventory) {
+      const Keys = Object.keys(it);
+      const imgCoins = <img src={imgcoins} alt={''} className="itico" title="Coins" />;
+      const imgSfl = <img src={imgsfl} alt={''} className="itico" title="Flower" />;
+      const imgoil = <img src={it["Oil"].img} alt={''} className="nodico" title="Oil" style={{ width: '15px', height: '15px' }} />;
+      const CM = dataSetFarm.CropMachine || {};
+      const tableContent = Keys.map((element, index) => {
+        if ((it[element].cat !== "crop") || it[element].greenhouse) return null;
+        const cobj = it[element];
+        const itemName = element;
+        const ico = <img src={cobj.img} alt={''} className="itico" title={itemName} />;
+        const icropTime = convTime(convtimenbr(cobj.btime) * (TryChecked ? CM.mtimetry : CM.mtime));
+        const iseedMax = (TryChecked ? cobj.stocktry : cobj.stock) * 2.5;
+        const iseeds = selectedCMSeedMax ? iseedMax : bCustomSeedCM[index];
+        const nHarvest = Math.floor(iseedMax / (TryChecked ? CM.spottry : CM.spot));
+        const imyieldp = (TryChecked ? cobj.myieldptry : cobj.myieldp);
+        const harvestTotal = iseeds * imyieldp;
+        const itime = convTime((convtimenbr(icropTime)) * nHarvest);
+        const iseedCost = (TryChecked ? cobj.seedtry / dataSet.options.coinsRatio : cobj.seed / dataSet.options.coinsRatio) * iseeds;
+        const oilQuant = (24 * convtimenbr(itime)) * (TryChecked ? CM.moiltry : CM.moil);
+        const oilCost = oilQuant * (TryChecked ? it["Oil"].costtry : it["Oil"].cost) / dataSet.options.coinsRatio;
+        const iTotalCost = iseedCost + oilCost;
+        const tradeTax = (100 - dataSet.options.tradeTax) / 100;
+        const icostm = cobj.costp2pt * harvestTotal;
+        const profit = (icostm * tradeTax) - iTotalCost;
+        const colorT = ColorValue(profit, 0, 10);
+        const cellStyle = {};
+        cellStyle.color = colorT;
+        return (
+          <tr key={index}>
+            <td id="iccolumn">{ico}</td>
+            {xListeColBounty[0][1] === 2 ? <td className="tditem">{itemName}</td> : null}
+            {xListeColBounty[1][1] === 1 ? <td className="tdcenter">{itime}</td> : null}
+            {xListeColBounty[2][1] === 1 ? <td className="tdcenter">{iseeds}</td> : null}
+            {/* {xListeColBounty[2][1] === 1 ? <td className="tdcenter">{nHarvest}</td> : null} */}
+            {xListeColBounty[2][1] === 1 ? <td className="tdcenter">{frmtNb(harvestTotal)}</td> : null}
+            {xListeColBounty[3][1] === 1 ? <td className="tdcenter">{frmtNb(iseedCost)}</td> : null}
+            {xListeColBounty[4][1] === 1 ? <td className="tdcenter">{frmtNb(oilQuant)}</td> : null}
+            {xListeColBounty[5][1] === 1 ? <td className="tdcenter">{frmtNb(oilCost)}</td> : null}
+            {xListeColBounty[5][1] === 1 ? <td className="tdcenter">{frmtNb(iTotalCost)}</td> : null}
+            {xListeColBounty[5][1] === 1 ? <td className="tdcenter">{frmtNb(icostm)}</td> : null}
+            {xListeColBounty[5][1] === 1 ? <td className="tdcenter" style={cellStyle}>{frmtNb(profit)}</td> : null}
+          </tr>
+        );
+      });
+      const tableHeader = (
+        <thead>
+          <tr>
+            <th className="th-icon"></th>
+            {xListeColBounty[0][1] === 2 ? <th className="thcenter">Name</th> : null}
+            {xListeColBounty[1][1] === 1 ? <th className="thcenter">Time</th> : null}
+            {xListeColBounty[2][1] === 1 ? <th className="thcenter">Seeds</th> : null}
+            {/* {xListeColBounty[2][1] === 1 ? <th className="thcenter">nHarvst</th> : null} */}
+            {xListeColBounty[1][1] === 1 ? <th className="thcenter">Harvest <div>Average</div></th> : null}
+            {xListeColBounty[3][1] === 1 ? <th className="thcenter">Cost</th> : null}
+            {xListeColBounty[4][1] === 1 ? <th className="thcenter">Oil {imgoil}</th> : null}
+            {xListeColBounty[5][1] === 1 ? <th className="thcenter">Cost</th> : null}
+            {xListeColBounty[5][1] === 1 ? <th className="thcenter">Prod {imgSfl}</th> : null}
+            {xListeColBounty[5][1] === 1 ? <th className="thcenter">Market {imgSfl}</th> : null}
+            {xListeColBounty[5][1] === 1 ? <th className="thcenter">Profit {imgSfl}</th> : null}
+          </tr>
+        </thead>
+      );
+
+      const table = (
+        <>
+          <table className="table" style={{ borderCollapse: "separate", borderSpacing: "6px 0" }}>
+            {tableHeader}
+            <tbody>
+              {tableContent}
+            </tbody>
+          </table>
+        </>
+      );
+
+      setcropMachineData(table);
       setMutants(mutantchickens);
       setsTickets(sTickets);
     }
@@ -3231,7 +3402,10 @@ function App() {
           <tr>
             <td>{exchangeimg}</td>
             {vegetableNames.map((name, index) => (
-              <td style={{ textAlign: 'center', position: "relative" }}>{<img src={it[name]?.img || nft[name]?.img || nftw[name]?.img || imgna} alt={''} className="itico" title={name} />}{data[index]?.fulfilledAt && imgsold}</td>
+              <td style={{ textAlign: 'center', position: "relative" }}>
+                {<img src={it[name]?.img || fish[name]?.img || flower[name]?.img || nft[name]?.img || nftw[name]?.img || imgna}
+                  alt={''} className="itico" title={name} />}
+                {data[index]?.fulfilledAt && imgsold}</td>
             ))}
           </tr>
           {/* <tr>
@@ -3435,7 +3609,7 @@ function App() {
       var totTradedSfl = tot.totTradedSfl - (tot.totTradedSfl * 0.1);
       const tableContent = allSortedItems.map(([element]) => {
         if (compoHarvested[element] > 0 || compoBurn[element] > 0 || compoTraded[element] > 0) {
-          const cobj = it[element] || fish[element] || flower[element] || null;
+          const cobj = it[element] || fish[element] || flower[element] || nft[element] || nftw[element] || null;
           const ico = cobj ? cobj.img : element === "SFL" ? imgsfl : element === "TKT" ? imgtkt : element === "COINS" ? imgcoins : imgxp;
           const iburn = element === "SFL" ? '' : compoBurn[element] || '';
           var iquant = compoHarvested[element] ? compoHarvested[element] : '';
@@ -3455,7 +3629,7 @@ function App() {
           const icostp2pt = cobj && iquant > 0 ? !isNaN(Number(cobj.costp2pt)) ? Number(cobj.costp2pt) * (iquant || 0) : '' : '';
           const icostp2pn = cobj && iquant > 0 ? !isNaN(Number(cobj.costp2pn)) ? Number(cobj.costp2pn) * (iquant || 0) : '' : '';
           const icostp2po = cobj && iquant > 0 ? !isNaN(Number(cobj.costp2po)) ? Number(cobj.costp2po) * (iquant || 0) : '' : '';
-          const icostt = icost;
+          const icostt = icost || 0;
           //const itoolscraft = cobj.toolscrafted;
           totCost += Number(icostt);
           totCostt += Number(icostp2pt);
@@ -3470,8 +3644,8 @@ function App() {
               {xListeColActivityItem[3][1] === 1 ? <td className="tdcenter">{iburn}</td> : null}
               {xListeColActivityItem[4][1] === 1 ? <td className="tdcenter">{icostt && frmtNb(icostt)}</td> : null}
               {xListeColActivityItem[5][1] === 1 ? <td className="tdcenter">{icostp2pt && frmtNb(icostp2pt)}</td> : null}
-              {xListeColActivityItem[6][1] === 1 ? <td className="tdcenter">{icostp2pn && frmtNb(icostp2pn)}</td> : null}
-              {xListeColActivityItem[7][1] === 1 ? <td className="tdcenter">{icostp2po && frmtNb(icostp2po)}</td> : null}
+              {/* {xListeColActivityItem[6][1] === 1 ? <td className="tdcenter">{icostp2pn && frmtNb(icostp2pn)}</td> : null}
+              {xListeColActivityItem[7][1] === 1 ? <td className="tdcenter">{icostp2po && frmtNb(icostp2po)}</td> : null} */}
               {xListeColActivityItem[8][1] === 1 ? <td className="tdcenterbrd">{iquanttraded && parseFloat(iquanttraded).toFixed(0)}</td> : null}
               {xListeColActivityItem[8][1] === 1 ? <td className="tdcenterbrd">{iquanttradedsfl && parseFloat(iquanttradedsfl).toFixed(1)}</td> : null}
               {xListeColActivityItem[9][1] === 1 ? <td className="tdcenterbrd">{delivBurn["total"][element]}</td> : null}
@@ -3502,8 +3676,8 @@ function App() {
               Burn</th> : null}
             {xListeColActivityItem[4][1] === 1 ? <th className="thcenter">Cost</th> : null}
             {xListeColActivityItem[5][1] === 1 ? <th className="thcenter">Market</th> : null}
-            {xListeColActivityItem[6][1] === 1 ? <th className="thcenter">Niftyswap</th> : null}
-            {xListeColActivityItem[7][1] === 1 ? <th className="thcenter">OpenSea</th> : null}
+            {/* {xListeColActivityItem[6][1] === 1 ? <th className="thcenter">Niftyswap</th> : null}
+            {xListeColActivityItem[7][1] === 1 ? <th className="thcenter">OpenSea</th> : null} */}
             {xListeColActivityItem[8][1] === 1 ? <th className="tdcenterbrd"><i><img src="./icon/ui/exchange.png" title="Traded" className="itico" /></i></th> : null}
             {xListeColActivityItem[8][1] === 1 ? <th className="tdcenterbrd"><i><img src={imgsfl} title="SFL" className="itico" /></i></th> : null}
             {xListeColActivityItem[9][1] === 1 ? <th className="tdcenterbrd"><i><img src="./icon/ui/delivery_board.png" title="Deliveries burn" className="itico" /></i></th> : null}
@@ -3518,8 +3692,8 @@ function App() {
             {xListeColActivityItem[3][1] === 1 ? <td className="tdcenter"></td> : null}
             {xListeColActivityItem[4][1] === 1 ? <td className="tdcenter">{frmtNb(totCost)}</td> : null}
             {xListeColActivityItem[5][1] === 1 ? <td className="tdcenter">{frmtNb(totCostt)}</td> : null}
-            {xListeColActivityItem[6][1] === 1 ? <td className="tdcenter">{frmtNb(totCostn)}</td> : null}
-            {xListeColActivityItem[7][1] === 1 ? <td className="tdcenter">{frmtNb(totCosto)}</td> : null}
+            {/* {xListeColActivityItem[6][1] === 1 ? <td className="tdcenter">{frmtNb(totCostn)}</td> : null}
+            {xListeColActivityItem[7][1] === 1 ? <td className="tdcenter">{frmtNb(totCosto)}</td> : null} */}
             {xListeColActivityItem[8][1] === 1 ? <td className="tdcenterbrd"></td> : null}
             {xListeColActivityItem[8][1] === 1 ? <td className="tdcenterbrd">{frmtNb(totTradedSfl)}</td> : null}
             {xListeColActivityItem[9][1] === 1 ? <td className="tdcenterbrd"></td> : null}
@@ -3735,12 +3909,15 @@ function App() {
         if (DataContext.data.tottrades) {
           const totTradesEntries = Object.entries(DataContext.data.tottrades);
           totTradesEntries.map(([item]) => {
+            const itemName = DataContext.data.tottrades[item].item;
+            //if (!fish[itemName] && !flower[itemName]) {
             const itemTraded = DataContext.data.tottrades[item].item;
             compoTraded[itemTraded] = compoTraded[itemTraded] || 0;
             compoTraded[itemTraded] += DataContext.data.tottrades[item].quant;
             compoTradedSfl[itemTraded] = compoTradedSfl[itemTraded] || 0;
             compoTradedSfl[itemTraded] += DataContext.data.tottrades[item].sfl;
             tot.totTradedSfl += DataContext.data.tottrades[item].sfl;
+            //}
           });
         }
         const totBuildEntries = Object.entries(DataContext.data.totbuild);
@@ -3940,7 +4117,7 @@ function App() {
     //console.log(compoBurn);
     tot.tktCost = tot.deliveriestktcost / (tot.deliveriestkt);
     let compoTotal = [];
-    compoTotal = Object.assign({}, compoHarvested, compoBurn);
+    compoTotal = Object.assign({}, compoHarvested, compoTraded, compoBurn);
     const itemOrder = Object.keys(it);
     const fishOrder = Object.keys(fish);
     const flowerOrder = Object.keys(flower);
@@ -3960,12 +4137,20 @@ function App() {
       const quantity = entry ? entry[1] : 0;
       return [item, quantity];
     });
+    const tradedNFTItems = Object.entries(compoTraded).map((item) => {
+      if ((nft[item[0]] || nftw[item[0]]) && (!fish[item[0]] && !flower[item[0]])) {
+        const entry = compoEntries.find(([entryItem]) => entryItem === item[0]);
+        const quantity = entry ? entry[1] : 0;
+        return [item[0], quantity];
+      }
+    }).filter(Boolean);
     sortedInventoryItems.unshift(["TKT", compoHarvested["TKT"]]);
     sortedInventoryItems.unshift(["SFL", compoBurn["SFL"]]);
     sortedInventoryItems.unshift(["COINS", compoBurn["COINS"]]);
     sortedInventoryItems.unshift(["XP", compoHarvested["XP"]]);
     const allSortedItems1 = sortedInventoryItems.concat(sortedFlowerItems);
-    const allSortedItems = allSortedItems1.concat(sortedFishItems);
+    const allSortedItems2 = allSortedItems1.concat(sortedFishItems);
+    const allSortedItems = allSortedItems2.concat(tradedNFTItems);
     const result = {
       allSortedItems: allSortedItems,
       compoHarvested: compoHarvested,
@@ -4114,6 +4299,7 @@ function App() {
       const responseData = await response.json();
       setpriceData(JSON.parse(JSON.stringify(responseData.priceData)));
       if (responseData.allData !== "" && responseData.allData !== undefined) {
+        setdataSetFarm(responseData.allData);
         it = responseData.allData.it;
         tool = responseData.allData.tool;
         food = responseData.allData.food;
@@ -4184,10 +4370,13 @@ function App() {
   }
   function setMutants(table) {
     const MutItems = table.map(([item, amount], index) => {
-      const cobj = nft[table[index][0].name];
-      const ico = cobj ? cobj.img : '';
+      const itemName = table[index][0].name;
+      //const cobj = nft[itemName];
+      let itemImg = imgna;
+      if (dataSetFarm.nft[itemName]) { itemImg = dataSetFarm.nft[itemName].img; }
+      if (dataSetFarm.mutant[itemName]) { itemImg = dataSetFarm.mutant[itemName].img; }
       return (
-        <img src={ico} alt={''} className="nftico" title={table[index][0].name} />
+        <img src={itemImg} alt={''} className="nftico" title={table[index][0].name} />
       )
     });
     setmutData(MutItems);
@@ -4390,6 +4579,16 @@ function App() {
         console.log(error);
       }
     }
+    if (selectedInv === "cropmachine") {
+      try {
+        setCropMachine();
+        if (farmData.balance) { setCookie() }
+      } catch (error) {
+        //localStorage.clear();
+        //console.log("Error, cleared local data");
+        console.log(error);
+      }
+    }
     if (selectedInv === "animal") {
       try {
         setAnimals();
@@ -4438,8 +4637,9 @@ function App() {
         //console.log("Error, cleared local data");
       } */
     }
-  }, [farmData, itData, selectedCurr, selectedQuant, selectedQuantCook, selectedQuantFish, selectedQuantity, selectedQuantityCook, selectedCostCook,
-    selectedReady, selectedDsfl, selectedInv, inputMaxBB, inputKeep, inputFarmTime, inputCoinsRatio, deliveriesData, HarvestD,
+    setdeliveriesData(dataSetFarm.orderstable);
+  }, [farmData, dataSetFarm, itData, selectedCurr, selectedQuant, selectedQuantCook, selectedQuantFish, selectedQuantity, selectedQuantityCook, selectedCostCook,
+    selectedReady, selectedDsfl, selectedInv, selectedDigCur, inputMaxBB, inputKeep, inputFarmTime, inputCoinsRatio, deliveriesData, HarvestD,
     xListeCol, xListeColCook, xListeColFish, xListeColFlower, xListeColExpand, xListeColAnimals, xListeColActivity,
     xListeColActivityItem, CostChecked, TryChecked, BurnChecked, cstPrices, fromtolvltime, inputFromLvl, inputToLvl, fromtoexpand, activityData,
     activityDisplay, ftradesData, isOpen, options]);
@@ -4629,6 +4829,7 @@ function App() {
                       <MenuItem value="bounty"><img src="./icon/tools/sand_shovel.png" alt="" className="itico" />Dig</MenuItem>
                       <MenuItem value="animal"><img src={imgchkn} alt="" className="itico" />Animals</MenuItem>
                       <MenuItem value="craft"><img src="./icon/craft/bee_box.webp" alt="" className="itico" />Craft</MenuItem>
+                      <MenuItem value="cropmachine"><img src="./icon/skillr/efficiency_ext_module.png" alt="" className="itico" />Crop Machine</MenuItem>
                       <MenuItem value="map"><img src="./icon/ui/world.png" alt="" className="itico" />Map</MenuItem>
                       <MenuItem value="expand"><img src="./icon/tools/hammer.png" alt="" className="itico" />Expand</MenuItem>
                       {isAbo ? <MenuItem value="activity"><img src="./icon/ui/stopwatch.png" alt="" className="itico" />Activity</MenuItem> : null}
@@ -4669,6 +4870,7 @@ function App() {
                 flower: flowerData || null,
                 bounty: bountyData || null,
                 craft: craftData || null,
+                cropmachine: cropMachineData || null,
                 animal: animalData || null,
                 map: mapData || null,
                 expand: expandData || null,
@@ -4696,11 +4898,12 @@ function App() {
           <ModalGraph onClose={handleClosefGraph} graphtype={GraphType} frmid={lastClickedInputValue.current} it={it} API_URL={API_URL} />
         )}
         {showfTNFT && (
-          <ModalTNFT onClose={(dataSet) => { handleClosefTNFT(dataSet) }}
+          <ModalTNFT onClose={(dataSet, dataSetFarm) => { handleClosefTNFT(dataSet, dataSetFarm) }}
             frmid={lastClickedInputValue.current}
             coinsRatio={dataSet.options.coinsRatio}
             API_URL={API_URL}
             dataSet={dataSet}
+            dataSetFarm={dataSetFarm}
             onReset={handleRefreshfTNFT}
             TryChecked={TryChecked}
             handleTryCheckedChange={handleTryCheckedChange}
@@ -4915,8 +5118,8 @@ function App() {
       dataSet.options.inputFarmTime = 15;
       //dataSet.options.inputAnimalLvl = 5;
       dataSet.options.coinsRatio = 320;
+      dataSet.options.gemsRatio = 20;
       dataSet.options.inputKeep = 3;
-      dataSet.options.gemRatio = 20;
       dataSet.options.tradeTax = 10;
       if (!dataSet.options?.animalLvl) { dataSet.options.animalLvl = {} }
       if (!dataSet.options?.animalLvl?.Chicken) { dataSet.options.animalLvl.Chicken = 5 }

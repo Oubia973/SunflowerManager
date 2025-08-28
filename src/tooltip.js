@@ -39,6 +39,10 @@ const Tooltip = ({ onClose, item, context, value, clickPosition, dataSet }) => {
     const imgcoins = <img src="./icon/res/coins.png" style={{ width: "15px", height: "15px" }} />
     const imgusdc = <img src="./usdc.png" style={{ width: "15px", height: "15px" }} />
     const imgmp = <img src="./icon/ui/exchange.png" style={{ width: "15px", height: "15px" }} />
+    const imgwinter = <img src="./icon/ui/winter.webp" alt={''} className="resico" title="Winter" />;
+    const imgspring = <img src="./icon/ui/spring.webp" alt={''} className="resico" title="Spring" />;
+    const imgsummer = <img src="./icon/ui/summer.webp" alt={''} className="resico" title="Summer" />;
+    const imgautumn = <img src="./icon/ui/autumn.webp" alt={''} className="resico" title="Autumn" />;
     const Item = dataSet.it[item];
     const tradeTax = (100 - dataSet.options.tradeTax) / 100;
     let txt = "";
@@ -116,24 +120,52 @@ const Tooltip = ({ onClose, item, context, value, clickPosition, dataSet }) => {
                     if (item === "Obsidian") {
                         let itemToolCompo = "";
                         let toolCost = 0; //Item[costortry];
+                        let imgSeason = imgna;
+                        let SeasonCurName = dataSet.curSeason;
+                        if (SeasonCurName === "winter") { imgSeason = imgwinter; };
+                        if (SeasonCurName === "spring") { imgSeason = imgspring; };
+                        if (SeasonCurName === "summer") { imgSeason = imgsummer; };
+                        if (SeasonCurName === "autumn") { imgSeason = imgautumn; };
                         isFree = false;
                         const obsiCompoOrTry = ForTry ? Item.compotry : Item.compo;
-                        const toolCompo = Object.keys(obsiCompoOrTry).map((itemName, itIndex) => {
+                        let toolCompo = [];
+                        toolCompo.push(<><span>{imgSeason} :</span> </>);
+                        for (let itemName in obsiCompoOrTry) {
                             if (dataSet.it[itemName]) { itemToolCompo = dataSet.it[itemName]; }
                             if (dataSet.fish[itemName]) { itemToolCompo = dataSet.fish[itemName]; }
                             if (dataSet.flower[itemName]) { itemToolCompo = dataSet.flower[itemName]; }
                             if (dataSet.craft[itemName]) { itemToolCompo = dataSet.craft[itemName]; }
                             toolCost += itemToolCompo[costortry] * obsiCompoOrTry[itemName];
-                            return (
-                                <React.Fragment key={itIndex}>
-                                    <img src={itemToolCompo.img} className="resicon" alt={itemName} />
-                                    x{obsiCompoOrTry[itemName]}
-                                </React.Fragment>
-                            );
-                        });
+                            toolCompo.push(<span><img src={itemToolCompo.img} className="resicon" title={itemName} />x{obsiCompoOrTry[itemName]}</span>);
+                        }
                         //prodCost = toolCost / dataSet.options.coinsRatio;
+                        let txtCompos = [];
+                        Object.keys(dataSet.it[item][key("compos")]).map(SeasonName => {
+                            if (SeasonName === dataSet.curSeason) return;
+                            if (SeasonName === "winter") { imgSeason = imgwinter; };
+                            if (SeasonName === "spring") { imgSeason = imgspring; };
+                            if (SeasonName === "summer") { imgSeason = imgsummer; };
+                            if (SeasonName === "autumn") { imgSeason = imgautumn; };
+                            let lineCompos = [];
+                            let toolCostOther = 0;
+                            lineCompos.push(<><span>{imgSeason} :</span> </>);
+                            for (let itemName in dataSet.it[item][key("compos")][SeasonName]) {
+                                const compoQuant = dataSet.it[item][key("compos")][SeasonName][itemName];
+                                if (dataSet.it[itemName]) { itemToolCompo = dataSet.it[itemName]; }
+                                if (dataSet.fish[itemName]) { itemToolCompo = dataSet.fish[itemName]; }
+                                if (dataSet.flower[itemName]) { itemToolCompo = dataSet.flower[itemName]; }
+                                if (dataSet.craft[itemName]) { itemToolCompo = dataSet.craft[itemName]; }
+                                toolCostOther += itemToolCompo[costortry] * compoQuant;
+                                lineCompos.push(<span><img src={itemToolCompo.img} className="resicon" title={itemName} />x{compoQuant}</span>);
+                            }
+                            const txtCompoPrice = <span> {' ('}{frmtNb(toolCostOther / dataSet.options.coinsRatio)}{imgsfl}{')'}</span>;
+                            txtCompos.push(<div>{lineCompos}{txtCompoPrice}</div>);
+                        });
                         txtCost = (
-                            <><div>{toolCompo} {'('}{frmtNb(prodCost)}{imgsfl}{')'}</div></>
+                            <><div>{toolCompo}
+                                {'('}{frmtNb(toolCost / dataSet.options.coinsRatio)}{imgsfl}{')'}</div>
+                                <div>Other seasons : {txtCompos}</div>
+                            </>
                         );
                     }
                 }
@@ -650,21 +682,21 @@ const Tooltip = ({ onClose, item, context, value, clickPosition, dataSet }) => {
                 });
             };
             if (value === "timechg") {
-                filteredBoosts = filterBoosts(item, "time", true);
+                filteredBoosts = filterBoosts(item, "time", ForTry);
                 txtItem = <div>Boosts for {imtemimg}{item} time:</div>;
             }
             if (value === "yieldchg") {
-                filteredBoosts = filterBoosts(item, "yield", true);
+                filteredBoosts = filterBoosts(item, "yield", ForTry);
                 txtItem = <div>Boosts for {imtemimg}{item} yield:</div>;
             }
             if (value === "costchg") {
-                filteredBoosts = filterBoosts(item, "cost", true);
+                filteredBoosts = filterBoosts(item, "cost", ForTry);
                 txtItem = <div>Boosts for {imtemimg}{item} cost:</div>;
             }
             if (value === "yield") {
                 filteredBoosts = [...filterBoosts(item, "yield", ForTry), ...filterBoosts(item, "time", ForTry), ...filterBoosts(item, "cost", ForTry)];
                 txtItem = (<>
-                    <div>Yield for {imtemimg}{item} : {frmtNb(Item[myieldortry])}</div>
+                    <div>{imtemimg}{item} yield : {frmtNb(Item[myieldortry])}</div>
                     <div>{frmtNb(Item[harvestortry] / Item[spotortry])} average by node</div>
                     <div>Boosts :</div>
                 </>);
@@ -763,6 +795,12 @@ const Tooltip = ({ onClose, item, context, value, clickPosition, dataSet }) => {
                                 if (dataSet.it[itemName]) {
                                     marketPrice = dataSet.it[itemName].costp2pt * quantity;
                                     itemImg = <img src={dataSet.it[itemName].img} className="resicon" />;
+                                }
+                                if (dataSet.fish[itemName]) {
+                                    itemImg = <img src={dataSet.fish[itemName].img} className="resicon" />;
+                                }
+                                if (dataSet.flower[itemName]) {
+                                    itemImg = <img src={dataSet.flower[itemName].img} className="resicon" />;
                                 }
                                 const marketDiff = marketPrice ? ((price - marketPrice) / marketPrice * 100).toFixed(2) + "%" : "N/A";
                                 const marketDiffStyle = marketPrice && ((price - marketPrice) / marketPrice * 100) > 20 ? { color: "red" } : {};
@@ -917,6 +955,33 @@ const Tooltip = ({ onClose, item, context, value, clickPosition, dataSet }) => {
             txt = <><div>{itemImg} {item}</div>
                 {icompoimg}
             </> */
+        }
+        if (context === "ratiodig" || context === "ratiodigp") {
+            const itemImg = <img src={dataSet.bounty[item]?.img ?? imgna} alt={item ?? "?"} style={{ width: "22px", height: "22px" }} />;
+            let txtItem = "";
+            let txtItemImg = "";
+            let txtPattern = "";
+            const vToday = context === "ratiodigp" ? value.valueptoday : value.valuetoday;
+            const toolsToday = context === "ratiodigp" ? value.toolcostpToday : value.itoolctoday;
+            const ratioC = context === "ratiodigp" ? value.ratioCoinsPattern : value.ratioCoins;
+            if (value.qtoday === "total") {
+                txtItem = <div>Total ratio</div>;
+            }
+            if (value.qtoday > 0) {
+                txtItem = <div>{itemImg}{item} ratio</div>;
+                txtItemImg = <span>{itemImg}x{value.qtoday} </span>;
+            }
+            if (context === "ratiodigp" && value.qtoday === "total") {
+                txtPattern = <><div>This is patterns values</div>
+                    <div>it's what you can have without dig any Sand, Crab or Bone</div></>;
+            }
+            if (txtItem !== "") {
+                txt = <>{txtItem}{txtPattern}
+                    <div>Your tools cost with {dataSet.options.coinsRatio} ratio before dig: {toolsToday}</div>
+                    <div>{txtItemImg}digged value today: {vToday}</div>
+                    <div>{txtItemImg}ratio: {ratioC}{imgcoins} for 1{imgsfl}</div>
+                </>
+            }
         }
     } catch (error) {
         console.log("tooltip: ", error);
