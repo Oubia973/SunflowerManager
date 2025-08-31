@@ -1,7 +1,7 @@
 import React, { useEffect, useState, useRef } from 'react';
 import { frmtNb, ColorValue, Timer } from './fct.js';
 
-export function setHome(dataSet, xListeColBounty, handleHomeClic, isOpen) {
+export function setHome(dataSet, dataSetFarm, xListeColBounty, handleHomeClic, isOpen) {
     /* if (!dataSet.farmData.inventory) {
         return null;
     } */
@@ -9,7 +9,8 @@ export function setHome(dataSet, xListeColBounty, handleHomeClic, isOpen) {
     const handleClic = (index) => {
         isOpen[index] ? isOpen[index] = false : isOpen[index] = true
     }; */
-    if (dataSet.it) {
+    const { it, fish, Animals, orderstable} = dataSetFarm;
+    if (it) {
         try {
             function key(name) {
                 return dataSet.forTry ? name + "try" : name;
@@ -26,12 +27,12 @@ export function setHome(dataSet, xListeColBounty, handleHomeClic, isOpen) {
             const dailyChest = dailyChestToday ? <img src={"./icon/ui/confirm.png"} alt={''} className="nodico" title={"Done"} />
                 : <img src={"./icon/ui/cancel.png"} alt={''} className="nodico" title={"Not done"} />;
             const dailyChestStreak = dataSet.dailychest?.streak ? <span> Streak: {dataSet.dailychest.streak}</span> : null;
-            const ordersCount = dataSet.orderstable?.orderscount || 0;
-            const ordersDone = dataSet.orderstable?.ordersdone || 0;
-            const choresCount = dataSet.orderstable?.chorescount || 0;
-            const choresDone = dataSet.orderstable?.choresdone || 0;
-            const bountiesCount = dataSet.orderstable?.bountiescount || 0;
-            const bountiesDone = dataSet.orderstable?.bountiesdone || 0;
+            const ordersCount = orderstable?.orderscount || 0;
+            const ordersDone = orderstable?.ordersdone || 0;
+            const choresCount = orderstable?.chorescount || 0;
+            const choresDone = orderstable?.choresdone || 0;
+            const bountiesCount = orderstable?.bountiescount || 0;
+            const bountiesDone = orderstable?.bountiesdone || 0;
             const tradeTax = (100 - dataSet.options.tradeTax) / 100;
             const leftPanel = (
                 <div className="home-left-panel">
@@ -76,37 +77,37 @@ export function setHome(dataSet, xListeColBounty, handleHomeClic, isOpen) {
 
                 let Items = {};
                 if (bntName === corpsCatName) {
-                    Items = Object.entries(dataSet.it)
+                    Items = Object.entries(it)
                         .filter(([key, item]) => item.cat === "crop" && item.rdyat > 0 && !item.greenhouse)
                         .map(([key, item]) => ({ ...item, name: key }));
                 }
                 if (bntName === "Fruits") {
-                    Items = Object.entries(dataSet.it)
+                    Items = Object.entries(it)
                         .filter(([key, item]) => item.cat === "fruit" && item.rdyat > 0 && !item.greenhouse)
                         .map(([key, item]) => ({ ...item, name: key }));
                 }
                 if (bntName === "Greenhouse") {
-                    Items = Object.entries(dataSet.it)
+                    Items = Object.entries(it)
                         .filter(([key, item]) => item.greenhouse && item.rdyat > 0)
                         .map(([key, item]) => ({ ...item, name: key }));
                 }
                 if (bntName === "Wood") {
-                    Items = Object.entries(dataSet.it)
+                    Items = Object.entries(it)
                         .filter(([key, item]) => item.cat === "wood" && item.rdyat > 0)
                         .map(([key, item]) => ({ ...item, name: key }));
                 }
                 if (bntName === "Minerals") {
-                    Items = Object.entries(dataSet.it)
+                    Items = Object.entries(it)
                         .filter(([key, item]) => (item.cat === "mineral" || key === "Crimstone") && item.rdyat > 0)
                         .map(([key, item]) => ({ ...item, name: key }));
                 }
                 if (bntName === "Henhouse") {
-                    Items = Object.entries(dataSet.it)
+                    Items = Object.entries(it)
                         .filter(([key, item]) => item.scat === "henhouse" && item.rdyat > 0)
                         .map(([key, item]) => ({ ...item, name: key }));
                 }
                 if (bntName === "Barn") {
-                    Items = Object.entries(dataSet.it)
+                    Items = Object.entries(it)
                         .filter(([key, item]) => item.scat === "barn" && item.rdyat > 0)
                         .map(([key, item]) => ({ ...item, name: key }));
                 }
@@ -126,8 +127,8 @@ export function setHome(dataSet, xListeColBounty, handleHomeClic, isOpen) {
                         Object.keys(Items).map((item, itemIndex) => {
                             //plantedTotal += Number(Items[item][plantedValue]);
                             let animalCost = 0;
-                            Object.keys(dataSet.animals[Items[item]?.animal]).map(animalItem => {
-                                animalCost += dataSet.animals[Items[item]?.animal][animalItem][key("costFood")] || 0;
+                            Object.keys(Animals[Items[item]?.animal]).map(animalItem => {
+                                animalCost += Animals[Items[item]?.animal][animalItem][key("costFood")] || 0;
                                 //console.log(Items[item].animal + ": " + animalCost);
                             });
                             if (Items[item].name === "Feather") { animalCost = 0 };
@@ -162,8 +163,8 @@ export function setHome(dataSet, xListeColBounty, handleHomeClic, isOpen) {
                                 let harvestProfit = 0;
                                 if (Items[item].scat === "henhouse" || Items[item].scat === "barn") {
                                     let animalCost = 0;
-                                    Object.keys(dataSet.animals[Items[item]?.animal]).map(animalItem => {
-                                        animalCost += dataSet.animals[Items[item]?.animal][animalItem][key("costFood")] || 0;
+                                    Object.keys(Animals[Items[item]?.animal]).map(animalItem => {
+                                        animalCost += Animals[Items[item]?.animal][animalItem][key("costFood")] || 0;
                                         if (Items[item].name === "Feather") { animalCost = 0 };
                                         if (Items[item].name === "Leather") { animalCost = 0 };
                                         if (Items[item].name === "Merino Wool") { animalCost = 0 };

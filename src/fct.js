@@ -133,3 +133,114 @@ export function Timer({ timestamp, index, onTimerFinish }) {
     </span>
   );
 }
+
+export function filterTryit(dataSet, toArray) {
+  const { it, food, nft, nftw, skill, skilllgc, buildng, bud } = dataSet;
+  const result = {};
+  let bTrynft = {};
+  let bTrynftw = {};
+  let bTrybuild = {};
+  let bTryskill = {};
+  let bTryskilllgc = {};
+  let bTrybud = {};
+  let bFarm = {};
+  let bCook = {};
+  let bTryBuy = {};
+  let bTrySpot = {};
+  if (!it) {
+    if (toArray) {
+      result.xtrynft = [];
+      result.xtrynftw = [];
+      result.xtrybuild = [];
+      result.xtryskill = [];
+      result.xtryskilllgc = [];
+      result.xtrybud = [];
+      result.xfarmit = [];
+      result.xcookit = [];
+      result.xbuyit = [];
+      result.xspottry = [];
+    }
+    return result;
+  }
+  function xfilterTryit() {
+    Object.entries(nft).forEach(([item]) => { bTrynft[item] = nft[item].tryit; });
+    Object.entries(nftw).forEach(([item]) => { bTrynftw[item] = nftw[item].tryit; });
+    Object.entries(skill).forEach(([item]) => { bTryskill[item] = skill[item].tryit; });
+    Object.entries(skilllgc).forEach(([item]) => { bTryskilllgc[item] = skilllgc[item].tryit; });
+    Object.entries(buildng).forEach(([item]) => { bTrybuild[item] = buildng[item].tryit; });
+    Object.entries(bud).forEach(([item]) => { bTrybud[item] = bud[item].tryit; });
+    Object.entries(it).forEach(([item]) => { bFarm[item] = it[item].farmit; });
+    Object.entries(food).forEach(([item]) => { bCook[item] = food[item].cookit; });
+    Object.entries(it).forEach(([item]) => { bTryBuy[item] = it[item].buyit; });
+    Object.entries(it).forEach(([item]) => { bTrySpot[item] = it[item].spottry; });
+  }
+  xfilterTryit();
+  function ConvToArray(tableVar) {
+    const table = Object.entries(tableVar)
+      .filter(([key, value]) => value !== 0)
+      .map(([key, value]) => ({ name: key, value }))
+      .reduce((acc, item) => { acc[item.name] = item.value; return acc; }, {});
+    return table;
+  }
+  if (toArray) {
+    result.xtrynft = ConvToArray(bTrynft);
+    result.xtrynftw = ConvToArray(bTrynftw);
+    result.xtrybuild = ConvToArray(bTrybuild);
+    result.xtryskill = ConvToArray(bTryskill);
+    result.xtryskilllgc = ConvToArray(bTryskilllgc);
+    result.xtrybud = ConvToArray(bTrybud);
+    result.xbuyit = ConvToArray(bTrybud);
+    result.xspottry = ConvToArray(bTrySpot);
+    result.xfarmit = ConvToArray(bFarm);
+    result.xcookit = ConvToArray(bCook);
+    /* result.xtrynft = Object.entries(bTrynft)
+      .filter(([key, value]) => value !== 0)
+      .map(([key, value]) => ({ name: key, value }))
+      .reduce((acc, item) => { acc[item.name] = item.value; return acc; }, {});
+    result.xtrynftw = Object.entries(bTrynftw)
+      .filter(([key, value]) => value !== 0)
+      .map(([key, value]) => ({ name: key, value }))
+      .reduce((acc, item) => { acc[item.name] = item.value; return acc; }, {});
+    result.xtrybuild = Object.entries(bTrybuild)
+      .filter(([key, value]) => value !== 0)
+      .map(([key, value]) => ({ name: key, value }))
+      .reduce((acc, item) => { acc[item.name] = item.value; return acc; }, {});
+    result.xtryskill = Object.entries(bTryskill)
+      .filter(([key, value]) => value !== 0)
+      .map(([key, value]) => ({ name: key, value }))
+      .reduce((acc, item) => { acc[item.name] = item.value; return acc; }, {});
+    result.xtryskilllgc = Object.entries(bTryskilllgc)
+      .filter(([key, value]) => value !== 0)
+      .map(([key, value]) => ({ name: key, value }))
+      .reduce((acc, item) => { acc[item.name] = item.value; return acc; }, {});
+    result.xtrybud = Object.entries(bTrybud)
+      .filter(([key, value]) => value !== 0)
+      .map(([key, value]) => ({ name: key, value }))
+      .reduce((acc, item) => { acc[item.name] = item.value; return acc; }, {});
+    result.xfarmit = Object.entries(bFarm)
+      .filter(([key, value]) => value !== 0)
+      .map(([key, value]) => ({ name: key, value }))
+      .reduce((acc, item) => { acc[item.name] = item.value; return acc; }, {});
+    result.xcookit = Object.entries(bCook)
+      .filter(([key, value]) => value !== 0)
+      .map(([key, value]) => ({ name: key, value }))
+      .reduce((acc, item) => { acc[item.name] = item.value; return acc; }, {});
+    result.xbuyit = Object.entries(bTryBuy)
+      .filter(([key, value]) => value !== 0)
+      .map(([key, value]) => ({ name: key, value }))
+      .reduce((acc, item) => { acc[item.name] = item.value; return acc; }, {});
+    result.xspottry = Object.entries(bTrySpot)
+      .filter(([key, value]) => value !== 0)
+      .map(([key, value]) => ({ name: key, value }))
+      .reduce((acc, item) => { acc[item.name] = item.value; return acc; }, {}); */
+    return result;
+  } else {
+    result.bTrynft = bTrynft;
+    result.bTrynftw = bTrynftw;
+    result.bTrybuild = bTrybuild;
+    result.bTryskill = bTryskill;
+    result.bTryskilllgc = bTryskilllgc;
+    result.bTrybud = bTrybud;
+    return result;
+  }
+}

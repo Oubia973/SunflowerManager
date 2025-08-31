@@ -2,9 +2,16 @@ import React, { useEffect, useState } from 'react';
 import DropdownCheckbox from './listcol.js';
 import { FormControl, InputLabel, Select, MenuItem, Switch, FormControlLabel } from '@mui/material';
 
+const imgna = "./icon/nft/na.png";
+const imgsfl = <img src="./icon/res/flowertoken.webp" style={{ width: "15px", height: "15px" }} />
+const imgcoins = <img src="./icon/res/coins.png" style={{ width: "15px", height: "15px" }} />
+const imggems = <img src="./icon/res/gem.webp" style={{ width: "15px", height: "15px" }} />
+
 function ModalOptions({ onClose, dataSet, onOptionChange, API_URL }) {
     const [isOpen, setIsOpen] = useState(false);
     const [justOpened, setJustOpened] = useState(true);
+    const [tradeTax, setTradeTax] = useState(dataSet.tradeTax || "");
+    const [gemRatio, setGemRatio] = useState(dataSet.gemsRatio || "");
     //const [pos, setPos] = useState({ x: clickPosition.x, y: clickPosition.y });
     //const [inputFarmTime, setInputFarmTime] = useState(dataSet.inputFarmTime);
     //const [inputMaxBB, setInputMaxBB] = useState(dataSet.inputFarmTime);
@@ -49,7 +56,8 @@ function ModalOptions({ onClose, dataSet, onOptionChange, API_URL }) {
             });
             if (response.ok) {
                 const responseData = await response.json();
-                dataSet.tradeTax = responseData.tradeTax;
+                dataSet.tradeTax = responseData;
+                setTradeTax(responseData);
             } else {
                 if (response.status === 429) {
                     console.log('Too many requests, wait a few seconds');
@@ -61,6 +69,26 @@ function ModalOptions({ onClose, dataSet, onOptionChange, API_URL }) {
             console.log(`Error : ${error}`);
         }
     };
+    function handleChangeTradeTax(e) {
+        setTradeTax(e.target.value);
+        onOptionChange(e);
+    }
+    function handleChangeGemRatio(e) {
+        e.name = "gemsRatio";
+        const gemPack = dataSet.gemsPack;
+        let gemRatioValue = 0;
+        const usdFlwr = Number(dataSet.usdSfl) || 0;
+        if(gemPack === "100") {gemRatioValue = (0.9 / usdFlwr) / gemPack}
+        if(gemPack === "650") {gemRatioValue = (4.54 / usdFlwr) / gemPack}
+        if(gemPack === "1350") {gemRatioValue = (9.09 / usdFlwr) / gemPack}
+        if(gemPack === "2800") {gemRatioValue = (18.19 / usdFlwr) / gemPack}
+        if(gemPack === "7400") {gemRatioValue = (45.49 / usdFlwr) / gemPack}
+        if(gemPack === "15500") {gemRatioValue = (90.99 / usdFlwr) / gemPack}
+        if(gemPack === "200000") {gemRatioValue = (909.99 / usdFlwr) / gemPack}
+        dataSet.gemsRatio = gemRatioValue;
+        setGemRatio(gemRatioValue);
+        onOptionChange(e);
+    }
     useEffect(() => {
         const timer = setTimeout(() => {
             setJustOpened(false);
@@ -79,7 +107,9 @@ function ModalOptions({ onClose, dataSet, onOptionChange, API_URL }) {
             window.removeEventListener('click', handleClickOutside);
         };
     }, [justOpened]); */
-
+    useEffect(() => {
+        //setTradeTax(dataSet.tradeTax || "");
+    }, [dataSet.tradeTax]);
     return (
         <div className={`tooltip-wrapper ${isOpen ? "open" : ""}`}>
             <div className="tooltip"
@@ -100,26 +130,26 @@ function ModalOptions({ onClose, dataSet, onOptionChange, API_URL }) {
                 <div><input type="text" onChange={onOptionChange} value={dataSet.inputMaxBB || 0}
                     name={"MaxBB"} style={{ textAlign: "left", width: "30px" }} />Restock daily</div>
                 <div><input type="text" onChange={onOptionChange} value={dataSet.coinsRatio || 0}
-                    name={"CoinsRatio"} style={{ textAlign: "left", width: "30px" }} />Coins/flower</div>
-                {dataSet.isAbo ? (<><div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}><input type="text" onChange={onOptionChange} value={dataSet.gemsRatio || 0}
-                    name={"GemsRatio"} style={{ textAlign: "left", width: "30px" }} />Gems/flower : Gem Pack
-                    <div className="selectinvback" style={{ display: 'flex', alignItems: 'left', height: '20px', width: '75px', margin: "0", padding: "0" }}>
+                    name={"CoinsRatio"} style={{ textAlign: "left", width: "30px" }} />Coins{imgcoins}/{imgsfl}Flower</div>
+                {dataSet.isAbo ? (<><div style={{ display: 'flex', alignItems: 'center' }}><input type="text" onChange={onOptionChange} value={dataSet.gemsRatio || 0}
+                    name={"GemsRatio"} style={{ textAlign: "left", width: "30px" }} />Gems{imggems}/{imgsfl}Flower 
+                    <div className="selectinvback" style={{ display: 'flex', alignItems: 'left', height: '20px', width: '80px', margin: "0", padding: "0" }}>
                         <FormControl variant="standard" id="formselectinv" className="selectinv" size="small">
-                            <InputLabel></InputLabel>
-                            <Select value={dataSet.gemsPack} onChange={onOptionChange}>
-                                <MenuItem value="100">100</MenuItem>
-                                <MenuItem value="650">650</MenuItem>
-                                <MenuItem value="1350">1350</MenuItem>
-                                <MenuItem value="2800">2800</MenuItem>
-                                <MenuItem value="7400">7400</MenuItem>
-                                <MenuItem value="15500">15500</MenuItem>
-                                <MenuItem value="200000">200000</MenuItem>
+                            <InputLabel>Pack</InputLabel>
+                            <Select value={dataSet.gemsPack} onChange={handleChangeGemRatio}>
+                                <MenuItem value="100">100{imggems}</MenuItem>
+                                <MenuItem value="650">650{imggems}</MenuItem>
+                                <MenuItem value="1350">1350{imggems}</MenuItem>
+                                <MenuItem value="2800">2800{imggems}</MenuItem>
+                                <MenuItem value="7400">7400{imggems}</MenuItem>
+                                <MenuItem value="15500">15500{imggems}</MenuItem>
+                                <MenuItem value="200000">200000{imggems}</MenuItem>
                             </Select>
                         </FormControl>
                     </div>
                 </div>
                 </>) : null}
-                <div style={{ display: "flex", alignItems: "center", gap: 2 }}><input type="text" onChange={onOptionChange} value={dataSet.tradeTax || ""}
+                <div style={{ display: "flex", alignItems: "center", gap: 2 }}><input type="text" onChange={handleChangeTradeTax} value={tradeTax}
                     name={"tradeTax"} style={{ textAlign: "left", width: "30px" }} />
                     <button onClick={resetTax} class="button small-btn" align="right" position='absolute'><img src="./icon/ui/refresh.png" alt="" className="resico" /></button>
                     Trade Tax

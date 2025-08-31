@@ -11,7 +11,7 @@ import Tooltip from "./tooltip.js";
 import DropdownCheckbox from './listcol.js';
 import CounterInput from "./counterinput.js";
 import { FormControl, InputLabel, Select, MenuItem, Switch, FormControlLabel } from '@mui/material';
-import { frmtNb, ColorValue, Timer } from './fct.js';
+import { frmtNb, ColorValue, Timer, filterTryit } from './fct.js';
 import { setHome } from './setHome.js';
 //import xrespFarm from './respFarm.json';
 //import xrespPrice from './respPrice.json';
@@ -26,12 +26,9 @@ const isNativeApp = Capacitor.isNativePlatform();
 const runLocal = true;
 const API_URL = runLocal ? "" : process.env.REACT_APP_API_URL;
 
-var vversion = 0.03;
+var vversion = 0.04;
 let dataSet = {};
 dataSet.options = {};
-dataSet.options.gemsRatio = 20;
-dataSet.options.tradeTax = 10;
-//dataSet.options.notifList = [];
 
 var dateSeason = "";
 var tktName = "";
@@ -57,7 +54,7 @@ const imgexchng = './icon/ui/exchange.png';
 const imgna = './icon/nft/na.png';
 const imgrod = './icon/tools/fishing_rod.png';
 
-var it = [];
+/* var it = [];
 var tool = [];
 var food = [];
 var fish = [];
@@ -84,18 +81,18 @@ var Animals = {};
 var CropMachine = {};
 var isleMap = {};
 //var frmOwner = "";
-var username = "";
 var isAbo = false;
 var isVip = false;
-var isBanned = "";
+var username = "";
 var taxFreeSFL = 0;
+var isBanned = ""; */
 
 var bFarmit = [];
 var bCookit = [];
 var bCustomSeedCM = [];
-var bBuyit = [];
+/* var bBuyit = [];
 var bSpottry = [];
-/* var bTrynft = [];
+var bTrynft = [];
 var bTrynftw = [];
 var bTrybuild = [];
 var bTryskill = [];
@@ -107,12 +104,12 @@ var bbuild = [];
 var bskill = [];
 var bbud = []; */
 var fruitPlanted = [];
-var dProd = [];
-var dProdtry = [];
 var xdxp = 0;
 
 //var xinitprc = false;
 //var xnotifiedTimers = [];
+var dProd = [];
+var dProdtry = [];
 var xHrvst = [];
 var xHrvsttry = [];
 var HrvstMax = [];
@@ -130,17 +127,7 @@ let helpImage = "./image/helpgeneral.jpg";
 
 function App() {
   const [initialDataSet, setInitialDataSet] = useState(null);
-  const [options, setOptions] = useState({
-    inputKeep: 3,
-    inputMaxBB: 1,
-    inputFarmTime: 8,
-    inputAnimalLvl: 5,
-    inputCoinsRatio: 320,
-    gemsRatio: 20,
-    gemsPack: 20,
-    usePriceFood: false,
-    toolsBurn: true,
-  })
+  const [options, setOptions] = useState({});
   const [useNotif, setuseNotif] = useState(false);
   const [notifListInitial, setNotifListInitial] = useState(null);
   const [inputValue, setInputValue] = useState('');
@@ -174,10 +161,10 @@ function App() {
   const [craftData, setcraftData] = useState(null);
   const [cropMachineData, setcropMachineData] = useState(null);
   const [animalData, setanimalData] = useState(null);
-  const [expandData, setexpandData] = useState(null);
+  const [expandDataTable, setexpandData] = useState(null);
   const [mapData, setMapData] = useState(null);
   const [ftradesData, setftradesData] = useState(null);
-  const [itData, setitData] = useState(it);
+  //const [itData, setitData] = useState(it);
   const [priceData, setpriceData] = useState([]);
   const [tooltipData, setTooltipData] = useState(null);
   const [listingsData, setlistingsData] = useState([]);
@@ -221,16 +208,16 @@ function App() {
     ['Time', 1],
     ['Production cost', 1],
     ['Shop price', 1],
-    ['Marketplace price', 1],
     ['Ratio coins/flower', 1],
-    ['Withdraw quantity', 1],
+    ['Marketplace price', 1],
+    ['Withdraw quantity', 0],
     ['Niftyswap price', 0],
     ['OpenSea price', 0],
+    ['Price difference with Marketplace', 0],
     ['Yield', 1],
     ['Harvest average', 1],
     ['To harvest', 1],
     ['BlockBuck production', 0],
-    ['Price difference with Marketplace', 1],
     ['Daily SFL', 1],
     ['Daily max production', 1],
     ['Coefficient Prod cost / Sell cost', 1],
@@ -364,67 +351,15 @@ function App() {
   };
   const handleClosefTNFT = (xdataSet, xdataSetFarm) => {
     dataSet = xdataSet;
+    /* const newDataSetLocal = { ...xdataSetFarm };
+    setdataSetFarm(newDataSetLocal); */
+    //const deepClone = obj => JSON.parse(JSON.stringify(obj));
     setdataSetFarm(xdataSetFarm);
-    it = dataSet.it;
-    food = dataSet.food;
-    fish = dataSet.fish;
-    bounty = dataSet.bounty;
-    craft = dataSet.craft;
-    nft = dataSet.nft;
-    nftw = dataSet.nftw;
-    buildng = dataSet.buildng;
-    skill = dataSet.skill;
-    skilllgc = dataSet.skilllgc;
-    bud = dataSet.bud;
-    fishingDetails = dataSet.fishingDetails;
-    Animals = xdataSetFarm.Animals;
-    //setTryit(nft, nftw, skill, buildng, bud);
-    //getFarmit(it);
-    //setPlanted(ittry);
-    //getCookit(it);
-    /* MergeIt(it, ittry);
-    MergeFood(food, foodtry);
-    MergeFish(fish, fishtry);
-    MergeBounty(bounty, bountytry);
-    MergeFishing(fishingDetails, xfishingDetails); */
-    //getActive(nft, nftw, skill, buildng, bud);
-    //getTryit(nft, nftw, skill, buildng, bud);
-    //setInv();
-    setitData(it);
-    //refreshDataSet();
-    //setCookie();
     setShowfTNFT(false);
   };
   const handleRefreshfTNFT = (xdataSet, xdataSetFarm) => {
     dataSet = xdataSet;
     setdataSetFarm(xdataSetFarm);
-    it = dataSet.it;
-    food = dataSet.food;
-    fish = dataSet.fish;
-    bounty = dataSet.bounty;
-    craft = dataSet.craft;
-    nft = dataSet.nft;
-    nftw = dataSet.nftw;
-    buildng = dataSet.buildng;
-    skill = dataSet.skill;
-    skilllgc = dataSet.skilllgc;
-    bud = dataSet.bud;
-    fishingDetails = dataSet.fishingDetails;
-    //setTryit(nft, nftw, skill, buildng, bud);
-    //getFarmit(it);
-    //setPlanted(ittry);
-    //getCookit(it);
-    /* MergeIt(it, ittry);
-    MergeFood(food, foodtry);
-    MergeFish(fish, fishtry);
-    MergeBounty(bounty, bountytry);
-    MergeFishing(fishingDetails, xfishingDetails); */
-    //getActive(nft, nftw, skill, buildng, bud);
-    //getTryit(nft, nftw, skill, buildng, bud);
-    //setInv();
-    setitData(it);
-    //refreshDataSet();
-    //setCookie();
   };
   const handleClosefGraph = () => {
     setShowfGraph(false);
@@ -741,11 +676,13 @@ function App() {
         break;
       case "GemsRatio":
         dataSet.options.gemsRatio = xvalue;
-        setInputCoinsRatio(xvalue);
+        setOptions({ ...dataSet.options });
+        //setInputGemsRatio(xvalue);
         break;
       case "tradeTax":
         dataSet.options.tradeTax = xvalue;
-        setInputCoinsRatio(xvalue);
+        setOptions({ ...dataSet.options });
+        //setInputCoinsRatio(xvalue);
         break;
       /* case "AnimalLvl":
         if (xvalue > 15) xvalue = 15;
@@ -781,12 +718,12 @@ function App() {
   const handleFromLvlChange = (event) => {
     const value = event.target.value.replace(/\D/g, '');
     setInputFromLvl(value);
-    if (value > 0 && value < 66) { getxpFromToLvl(value, inputToLvl, xdxp) }
+    if (value > 0 && value <= 149) { getxpFromToLvl(value, inputToLvl, xdxp) }
   };
   const handleToLvlChange = (event) => {
     const value = event.target.value.replace(/\D/g, '');
     setInputToLvl(value);
-    if (value > 0 && value < 66) { getxpFromToLvl(inputFromLvl, value, xdxp) }
+    if (value > 0 && value <= 150) { getxpFromToLvl(inputFromLvl, value, xdxp) }
   };
   const handleButtonClick = async (reset) => {
     //if (Notification.permission !== 'granted') { Notification.requestPermission() }
@@ -799,7 +736,7 @@ function App() {
     //xnotifiedTimers = [];
     try {
       lastClickedInputValue.current = inputValue;
-      var bTrynftArray = [];
+      /* var bTrynftArray = [];
       var bTrynftwArray = [];
       var bTrybuildArray = [];
       var bTryskillArray = [];
@@ -818,9 +755,10 @@ function App() {
         bTrybudArray = loadedData.bTrybud.length > 0 ? loadedData.bTrybud.reduce((acc, item) => { acc[item.name] = item.value; return acc; }, {}) : "";
         bBuyitArray = loadedData.bBuyit.length > 0 ? loadedData.bBuyit.reduce((acc, item) => { acc[item.name] = item.value; return acc; }, {}) : "";
         bSpottryArray = loadedData.bSpottry.length > 0 ? loadedData.bSpottry.reduce((acc, item) => { acc[item.name] = item.value; return acc; }, {}) : "";
-      }
-      username = "";
+      } */
+      //username = "";
       if (reset) { setFarmData([]); }
+      const tryItArrays = filterTryit(dataSetFarm, true);
       //setInputValue(lastClickedInputValue.current);
       const fetchFarmData = async (retryCount = 0) => {
         try {
@@ -831,15 +769,8 @@ function App() {
             },
             body: JSON.stringify({
               frmid: inputValue,
-              xoptions: dataSet.options,
-              xtrynft: bTrynftArray,
-              xtrynftw: bTrynftwArray,
-              xtrybuild: bTrybuildArray,
-              xtryskill: bTryskillArray,
-              xtryskilllgc: bTryskilllgcArray,
-              xtrybud: bTrybudArray,
-              xbuyit: bBuyitArray,
-              xspottry: bSpottryArray,
+              options: dataSet.options,
+              tryitarrays: tryItArrays
             }),
           });
           if (response.status === 202) {
@@ -859,77 +790,21 @@ function App() {
           } else if (response.status === 200) {
             const responseData = await response.json();
             setdataSetFarm(responseData);
-            username = responseData.username;
-            isAbo = responseData.isabo;
-            dataSet.options.isAbo = responseData.isabo;
-            isVip = responseData.vip;
-            dataSet.isVip = isVip;
-            dataSet.dateVip = responseData.datevip;
-            isBanned = responseData.isbanned ?
+            dataSet.isBanned = responseData.isbanned ?
               <div style={{ color: "red", margin: "0", padding: "0" }}><img src={"./icon/ui/suspicious.png"} />
                 <span>BANNED {responseData.isbannedstatus}</span></div>
               : "";
-            dataSet.isBanned = responseData.isbanned;
+            dataSet.options.farmId = inputValue;
+            dataSet.options.isAbo = responseData.isabo;
+            dataSet.isVip = responseData.vip;
+            dataSet.dateVip = responseData.datevip;
             dataSet.dailychest = responseData.dailychest;
             //dataSet.options.tradeTax = responseData.tradeTax;
-            dataSet.options.gemRatio = 20;
-            dataSet.options.farmId = inputValue;
+            dataSet.taxFreeSFL = frmtNb(responseData.taxFreeSFL);
+            dataSet.bumpkin = responseData.Bumpkin[0];
             dateSeason = new Date(responseData.constants.dateSeason);
             tktName = responseData.constants.tktName;
             imgtkt = responseData.constants.imgtkt;
-            dataSet.curSeason = responseData.curSeason;
-            it = responseData.it;
-            tool = responseData.tool;
-            food = responseData.food;
-            fish = responseData.fish;
-            flower = responseData.flower;
-            bounty = responseData.bounty;
-            craft = responseData.craft;
-            compost = responseData.compost;
-            nft = responseData.nft;
-            nftw = responseData.nftw;
-            skilllgc = responseData.skilllgc;
-            skill = responseData.skill;
-            buildng = responseData.buildng;
-            bud = responseData.bud;
-            spot = responseData.spot;
-            fishingDetails = responseData.fishingDetails;
-            mutantchickens = responseData.mutantchickens;
-            sTickets = responseData.sTickets;
-            buildngf = responseData.buildngf;
-            Animals = responseData.Animals;
-            isleMap = responseData.isleMap;
-            //frmOwner = responseData.frmOwner;
-            xexpandData = responseData.expandData;
-            ftrades = responseData.ftrades;
-            taxFreeSFL = frmtNb(responseData.taxFreeSFL);
-            dataSet.taxFreeSFL = taxFreeSFL;
-            dataSet.farmData = responseData.frmData;
-            dataSet.bumpkin = responseData.Bumpkin[0];
-            dataSet.orderstable = responseData.orderstable;
-            dataSet.farmId = inputValue;
-            if (localStorage.getItem("SFLManData") === null) {
-              const nftEntries = Object.entries(nft);
-              const nftwEntries = Object.entries(nftw);
-              const sklEntries = Object.entries(skill);
-              const bldEntries = Object.entries(buildng);
-              const budEntries = Object.entries(bud);
-              nftEntries.forEach(([item], index) => { nft[item].tryit = nft[item].isactive; });
-              nftwEntries.forEach(([item], index) => { nftw[item].tryit = nftw[item].isactive; });
-              sklEntries.forEach(([item], index) => { skill[item].tryit = skill[item].isactive; });
-              bldEntries.forEach(([item], index) => { buildng[item].tryit = buildng[item].isactive; });
-              budEntries.forEach(([item], index) => { bud[item].tryit = bud[item].isactive; });
-              //setFarmit(it);
-              //setCookit(food);
-              //setTryit(nft, nftw, skill, buildng, bud);
-              //setActive(nft, nftw, skill, buildng, bud);
-            } else {
-              getFarmit(it);
-              getCookit(food);
-              getBuyit(it, bBuyitArray);
-              //getTryit(nft, nftw, skill, buildng, bud);
-              //setActive(nft, nftw, skill, buildng, bud);
-            }
             if (dataSet.farmId !== inputValue || !dataSet.bumpkinImg) {
               const response = await fetch(API_URL + "/getbumpkin", {
                 method: 'GET',
@@ -955,14 +830,32 @@ function App() {
             setBumpkinData(responseData.Bumpkin);
             //getPlanted(it);
             //NFTPrice();
-            setfTrades();
-            setdeliveriesData(responseData.orderstable);
-            setSelectedExpandType(xexpandData.type);
+            //setfTrades();
+            //setdeliveriesData(responseData.orderstable);
+            setSelectedExpandType(responseData.expandData.type);
             //setfromtoexpand(responseData.expandData);
             //getFromToExpand(fromexpand, toexpand);
             //setanimalData(responseData.Animals);
-            refreshDataSet();
+            refreshDataSet(responseData);
+            const { frmData, expandData, fishingDetails, taxFreeSFL } = responseData;
+            const balance = frmData.balance;
+            const withdrawreduc = (expandData?.type === "desert" || expandData?.type === "spring" || expandData?.type === "volcano") ? 2.5 : 0;
+            const withdrawtax = (balance < 10 ? 30 : balance < 100 ? 25 : balance < 1000 ? 20 : balance < 5000 ? 15 : 10) - withdrawreduc;
+            dataSet.withdrawtax = withdrawtax;
+            const withdrawSFLbeyondTaxFree = Number(taxFreeSFL) - Number(balance);
+            const withdrawsflFree = (withdrawSFLbeyondTaxFree < 0) ? Number(taxFreeSFL) : Number(balance);
+            const withdrawsflNotFree = (withdrawsflFree >= Number(balance)) ? 0 : (Number(balance) - withdrawsflFree);
+            const withdrawSflNotFreeTaxed = (withdrawsflNotFree > 0) ? (withdrawsflNotFree - (withdrawsflNotFree * (withdrawtax / 100))) : 0;
+            const sflwithdraw = frmtNb(withdrawsflFree + withdrawSflNotFreeTaxed);
+            dataSet.sflwithdraw = sflwithdraw;
+            const xfishcastmax = fishingDetails && (!TryChecked ? fishingDetails.CastMax : fishingDetails.CastMaxtry);
+            const xfishcost = fishingDetails && ((!TryChecked ? fishingDetails.CastCost : fishingDetails.CastCosttry) / dataSet.options.coinsRatio);
+            dataSet.fishcasts = fishingDetails && (fishingDetails.casts + "/" + xfishcastmax);
+            dataSet.fishcosts = fishingDetails && (parseFloat(fishingDetails.casts * xfishcost).toFixed(3) + "/" + parseFloat(xfishcastmax * xfishcost).toFixed(3));
             await getPrices(true);
+            if (responseData.mutantchickens) {
+              setMutants(responseData);
+            }
           } else {
             setReqState(`Error : ${response.status}`);
             //console.error("Error fetching farm data:", response.status);
@@ -971,6 +864,7 @@ function App() {
           //setReqState(`Error : ${response.status}`);
           //console.error("Error during fetchFarmData:", error);
           setReqState(`Error : ${error.message}`);
+          throw (error);
         }
       };
 
@@ -1073,16 +967,24 @@ function App() {
     setBurnChecked(event.target.checked);
   };
   const handleFarmitChange = (item) => {
-    it[item].farmit = it[item].farmit === 1 ? 0 : 1;
-    setFarmit(it);
-    setInv();
-    setCookie();
+    const { it } = dataSetFarm;
+    //it[item].farmit = it[item].farmit === 1 ? 0 : 1;
+    //setFarmit(it);
+    let base = it;
+    const newbase = { ...base, [item]: { ...base[item], farmit: base[item].farmit === 1 ? 0 : 1 } };
+    const newDataSetLocal = { ...dataSetFarm, ["it"]: newbase };
+    setdataSetFarm(newDataSetLocal);
+    //setInv();
   };
-  const handleCookitChange = (itemh) => {
-    food[itemh].cookit = food[itemh].cookit === 1 ? 0 : 1;
-    setCookit(food);
-    setCook();
-    setCookie();
+  const handleCookitChange = (item) => {
+    const { food } = dataSetFarm;
+    //food[itemh].cookit = food[itemh].cookit === 1 ? 0 : 1;
+    //setCookit(food);
+    let base = food;
+    const newbase = { ...base, [item]: { ...base[item], cookit: base[item].cookit === 1 ? 0 : 1 } };
+    const newDataSetLocal = { ...dataSetFarm, ["food"]: newbase };
+    setdataSetFarm(newDataSetLocal);
+    //setCook();
   };
   const handleIncrement = (item, xtry, max) => {
     /* setxHrvst((prevHrvst) => {
@@ -1150,23 +1052,24 @@ function App() {
 
   function setInv() {
     if (farmData.inventory) {
+      const { it, spot, buildngf, mutantchickens, sTickets } = dataSetFarm;
       const inventoryEntries = Object.entries(farmData.inventory);
       var pinventoryEntries = "";
       if (farmData.previousInventory) { pinventoryEntries = Object.entries(farmData.previousInventory) }
       const itemOrder = Object.keys(it);
       const burnortry = !TryChecked ? "burn" : "burntry";
-      if (selectedQuantity === "daily") {
-        const stoneSpot = !TryChecked ? it["Stone"].farmit * (xHrvst["Stone"] * spot.stone) : it["Stone"].farmit * (xHrvsttry["Stone"] * spot.stone);
-        const ironSpot = !TryChecked ? it["Iron"].farmit * (xHrvst["Iron"] * spot.iron) : it["Iron"].farmit * (xHrvsttry["Iron"] * spot.iron);
-        const goldSpot = !TryChecked ? it["Gold"].farmit * (xHrvst["Gold"] * spot.gold) : it["Gold"].farmit * (xHrvsttry["Gold"] * spot.gold);
-        const crimestoneSpot = !TryChecked ? it["Crimstone"].farmit * (xHrvst["Crimstone"] * spot.crimstone) : it["Crimstone"].farmit * (xHrvsttry["Crimstone"] * spot.crimstone);
-        const sunstoneSpot = !TryChecked ? it["Sunstone"].farmit * (xHrvst["Sunstone"] * spot.sunstone) : it["Sunstone"].farmit * (xHrvsttry["Sunstone"] * spot.sunstone);
-        const oilSpot = !TryChecked ? it["Oil"].farmit * (xHrvst["Oil"] * spot.oil) : it["Oil"].farmit * (xHrvsttry["Oil"] * spot.oil);
-        xBurning[burnortry]["Wood"] = (stoneSpot * 3) + (ironSpot * 3) + (goldSpot * 3) + (crimestoneSpot * 3) + (sunstoneSpot * 3) + (oilSpot * 25);
-        xBurning[burnortry]["Stone"] = (ironSpot * 5);
-        xBurning[burnortry]["Iron"] = (goldSpot * 5) + (oilSpot * 10);
-        xBurning[burnortry]["Gold"] = (crimestoneSpot * 3) + (sunstoneSpot * 3);
-      }
+      //if (selectedQuantity === "daily") {
+      const stoneSpot = !TryChecked ? it["Stone"].farmit * (xHrvst["Stone"] * spot.stone) : it["Stone"].farmit * (xHrvsttry["Stone"] * spot.stone);
+      const ironSpot = !TryChecked ? it["Iron"].farmit * (xHrvst["Iron"] * spot.iron) : it["Iron"].farmit * (xHrvsttry["Iron"] * spot.iron);
+      const goldSpot = !TryChecked ? it["Gold"].farmit * (xHrvst["Gold"] * spot.gold) : it["Gold"].farmit * (xHrvsttry["Gold"] * spot.gold);
+      const crimestoneSpot = !TryChecked ? it["Crimstone"].farmit * (xHrvst["Crimstone"] * spot.crimstone) : it["Crimstone"].farmit * (xHrvsttry["Crimstone"] * spot.crimstone);
+      const sunstoneSpot = !TryChecked ? it["Sunstone"].farmit * (xHrvst["Sunstone"] * spot.sunstone) : it["Sunstone"].farmit * (xHrvsttry["Sunstone"] * spot.sunstone);
+      const oilSpot = !TryChecked ? it["Oil"].farmit * (xHrvst["Oil"] * spot.oil) : it["Oil"].farmit * (xHrvsttry["Oil"] * spot.oil);
+      xBurning[burnortry]["Wood"] = (stoneSpot * 3) + (ironSpot * 3) + (goldSpot * 3) + (crimestoneSpot * 3) + (sunstoneSpot * 3) + (oilSpot * 25);
+      xBurning[burnortry]["Stone"] = (ironSpot * 5);
+      xBurning[burnortry]["Iron"] = (goldSpot * 5) + (oilSpot * 10);
+      xBurning[burnortry]["Gold"] = (crimestoneSpot * 3) + (sunstoneSpot * 3);
+      //}
       const sortedInventoryItems = itemOrder.map(item => {
         const quantity = inventoryEntries.find(([entryItem]) => entryItem === item)?.[1] || 0;
         return [item, quantity];
@@ -1215,23 +1118,23 @@ function App() {
           {xListeCol[3][1] === 1 ? (<td className="ttcenter"></td>) : ("")}
           {xListeCol[4][1] === 1 ? (<td className="ttcenter">{parseFloat(inventoryItemsCrop.totcCost).toFixed(2)}</td>) : ("")}
           {xListeCol[5][1] === 1 ? (<td className="ttcenter">{parseFloat(inventoryItemsCrop.totcShop).toFixed(2)}</td>) : ("")}
-          {xListeCol[5][1] === 1 ? (<td className="ttcenterbrd"></td>) : ("")}
-          {xListeCol[6][1] === 1 ? (<td className="ttcenterbrd">{parseFloat(inventoryItemsCrop.totcTrader).toFixed(2)}</td>) : ("")}
-          {xListeCol[17][1] === 1 && xListeCol[6][1] === 1 ? (<td className="ttcenter"></td>) : ("")}
-          {xListeCol[7][1] === 1 ? (<td className="ttcenter" style={{ color: `rgb(160, 160, 160)` }}></td>) : ("")}
-          {xListeCol[8][1] === 1 && xListeCol[14][1] === 1 ? (<td className={tprctcN > -20 ? 'tdpdiffgrn' : 'tdpdiff'}>{tprctcN}{inventoryItemsCrop.totcTrader > 0 ? "%" : ""}</td>) : ("")}
-          {xListeCol[8][1] === 1 ? (<td className="ttcenterbrd">{parseFloat(inventoryItemsCrop.totcNifty).toFixed(2)}</td>) : ("")}
-          {xListeCol[17][1] === 1 && xListeCol[8][1] === 1 ? (<td className="ttcenter"></td>) : ("")}
-          {xListeCol[9][1] === 1 && xListeCol[14][1] === 1 ? (<td className={tprctcO > -20 ? 'tdpdiffgrn' : 'tdpdiff'}>{tprctcO}{inventoryItemsCrop.totcTrader > 0 ? "%" : ""}</td>) : ("")}
-          {xListeCol[9][1] === 1 ? (<td className="ttcenterbrd">{parseFloat(inventoryItemsCrop.totcOS).toFixed(2)}</td>) : ("")}
-          {xListeCol[17][1] === 1 && xListeCol[9][1] === 1 ? (<td className="ttcenter"></td>) : ("")}
-          {xListeCol[10][1] === 1 ? (<td className="ttcenter"></td>) : ("")}
-          {xListeCol[11][1] === 1 ? (<td className="ttcenter"></td>) : ("")}
+          {xListeCol[6][1] === 1 ? (<td className="ttcenterbrd"></td>) : ("")}
+          {xListeCol[7][1] === 1 ? (<td className="ttcenterbrd">{parseFloat(inventoryItemsCrop.totcTrader).toFixed(2)}</td>) : ("")}
+          {xListeCol[18][1] === 1 && xListeCol[6][1] === 1 ? (<td className="ttcenter"></td>) : ("")}
+          {xListeCol[8][1] === 1 ? (<td className="ttcenter" style={{ color: `rgb(160, 160, 160)` }}></td>) : ("")}
+          {xListeCol[11][1] === 1 && xListeCol[14][1] === 1 ? (<td className={tprctcN > -20 ? 'tdpdiffgrn' : 'tdpdiff'}>{tprctcN}{inventoryItemsCrop.totcTrader > 0 ? "%" : ""}</td>) : ("")}
+          {xListeCol[9][1] === 1 ? (<td className="ttcenterbrd">{parseFloat(inventoryItemsCrop.totcNifty).toFixed(2)}</td>) : ("")}
+          {xListeCol[18][1] === 1 && xListeCol[8][1] === 1 ? (<td className="ttcenter"></td>) : ("")}
+          {xListeCol[11][1] === 1 && xListeCol[14][1] === 1 ? (<td className={tprctcO > -20 ? 'tdpdiffgrn' : 'tdpdiff'}>{tprctcO}{inventoryItemsCrop.totcTrader > 0 ? "%" : ""}</td>) : ("")}
+          {xListeCol[10][1] === 1 ? (<td className="ttcenterbrd">{parseFloat(inventoryItemsCrop.totcOS).toFixed(2)}</td>) : ("")}
+          {xListeCol[18][1] === 1 && xListeCol[9][1] === 1 ? (<td className="ttcenter"></td>) : ("")}
           {xListeCol[12][1] === 1 ? (<td className="ttcenter"></td>) : ("")}
-          {xListeCol[18][1] === 1 ? (<td className="ttcenter"></td>) : ("")}
-          {xListeCol[13][1] === 1 ? (<td className="ttcenter" style={{ color: `rgb(160, 160, 160)` }}></td>) : ("")}
-          {xListeCol[15][1] === 1 ? (<td className="ttcenter"></td>) : ("")}
-          {xListeCol[16][1] === 1 ? (<td className="ttcenter" style={{ color: `rgb(160, 160, 160)` }}></td>) : ("")}
+          {xListeCol[13][1] === 1 ? (<td className="ttcenter"></td>) : ("")}
+          {xListeCol[14][1] === 1 ? (<td className="ttcenter"></td>) : ("")}
+          {xListeCol[19][1] === 1 ? (<td className="ttcenter"></td>) : ("")}
+          {xListeCol[15][1] === 1 ? (<td className="ttcenter" style={{ color: `rgb(160, 160, 160)` }}></td>) : ("")}
+          {xListeCol[16][1] === 1 ? (<td className="ttcenter"></td>) : ("")}
+          {xListeCol[17][1] === 1 ? (<td className="ttcenter" style={{ color: `rgb(160, 160, 160)` }}></td>) : ("")}
         </>) : ("");
       const inventoryItemsRes = setInvContent(pinventoryEntries, sortedInventoryItems, totCost, totShop, totTrader, totNifty, totOS, totTimeCrp, totTimeRs, invIndex, "mineral", "gem", "wood", "oil");
       totTimeRs = inventoryItemsCrop.totTimeRs;
@@ -1257,23 +1160,23 @@ function App() {
           {xListeCol[3][1] === 1 ? (<td className="ttcenter"></td>) : ("")}
           {xListeCol[4][1] === 1 ? (<td className="ttcenter">{parseFloat(inventoryItemsRes.totcCost).toFixed(2)}</td>) : ("")}
           {xListeCol[5][1] === 1 ? (<td className="ttcenter">{parseFloat(inventoryItemsRes.totcShop).toFixed(2)}</td>) : ("")}
-          {xListeCol[5][1] === 1 ? (<td className="ttcenterbrd"></td>) : ("")}
-          {xListeCol[6][1] === 1 ? (<td className="ttcenterbrd">{parseFloat(inventoryItemsRes.totcTrader).toFixed(2)}</td>) : ("")}
-          {xListeCol[17][1] === 1 && xListeCol[6][1] === 1 ? (<td className="ttcenter"></td>) : ("")}
-          {xListeCol[7][1] === 1 ? (<td className="ttcenter" style={{ color: `rgb(160, 160, 160)` }}></td>) : ("")}
-          {xListeCol[8][1] === 1 && xListeCol[14][1] === 1 ? (<td className={tprctcN > -20 ? 'tdpdiffgrn' : 'tdpdiff'}>{tprctcN}{inventoryItemsRes.totcTrader > 0 ? "%" : ""}</td>) : ("")}
-          {xListeCol[8][1] === 1 ? (<td className="ttcenterbrd">{parseFloat(inventoryItemsRes.totcNifty).toFixed(2)}</td>) : ("")}
-          {xListeCol[17][1] === 1 && xListeCol[8][1] === 1 ? (<td className="ttcenter"></td>) : ("")}
-          {xListeCol[9][1] === 1 && xListeCol[14][1] === 1 ? (<td className={tprctcO > -20 ? 'tdpdiffgrn' : 'tdpdiff'}>{tprctcO}{inventoryItemsRes.totcTrader > 0 ? "%" : ""}</td>) : ("")}
-          {xListeCol[9][1] === 1 ? (<td className="ttcenterbrd">{parseFloat(inventoryItemsRes.totcOS).toFixed(2)}</td>) : ("")}
-          {xListeCol[17][1] === 1 && xListeCol[9][1] === 1 ? (<td className="ttcenter"></td>) : ("")}
-          {xListeCol[10][1] === 1 ? (<td className="ttcenter"></td>) : ("")}
-          {xListeCol[11][1] === 1 ? (<td className="ttcenter"></td>) : ("")}
+          {xListeCol[6][1] === 1 ? (<td className="ttcenterbrd"></td>) : ("")}
+          {xListeCol[7][1] === 1 ? (<td className="ttcenterbrd">{parseFloat(inventoryItemsRes.totcTrader).toFixed(2)}</td>) : ("")}
+          {xListeCol[18][1] === 1 && xListeCol[6][1] === 1 ? (<td className="ttcenter"></td>) : ("")}
+          {xListeCol[8][1] === 1 ? (<td className="ttcenter" style={{ color: `rgb(160, 160, 160)` }}></td>) : ("")}
+          {xListeCol[11][1] === 1 && xListeCol[14][1] === 1 ? (<td className={tprctcN > -20 ? 'tdpdiffgrn' : 'tdpdiff'}>{tprctcN}{inventoryItemsRes.totcTrader > 0 ? "%" : ""}</td>) : ("")}
+          {xListeCol[9][1] === 1 ? (<td className="ttcenterbrd">{parseFloat(inventoryItemsRes.totcNifty).toFixed(2)}</td>) : ("")}
+          {xListeCol[18][1] === 1 && xListeCol[8][1] === 1 ? (<td className="ttcenter"></td>) : ("")}
+          {xListeCol[11][1] === 1 && xListeCol[14][1] === 1 ? (<td className={tprctcO > -20 ? 'tdpdiffgrn' : 'tdpdiff'}>{tprctcO}{inventoryItemsRes.totcTrader > 0 ? "%" : ""}</td>) : ("")}
+          {xListeCol[10][1] === 1 ? (<td className="ttcenterbrd">{parseFloat(inventoryItemsRes.totcOS).toFixed(2)}</td>) : ("")}
+          {xListeCol[18][1] === 1 && xListeCol[9][1] === 1 ? (<td className="ttcenter"></td>) : ("")}
           {xListeCol[12][1] === 1 ? (<td className="ttcenter"></td>) : ("")}
-          {xListeCol[18][1] === 1 ? (<td className="ttcenter"></td>) : ("")}
-          {xListeCol[13][1] === 1 ? (<td className="ttcenter" style={{ color: `rgb(160, 160, 160)` }}></td>) : ("")}
-          {xListeCol[15][1] === 1 ? (<td className="ttcenter"></td>) : ("")}
-          {xListeCol[16][1] === 1 ? (<td className="ttcenter" style={{ color: `rgb(160, 160, 160)` }}></td>) : ("")}
+          {xListeCol[13][1] === 1 ? (<td className="ttcenter"></td>) : ("")}
+          {xListeCol[14][1] === 1 ? (<td className="ttcenter"></td>) : ("")}
+          {xListeCol[19][1] === 1 ? (<td className="ttcenter"></td>) : ("")}
+          {xListeCol[15][1] === 1 ? (<td className="ttcenter" style={{ color: `rgb(160, 160, 160)` }}></td>) : ("")}
+          {xListeCol[16][1] === 1 ? (<td className="ttcenter"></td>) : ("")}
+          {xListeCol[17][1] === 1 ? (<td className="ttcenter" style={{ color: `rgb(160, 160, 160)` }}></td>) : ("")}
         </>) : ("");
       const inventoryItemsAnml = setInvContent(pinventoryEntries, sortedInventoryItems, totCost, totShop, totTrader, totNifty, totOS, totTimeCrp, totTimeRs, invIndex, "animal", "honey", "flower");
       //totTimeRs = inventoryItemsAnml.totTimeRs;
@@ -1299,23 +1202,23 @@ function App() {
           {xListeCol[3][1] === 1 ? (<td className="ttcenter"></td>) : ("")}
           {xListeCol[4][1] === 1 ? (<td className="ttcenter">{parseFloat(inventoryItemsAnml.totcCost).toFixed(2)}</td>) : ("")}
           {xListeCol[5][1] === 1 ? (<td className="ttcenter">{parseFloat(inventoryItemsAnml.totcShop).toFixed(2)}</td>) : ("")}
-          {xListeCol[5][1] === 1 ? (<td className="ttcenterbrd"></td>) : ("")}
-          {xListeCol[6][1] === 1 ? (<td className="ttcenterbrd">{parseFloat(inventoryItemsAnml.totcTrader).toFixed(2)}</td>) : ("")}
-          {xListeCol[17][1] === 1 && xListeCol[6][1] === 1 ? (<td className="ttcenter"></td>) : ("")}
-          {xListeCol[7][1] === 1 ? (<td className="ttcenter" style={{ color: `rgb(160, 160, 160)` }}></td>) : ("")}
-          {xListeCol[8][1] === 1 && xListeCol[14][1] === 1 ? (<td className={tprctcN > -20 ? 'tdpdiffgrn' : 'tdpdiff'}>{tprctcN}{inventoryItemsAnml.totcTrader > 0 ? "%" : ""}</td>) : ("")}
-          {xListeCol[8][1] === 1 ? (<td className="ttcenterbrd">{parseFloat(inventoryItemsAnml.totcNifty).toFixed(2)}</td>) : ("")}
-          {xListeCol[17][1] === 1 && xListeCol[8][1] === 1 ? (<td className="ttcenter"></td>) : ("")}
-          {xListeCol[9][1] === 1 && xListeCol[14][1] === 1 ? (<td className={tprctcO > -20 ? 'tdpdiffgrn' : 'tdpdiff'}>{tprctcO}{inventoryItemsAnml.totcTrader > 0 ? "%" : ""}</td>) : ("")}
-          {xListeCol[9][1] === 1 ? (<td className="ttcenterbrd">{parseFloat(inventoryItemsAnml.totcOS).toFixed(2)}</td>) : ("")}
-          {xListeCol[17][1] === 1 && xListeCol[9][1] === 1 ? (<td className="ttcenter"></td>) : ("")}
-          {xListeCol[10][1] === 1 ? (<td className="ttcenter"></td>) : ("")}
-          {xListeCol[11][1] === 1 ? (<td className="ttcenter"></td>) : ("")}
+          {xListeCol[6][1] === 1 ? (<td className="ttcenterbrd"></td>) : ("")}
+          {xListeCol[7][1] === 1 ? (<td className="ttcenterbrd">{parseFloat(inventoryItemsAnml.totcTrader).toFixed(2)}</td>) : ("")}
+          {xListeCol[18][1] === 1 && xListeCol[6][1] === 1 ? (<td className="ttcenter"></td>) : ("")}
+          {xListeCol[8][1] === 1 ? (<td className="ttcenter" style={{ color: `rgb(160, 160, 160)` }}></td>) : ("")}
+          {xListeCol[11][1] === 1 && xListeCol[14][1] === 1 ? (<td className={tprctcN > -20 ? 'tdpdiffgrn' : 'tdpdiff'}>{tprctcN}{inventoryItemsAnml.totcTrader > 0 ? "%" : ""}</td>) : ("")}
+          {xListeCol[9][1] === 1 ? (<td className="ttcenterbrd">{parseFloat(inventoryItemsAnml.totcNifty).toFixed(2)}</td>) : ("")}
+          {xListeCol[18][1] === 1 && xListeCol[8][1] === 1 ? (<td className="ttcenter"></td>) : ("")}
+          {xListeCol[11][1] === 1 && xListeCol[14][1] === 1 ? (<td className={tprctcO > -20 ? 'tdpdiffgrn' : 'tdpdiff'}>{tprctcO}{inventoryItemsAnml.totcTrader > 0 ? "%" : ""}</td>) : ("")}
+          {xListeCol[10][1] === 1 ? (<td className="ttcenterbrd">{parseFloat(inventoryItemsAnml.totcOS).toFixed(2)}</td>) : ("")}
+          {xListeCol[18][1] === 1 && xListeCol[9][1] === 1 ? (<td className="ttcenter"></td>) : ("")}
           {xListeCol[12][1] === 1 ? (<td className="ttcenter"></td>) : ("")}
-          {xListeCol[18][1] === 1 ? (<td className="ttcenter"></td>) : ("")}
-          {xListeCol[13][1] === 1 ? (<td className="ttcenter" style={{ color: `rgb(160, 160, 160)` }}></td>) : ("")}
-          {xListeCol[15][1] === 1 ? (<td className="ttcenter"></td>) : ("")}
-          {xListeCol[16][1] === 1 ? (<td className="ttcenter" style={{ color: `rgb(160, 160, 160)` }}></td>) : ("")}
+          {xListeCol[13][1] === 1 ? (<td className="ttcenter"></td>) : ("")}
+          {xListeCol[14][1] === 1 ? (<td className="ttcenter"></td>) : ("")}
+          {xListeCol[19][1] === 1 ? (<td className="ttcenter"></td>) : ("")}
+          {xListeCol[15][1] === 1 ? (<td className="ttcenter" style={{ color: `rgb(160, 160, 160)` }}></td>) : ("")}
+          {xListeCol[16][1] === 1 ? (<td className="ttcenter"></td>) : ("")}
+          {xListeCol[17][1] === 1 ? (<td className="ttcenter" style={{ color: `rgb(160, 160, 160)` }}></td>) : ("")}
         </>) : ("");
       const inventoryItemsFruit = setInvContent(pinventoryEntries, sortedInventoryItems, totCost, totShop, totTrader, totNifty, totOS, totTimeCrp, totTimeRs, invIndex, "fruit", "mushroom");
       totCost = inventoryItemsFruit.totCost;
@@ -1342,23 +1245,23 @@ function App() {
           {xListeCol[3][1] === 1 ? (<td className="ttcenter"></td>) : ("")}
           {xListeCol[4][1] === 1 ? (<td className="ttcenter">{parseFloat(inventoryItemsFruit.totcCost).toFixed(2)}</td>) : ("")}
           {xListeCol[5][1] === 1 ? (<td className="ttcenter">{parseFloat(inventoryItemsFruit.totcShop).toFixed(2)}</td>) : ("")}
-          {xListeCol[5][1] === 1 ? (<td className="ttcenterbrd"></td>) : ("")}
-          {xListeCol[6][1] === 1 ? (<td className="ttcenterbrd">{parseFloat(inventoryItemsFruit.totcTrader).toFixed(2)}</td>) : ("")}
-          {xListeCol[17][1] === 1 && xListeCol[6][1] === 1 ? (<td className="ttcenter"></td>) : ("")}
-          {xListeCol[7][1] === 1 ? (<td className="ttcenter" style={{ color: `rgb(160, 160, 160)` }}></td>) : ("")}
-          {xListeCol[8][1] === 1 && xListeCol[14][1] === 1 ? (<td className={tprctcN > -20 ? 'tdpdiffgrn' : 'tdpdiff'}>{tprctcN}{inventoryItemsFruit.totcTrader > 0 ? "%" : ""}</td>) : ("")}
-          {xListeCol[8][1] === 1 ? (<td className="ttcenterbrd">{parseFloat(inventoryItemsFruit.totcNifty).toFixed(2)}</td>) : ("")}
-          {xListeCol[17][1] === 1 && xListeCol[8][1] === 1 ? (<td className="ttcenter"></td>) : ("")}
-          {xListeCol[9][1] === 1 && xListeCol[14][1] === 1 ? (<td className={tprctcO > -20 ? 'tdpdiffgrn' : 'tdpdiff'}>{tprctcO}{inventoryItemsFruit.totcTrader > 0 ? "%" : ""}</td>) : ("")}
-          {xListeCol[9][1] === 1 ? (<td className="ttcenterbrd">{parseFloat(inventoryItemsFruit.totcOS).toFixed(2)}</td>) : ("")}
-          {xListeCol[17][1] === 1 && xListeCol[9][1] === 1 ? (<td className="ttcenter"></td>) : ("")}
-          {xListeCol[10][1] === 1 ? (<td className="ttcenter"></td>) : ("")}
-          {xListeCol[11][1] === 1 ? (<td className="ttcenter"></td>) : ("")}
+          {xListeCol[6][1] === 1 ? (<td className="ttcenterbrd"></td>) : ("")}
+          {xListeCol[7][1] === 1 ? (<td className="ttcenterbrd">{parseFloat(inventoryItemsFruit.totcTrader).toFixed(2)}</td>) : ("")}
+          {xListeCol[18][1] === 1 && xListeCol[6][1] === 1 ? (<td className="ttcenter"></td>) : ("")}
+          {xListeCol[8][1] === 1 ? (<td className="ttcenter" style={{ color: `rgb(160, 160, 160)` }}></td>) : ("")}
+          {xListeCol[11][1] === 1 && xListeCol[14][1] === 1 ? (<td className={tprctcN > -20 ? 'tdpdiffgrn' : 'tdpdiff'}>{tprctcN}{inventoryItemsFruit.totcTrader > 0 ? "%" : ""}</td>) : ("")}
+          {xListeCol[9][1] === 1 ? (<td className="ttcenterbrd">{parseFloat(inventoryItemsFruit.totcNifty).toFixed(2)}</td>) : ("")}
+          {xListeCol[18][1] === 1 && xListeCol[8][1] === 1 ? (<td className="ttcenter"></td>) : ("")}
+          {xListeCol[11][1] === 1 && xListeCol[14][1] === 1 ? (<td className={tprctcO > -20 ? 'tdpdiffgrn' : 'tdpdiff'}>{tprctcO}{inventoryItemsFruit.totcTrader > 0 ? "%" : ""}</td>) : ("")}
+          {xListeCol[10][1] === 1 ? (<td className="ttcenterbrd">{parseFloat(inventoryItemsFruit.totcOS).toFixed(2)}</td>) : ("")}
+          {xListeCol[18][1] === 1 && xListeCol[9][1] === 1 ? (<td className="ttcenter"></td>) : ("")}
           {xListeCol[12][1] === 1 ? (<td className="ttcenter"></td>) : ("")}
-          {xListeCol[18][1] === 1 ? (<td className="ttcenter"></td>) : ("")}
-          {xListeCol[13][1] === 1 ? (<td className="ttcenter" style={{ color: `rgb(160, 160, 160)` }}></td>) : ("")}
-          {xListeCol[15][1] === 1 ? (<td className="ttcenter"></td>) : ("")}
-          {xListeCol[16][1] === 1 ? (<td className="ttcenter" style={{ color: `rgb(160, 160, 160)` }}></td>) : ("")}
+          {xListeCol[13][1] === 1 ? (<td className="ttcenter"></td>) : ("")}
+          {xListeCol[14][1] === 1 ? (<td className="ttcenter"></td>) : ("")}
+          {xListeCol[19][1] === 1 ? (<td className="ttcenter"></td>) : ("")}
+          {xListeCol[15][1] === 1 ? (<td className="ttcenter" style={{ color: `rgb(160, 160, 160)` }}></td>) : ("")}
+          {xListeCol[16][1] === 1 ? (<td className="ttcenter"></td>) : ("")}
+          {xListeCol[17][1] === 1 ? (<td className="ttcenter" style={{ color: `rgb(160, 160, 160)` }}></td>) : ("")}
         </>) : ("");
       var showBldinv = true;
       var BldItems = "";
@@ -1398,25 +1301,25 @@ function App() {
                   {xListeCol[3][1] === 1 ? (<td className="tdcenter" style={{ color: `rgb(200, 200, 200)` }}></td>) : ("")}
                   {xListeCol[4][1] === 1 ? (<td className="tdcenter">{frmtNb(icost)}</td>) : ("")}
                   {xListeCol[5][1] === 1 ? (<td className="tdcenter"></td>) : ("")}
-                  {xListeCol[5][1] === 1 ? (<td className="tdcenterbrd"></td>) : ("")}
-                  {xListeCol[6][1] === 1 ? (<td className="tdcenterbrd">{frmtNb(pTrad)}</td>) : ("")}
-                  {xListeCol[17][1] === 1 && xListeCol[6][1] === 1 ? (<td className="tdcenter"></td>) : ("")}
-                  {xListeCol[7][1] === 1 ? (<td className="tdcenter"></td>) : ("")}
-                  {xListeCol[8][1] === 1 && xListeCol[14][1] === 1 ? (<td className="tdcenter"></td>) : ("")}
-                  {xListeCol[8][1] === 1 ? (<td className="tdcenterbrd">{frmtNb(pNifty)}</td>) : ("")}
-                  {xListeCol[17][1] === 1 && xListeCol[8][1] === 1 ? (<td className="tdcenter"></td>) : ("")}
-                  {xListeCol[9][1] === 1 && xListeCol[14][1] === 1 ? (<td className="tdcenter"></td>) : ("")}
-                  {xListeCol[9][1] === 1 ? (<td className="tdcenterbrd">{frmtNb(pOS)}</td>) : ("")}
-                  {xListeCol[17][1] === 1 && xListeCol[9][1] === 1 ? (<td className="tdcenter"></td>) : ("")}
-                  {xListeCol[10][1] === 1 ? (<td className="tdcenter" style={{ color: `rgb(255, 234, 204)` }}></td>) : ("")}
-                  {xListeCol[11][1] === 1 ? (<td className="tdcenter" style={{ color: `rgb(255, 225, 183)` }}></td>) : ("")}
-                  {xListeCol[12][1] === 1 ? (<td className="tdcenter" style={{ color: `rgb(253, 215, 162)` }} onClick={(e) => handleTooltip(itemBuild, "buildcraft", buildCraft, e, dataSet)}>
+                  {xListeCol[6][1] === 1 ? (<td className="tdcenterbrd"></td>) : ("")}
+                  {xListeCol[7][1] === 1 ? (<td className="tdcenterbrd">{frmtNb(pTrad)}</td>) : ("")}
+                  {xListeCol[18][1] === 1 && xListeCol[6][1] === 1 ? (<td className="tdcenter"></td>) : ("")}
+                  {xListeCol[8][1] === 1 ? (<td className="tdcenter"></td>) : ("")}
+                  {xListeCol[11][1] === 1 && xListeCol[14][1] === 1 ? (<td className="tdcenter"></td>) : ("")}
+                  {xListeCol[9][1] === 1 ? (<td className="tdcenterbrd">{frmtNb(pNifty)}</td>) : ("")}
+                  {xListeCol[18][1] === 1 && xListeCol[8][1] === 1 ? (<td className="tdcenter"></td>) : ("")}
+                  {xListeCol[11][1] === 1 && xListeCol[14][1] === 1 ? (<td className="tdcenter"></td>) : ("")}
+                  {xListeCol[10][1] === 1 ? (<td className="tdcenterbrd">{frmtNb(pOS)}</td>) : ("")}
+                  {xListeCol[18][1] === 1 && xListeCol[9][1] === 1 ? (<td className="tdcenter"></td>) : ("")}
+                  {xListeCol[12][1] === 1 ? (<td className="tdcenter" style={{ color: `rgb(255, 234, 204)` }}></td>) : ("")}
+                  {xListeCol[13][1] === 1 ? (<td className="tdcenter" style={{ color: `rgb(255, 225, 183)` }}></td>) : ("")}
+                  {xListeCol[14][1] === 1 ? (<td className="tdcenter" style={{ color: `rgb(253, 215, 162)` }} onClick={(e) => handleTooltip(itemBuild, "buildcraft", buildCraft, e)}>
                     {iquant > 0 ? iquant : ""}{ximgfood}</td>) : ("")}
-                  {xListeCol[18][1] === 1 ? (<td id={`timer-${index}`} className="tdcenterbrd">{(irdyat > 0 ? selectedReady === "when" ? (<span>{formatdate(irdyat)}{' '}{ximgrdy}</span>) :
+                  {xListeCol[19][1] === 1 ? (<td id={`timer-${index}`} className="tdcenterbrd">{(irdyat > 0 ? selectedReady === "when" ? (<span>{formatdate(irdyat)}{' '}{ximgrdy}</span>) :
                     <Timer key={`timer-${index}`} timestamp={irdyat} index={item} /> : "")}</td>) : ("")}
-                  {xListeCol[13][1] === 1 ? (<td className="tdcenter" style={{ color: `rgb(160, 160, 160)` }}></td>) : ("")}
-                  {xListeCol[15][1] === 1 ? (<td className="tdcenter" style={{ color: `rgb(255, 204, 132)` }}></td>) : ("")}
-                  {xListeCol[16][1] === 1 ? (<td className="tdcenter" style={{ color: `rgb(160, 160, 160)` }}></td>) : ("")}
+                  {xListeCol[15][1] === 1 ? (<td className="tdcenter" style={{ color: `rgb(160, 160, 160)` }}></td>) : ("")}
+                  {xListeCol[16][1] === 1 ? (<td className="tdcenter" style={{ color: `rgb(255, 204, 132)` }}></td>) : ("")}
+                  {xListeCol[17][1] === 1 ? (<td className="tdcenter" style={{ color: `rgb(160, 160, 160)` }}></td>) : ("")}
                 </tr>
               );
             }
@@ -1429,7 +1332,7 @@ function App() {
           <table className="table">
             <thead>
               <tr>
-                {xListeCol[0][1] === 1 ? (<th className="thcenter" onClick={(e) => handleTooltip("hoard", "th", "", e, "")}>Hoard</th>) : ("")}
+                {xListeCol[0][1] === 1 ? (<th className="thcenter" onClick={(e) => handleTooltip("hoard", "th", "", e)}>Hoard</th>) : ("")}
                 <th className="th-icon">   </th>
                 <th></th>
                 <td style={{ display: 'none' }}>ID</td>
@@ -1439,7 +1342,7 @@ function App() {
                 {selectedQuantity === "daily" ? (<th className="thcenter"><div>Hrv</div><div>
                   <img src="/icon/ui/arrow_left.png" alt="Hrv = Hrv max" title="Set Hrv to Hrv Max" onClick={() => handleSetHrvMax(TryChecked)} style={{ width: '11px', height: '11px' }} /></div>
                 </th>) : ("")}
-                {xListeCol[2][1] === 1 ? (<th className="thcenter" style={{ color: `rgb(160, 160, 160)` }} onClick={(e) => handleTooltip("quantity", "th", "", e, "")}>
+                {xListeCol[2][1] === 1 ? (<th className="thcenter" style={{ color: `rgb(160, 160, 160)` }} onClick={(e) => handleTooltip("quantity", "th", "", e)}>
                   <div className="selectquantityback"><FormControl variant="standard" id="formselectquant" className="selectquant" size="small">
                     <InputLabel>Quantity</InputLabel>
                     <Select value={selectedQuantity} onChange={handleChangeQuantity} onClick={(e) => e.stopPropagation()}>
@@ -1450,7 +1353,7 @@ function App() {
                     </Select></FormControl></div>
                 </th>) : ("")}
                 {xListeCol[3][1] === 1 ? (<th className="thcenter">{selectedQuantity === "daily" ? (<div><div>Time</div><div>{totTime}</div></div>) : ("Time")}</th>) : ("")}
-                {xListeCol[4][1] === 1 ? (<th className="thcenter" onClick={(e) => handleTooltip("cost", "th", "", e, "")}>
+                {xListeCol[4][1] === 1 ? (<th className="thcenter" onClick={(e) => handleTooltip("cost", "th", "", e)}>
                   <div className="selectquantback"><FormControl variant="standard" id="formselectquant" className="selectquant" size="small">
                     <InputLabel>Cost</InputLabel>
                     <Select value={selectedQuant} onChange={handleChangeQuant} onClick={(e) => e.stopPropagation()}>
@@ -1461,21 +1364,21 @@ function App() {
                     onChange={handleCostCheckedChange} onClick={(e) => e.stopPropagation()} /></div>
                 </th>) : ("")}
                 {xListeCol[5][1] === 1 ? (<th className="thcenter">Betty</th>) : ("")}
-                {xListeCol[5][1] === 1 ? (<th className="thcenter">Ratio<div>{imgCoins}/{imgSFL}</div></th>) : ("")}
-                {xListeCol[6][1] === 1 ? (<th className="thtrad" onClick={() => handleTraderClick()}><div className="overlay-trad"></div>Market</th>) : ("")}
-                {xListeCol[17][1] === 1 && xListeCol[6][1] === 1 ? (<th className="thcenter" onClick={(e) => handleTooltip("coef", "th", "", e, "")}>Coef</th>) : ("")}
-                {xListeCol[7][1] === 1 ? (<th className="thcenter" style={{ color: `rgb(160, 160, 160)` }}
-                  onClick={(e) => handleTooltip("withdraw", "th", "", e, "")} >Withdraw</th>) : ("")}
-                {xListeCol[8][1] === 1 && xListeCol[14][1] === 1 ? (<th className="thcenter" onClick={(e) => handleTooltip("diff", "th", "", e, "")}>Diff</th>) : ("")}
-                {xListeCol[8][1] === 1 ? (<th className="thnifty" onClick={() => handleNiftyClick()}><div className="overlay-nifty"></div> </th>) : ("")}
-                {xListeCol[17][1] === 1 && xListeCol[8][1] === 1 ? (<th className="thcenter" onClick={(e) => handleTooltip("coef", "th", "", e, "")}>Coef</th>) : ("")}
-                {xListeCol[9][1] === 1 && xListeCol[14][1] === 1 ? (<th className="thcenter" onClick={(e) => handleTooltip("diff", "th", "", e, "")}>Diff</th>) : ("")}
-                {xListeCol[9][1] === 1 ? (<th className="thos" onClick={() => handleOSClick()}><div className="overlay-os"></div> </th>) : ("")}
-                {xListeCol[17][1] === 1 && xListeCol[9][1] === 1 ? (<th className="thcenter" onClick={(e) => handleTooltip("coef", "th", "", e, "")}>Coef</th>) : ("")}
-                {xListeCol[10][1] === 1 ? (<th className="thcenter" onClick={(e) => handleTooltip("yield", "th", "", e, "")}>Yield</th>) : ("")}
-                {xListeCol[11][1] === 1 ? (<th className="thcenter" onClick={(e) => handleTooltip("harvest", "th", "", e, "")}>Harvest</th>) : ("")}
-                {xListeCol[12][1] === 1 ? (<th className="thcenter" onClick={(e) => handleTooltip("toharvest", "th", "", e, "")}>ToHarvest</th>) : ("")}
-                {xListeCol[18][1] === 1 ? (<th className="tdcenterbrd">
+                {xListeCol[6][1] === 1 ? (<th className="thcenter">Ratio<div>{imgCoins}/{imgSFL}</div></th>) : ("")}
+                {xListeCol[7][1] === 1 ? (<th className="thtrad" onClick={() => handleTraderClick()}><div className="overlay-trad"></div>Market</th>) : ("")}
+                {xListeCol[18][1] === 1 && xListeCol[6][1] === 1 ? (<th className="thcenter" onClick={(e) => handleTooltip("coef", "th", "", e)}>Coef</th>) : ("")}
+                {xListeCol[8][1] === 2 ? (<th className="thcenter" style={{ color: `rgb(160, 160, 160)` }}
+                  onClick={(e) => handleTooltip("withdraw", "th", "", e)} >Withdraw</th>) : ("")}
+                {xListeCol[11][1] === 1 && xListeCol[14][1] === 1 ? (<th className="thcenter" onClick={(e) => handleTooltip("diff", "th", "", e)}>Diff</th>) : ("")}
+                {xListeCol[9][1] === 1 ? (<th className="thnifty" onClick={() => handleNiftyClick()}><div className="overlay-nifty"></div> </th>) : ("")}
+                {xListeCol[18][1] === 1 && xListeCol[8][1] === 1 ? (<th className="thcenter" onClick={(e) => handleTooltip("coef", "th", "", e)}>Coef</th>) : ("")}
+                {xListeCol[11][1] === 1 && xListeCol[14][1] === 1 ? (<th className="thcenter" onClick={(e) => handleTooltip("diff", "th", "", e)}>Diff</th>) : ("")}
+                {xListeCol[10][1] === 1 ? (<th className="thos" onClick={() => handleOSClick()}><div className="overlay-os"></div> </th>) : ("")}
+                {xListeCol[18][1] === 1 && xListeCol[9][1] === 1 ? (<th className="thcenter" onClick={(e) => handleTooltip("coef", "th", "", e)}>Coef</th>) : ("")}
+                {xListeCol[12][1] === 1 ? (<th className="thcenter" onClick={(e) => handleTooltip("yield", "th", "", e)}>Yield</th>) : ("")}
+                {xListeCol[13][1] === 1 ? (<th className="thcenter" onClick={(e) => handleTooltip("harvest", "th", "", e)}>Harvest</th>) : ("")}
+                {xListeCol[14][1] === 1 ? (<th className="thcenter" onClick={(e) => handleTooltip("toharvest", "th", "", e)}>ToHarvest</th>) : ("")}
+                {xListeCol[19][1] === 1 ? (<th className="tdcenterbrd">
                   <div className="selectreadyback"><FormControl variant="standard" id="formselectquant" className="selectquant" size="small">
                     <InputLabel>Ready</InputLabel>
                     <Select value={selectedReady} onChange={handleChangeReady} onClick={(e) => e.stopPropagation()}>
@@ -1483,8 +1386,8 @@ function App() {
                       <MenuItem value="remain">Remain</MenuItem>
                     </Select></FormControl></div>
                 </th>) : ("")}
-                {xListeCol[13][1] === 1 ? (<th className="thcenter" style={{ color: `rgb(160, 160, 160)` }} onClick={(e) => handleTooltip("1restock", "th", "", e, "")}>1restock</th>) : ("")}
-                {xListeCol[15][1] === 1 ? (<th className="thcenter"><div className="selectquantityback"><FormControl variant="standard" id="formselectquant" className="selectquant" size="small">
+                {xListeCol[15][1] === 1 ? (<th className="thcenter" style={{ color: `rgb(160, 160, 160)` }} onClick={(e) => handleTooltip("1restock", "th", "", e)}>1restock</th>) : ("")}
+                {xListeCol[16][1] === 1 ? (<th className="thcenter"><div className="selectquantityback"><FormControl variant="standard" id="formselectquant" className="selectquant" size="small">
                   <InputLabel>Daily SFL</InputLabel>
                   <Select value={selectedDsfl} onChange={handleChangeDsfl} onClick={(e) => e.stopPropagation()}>
                     <MenuItem value="trader">Market</MenuItem>
@@ -1493,7 +1396,7 @@ function App() {
                     <MenuItem value="max">Higher</MenuItem>
                     {/* <MenuItem value="min">Lower</MenuItem> */}
                   </Select></FormControl></div></th>) : ("")}
-                {xListeCol[16][1] === 1 ? (<th className="thcenter" style={{ color: `rgb(160, 160, 160)` }} onClick={(e) => handleTooltip("dailymax", "th", "", e, "")}>DailyMax</th>) : ("")}
+                {xListeCol[17][1] === 1 ? (<th className="thcenter" style={{ color: `rgb(160, 160, 160)` }} onClick={(e) => handleTooltip("dailymax", "th", "", e)}>DailyMax</th>) : ("")}
               </tr>
               {selectedQuant !== "unit" ?
                 <tr style={{ position: "sticky" }}>
@@ -1509,23 +1412,23 @@ function App() {
                   {xListeCol[3][1] === 1 ? (<td className="ttcenter"></td>) : ("")}
                   {xListeCol[4][1] === 1 ? (<td className="ttcenter">{parseFloat(totCost).toFixed(2)}</td>) : ("")}
                   {xListeCol[5][1] === 1 ? (<td className="ttcenter">{parseFloat(totShop).toFixed(2)}</td>) : ("")}
-                  {xListeCol[5][1] === 1 ? (<td className="ttcenterbrd"></td>) : ("")}
-                  {xListeCol[6][1] === 1 ? (<td className="ttcenterbrd">{parseFloat(totTrader).toFixed(2)}</td>) : ("")}
-                  {xListeCol[17][1] === 1 && xListeCol[6][1] === 1 ? (<td className="ttcenter"></td>) : ("")}
-                  {xListeCol[7][1] === 1 ? (<td className="ttcenter" style={{ color: `rgb(160, 160, 160)` }}></td>) : ("")}
-                  {xListeCol[8][1] === 1 && xListeCol[14][1] === 1 ? (<td className={tprctN > -20 ? 'tdpdiffgrn' : 'tdpdiff'}>{tprctN}{totTrader > 0 ? "%" : ""}</td>) : ("")}
-                  {xListeCol[8][1] === 1 ? (<td className="ttcenterbrd">{parseFloat(totNifty).toFixed(2)}</td>) : ("")}
-                  {xListeCol[17][1] === 1 && xListeCol[8][1] === 1 ? (<td className="ttcenter"></td>) : ("")}
-                  {xListeCol[9][1] === 1 && xListeCol[14][1] === 1 ? (<td className={tprctO > -20 ? 'tdpdiffgrn' : 'tdpdiff'}>{tprctO}{totTrader > 0 ? "%" : ""}</td>) : ("")}
-                  {xListeCol[9][1] === 1 ? (<td className="ttcenterbrd">{parseFloat(totOS).toFixed(2)}</td>) : ("")}
-                  {xListeCol[17][1] === 1 && xListeCol[9][1] === 1 ? (<td className="ttcenter"></td>) : ("")}
-                  {xListeCol[10][1] === 1 ? (<td className="ttcenter"></td>) : ("")}
-                  {xListeCol[11][1] === 1 ? (<td className="ttcenter"></td>) : ("")}
+                  {xListeCol[6][1] === 1 ? (<td className="ttcenterbrd"></td>) : ("")}
+                  {xListeCol[7][1] === 1 ? (<td className="ttcenterbrd">{parseFloat(totTrader).toFixed(2)}</td>) : ("")}
+                  {xListeCol[18][1] === 1 && xListeCol[6][1] === 1 ? (<td className="ttcenter"></td>) : ("")}
+                  {xListeCol[8][1] === 1 ? (<td className="ttcenter" style={{ color: `rgb(160, 160, 160)` }}></td>) : ("")}
+                  {xListeCol[11][1] === 1 && xListeCol[14][1] === 1 ? (<td className={tprctN > -20 ? 'tdpdiffgrn' : 'tdpdiff'}>{tprctN}{totTrader > 0 ? "%" : ""}</td>) : ("")}
+                  {xListeCol[9][1] === 1 ? (<td className="ttcenterbrd">{parseFloat(totNifty).toFixed(2)}</td>) : ("")}
+                  {xListeCol[18][1] === 1 && xListeCol[8][1] === 1 ? (<td className="ttcenter"></td>) : ("")}
+                  {xListeCol[11][1] === 1 && xListeCol[14][1] === 1 ? (<td className={tprctO > -20 ? 'tdpdiffgrn' : 'tdpdiff'}>{tprctO}{totTrader > 0 ? "%" : ""}</td>) : ("")}
+                  {xListeCol[10][1] === 1 ? (<td className="ttcenterbrd">{parseFloat(totOS).toFixed(2)}</td>) : ("")}
+                  {xListeCol[18][1] === 1 && xListeCol[9][1] === 1 ? (<td className="ttcenter"></td>) : ("")}
                   {xListeCol[12][1] === 1 ? (<td className="ttcenter"></td>) : ("")}
-                  {xListeCol[18][1] === 1 ? (<td className="ttcenter"></td>) : ("")}
-                  {xListeCol[13][1] === 1 ? (<td className="ttcenter" style={{ color: `rgb(160, 160, 160)` }}></td>) : ("")}
-                  {xListeCol[15][1] === 1 ? (<td className="ttcenter"></td>) : ("")}
-                  {xListeCol[16][1] === 1 ? (<td className="ttcenter" style={{ color: `rgb(160, 160, 160)` }}></td>) : ("")}
+                  {xListeCol[13][1] === 1 ? (<td className="ttcenter"></td>) : ("")}
+                  {xListeCol[14][1] === 1 ? (<td className="ttcenter"></td>) : ("")}
+                  {xListeCol[19][1] === 1 ? (<td className="ttcenter"></td>) : ("")}
+                  {xListeCol[15][1] === 1 ? (<td className="ttcenter" style={{ color: `rgb(160, 160, 160)` }}></td>) : ("")}
+                  {xListeCol[16][1] === 1 ? (<td className="ttcenter"></td>) : ("")}
+                  {xListeCol[17][1] === 1 ? (<td className="ttcenter" style={{ color: `rgb(160, 160, 160)` }}></td>) : ("")}
                 </tr> : ("")}
             </thead>
             <tbody>
@@ -1549,14 +1452,13 @@ function App() {
       invIndex++;
       //setFarmID(xtfarmID);
       setinvData(tableContent);
-      setMutants(mutantchickens);
-      setsTickets(sTickets);
       //console.log(`Wood : ${new Date(it["Wood"].rdyat)} / ${it["Wood"].rdyat}`);
       //console.log(`Iron : ${new Date(it["Iron"].rdyat)} / ${it["Iron"].rdyat}`);
       //if (xinitinv = false) { xinitinv = true }
     }
   }
   function setInvContent(pinventoryEntries, sortedInventoryItems, totCost, totShop, totTrader, totNifty, totOS, totTimeCrp, totTimeRs, invIndex, ItCat1, ItCat2, ItCat3, ItCat4) {
+    const { it, nft, spot, buildng } = dataSetFarm;
     const farmTime = dataSet.options.inputFarmTime / 24;
     const MaxBB = dataSet.options.inputMaxBB;
     const burnortry = !TryChecked ? "burn" : "burntry";
@@ -1582,8 +1484,8 @@ function App() {
     let maxCoinRatio = 0;
     let indexCoinRatio = 0;
     let iR = 0;
-    for (let itemR in dataSet.it) {
-      const xcoinsRatio = TryChecked ? dataSet.it[itemR].coinratiotry : dataSet.it[itemR].coinratio;;
+    for (let itemR in it) {
+      const xcoinsRatio = TryChecked ? it[itemR].coinratiotry : it[itemR].coinratio;;
       if (xcoinsRatio > maxCoinRatio) {
         maxCoinRatio = xcoinsRatio;
         indexCoinRatio = iR;
@@ -1598,8 +1500,8 @@ function App() {
       cellStyle.borderBottom = lastind ? '1px solid rgb(83, 51, 51)' : 'none';
       cellStyle.borderTop = firstind ? '1px solid rgb(83, 51, 51)' : 'none';
       //cellStyle.color = lastind ? `rgb(150, 50, 20)` : '';
-      if ((quantity > 0 || dataSet.it[item].tobharvest > 0) && catArray.includes(dataSet.it[item].cat)) {
-        const cobj = dataSet.it[item];
+      if ((quantity > 0 || it[item].tobharvest > 0) && catArray.includes(it[item].cat)) {
+        const cobj = it[item];
         const icat = cobj ? cobj.cat : '';
         const ico = cobj ? cobj.img : '';
         const icoseason = cobj ? (cobj.imgseason || '') : '';
@@ -1927,39 +1829,39 @@ function App() {
                   onBlur={(event) => handleInputcstPricesChange(event, xIndex)}>{cstPrices[xIndex]}</div></td>) :
                 (<td className="tdcenter" style={{ ...cellStyle, color: `rgb(160, 160, 160)` }}>{parseFloat(iQuant).toFixed(2)}</td>) : ("")}
               {xListeCol[3][1] === 1 ? (<td className="tdcenter" style={{ ...cellStyle, color: `rgb(200, 200, 200)` }}>{time}</td>) : ("")}
-              {xListeCol[4][1] === 1 ? (<td className="tdcenter" style={cellStyle} onClick={(e) => handleTooltip(item, "costp", costp, e, dataSet)}>{frmtNb(costp)}</td>) : ("")}
+              {xListeCol[4][1] === 1 ? (<td className="tdcenter" style={cellStyle} onClick={(e) => handleTooltip(item, "costp", costp, e)}>{frmtNb(costp)}</td>) : ("")}
               {xListeCol[5][1] === 1 ? (<td className="tdcenter" style={cellStyle}>{frmtNb(pShop)}</td>) : ("")}
-              {xListeCol[5][1] === 1 ? (<td className="tdcenterbrd" style={cellCoinRatioStyle}>{xcoinsRatio > 0 ? frmtNb(xcoinsRatio) : ""}</td>) : ("")}
-              {xListeCol[6][1] === 1 ? (<td className={parseFloat(pTrad).toFixed(20) === getMaxValue(pTrad, pNifty, pOS) ? 'tdcentergreen' : 'tdcenterbrd'}
-                onClick={(e) => handleTooltip(item, "market", marketDataTooltip, e, dataSet)} style={cellStyle} title={titleTrad} >{puTrad !== 0 ? frmtNb(pTrad) : ""}{ximgtrd}</td>) : ("")}
-              {xListeCol[17][1] === 1 && xListeCol[6][1] === 1 ? (<td style={{ ...cellStyle, color: colorT, textAlign: 'center', fontSize: '8px' }}
-                onClick={(e) => handleTooltip(item, "coef", coefT, e, dataSet)}>{coefT > 0 ? coefT : ""}</td>) : ("")}
-              {xListeCol[7][1] === 1 ? (<td className="tdcenter" style={{ ...cellStyle, color: `rgb(160, 160, 160)` }}>{parseFloat((iQuant) * 0.7).toFixed(2)}</td>) : ("")}
-              {xListeCol[8][1] === 1 && xListeCol[14][1] === 1 ? (<td className={prctN > -20 ? 'tdpdiffgrn' : 'tdpdiff'} style={cellStyle}
-                onClick={(e) => handleTooltip(item, "prct", prctN, e, dataSet)}>{prctN}{((pTrad > 0) && (pNifty > 0)) ? "%" : ""}</td>) : ("")}
-              {xListeCol[8][1] === 1 ? (<td className={parseFloat(pNifty).toFixed(20) === getMaxValue(pTrad, pNifty, pOS) ? 'tdcentergreen' : 'tdcenterbrd'}
+              {xListeCol[6][1] === 1 ? (<td className="tdcenterbrd" style={cellCoinRatioStyle}>{xcoinsRatio > 0 ? frmtNb(xcoinsRatio) : ""}</td>) : ("")}
+              {xListeCol[7][1] === 1 ? (<td className={parseFloat(pTrad).toFixed(20) === getMaxValue(pTrad, pNifty, pOS) ? 'tdcentergreen' : 'tdcenterbrd'}
+                onClick={(e) => handleTooltip(item, "market", marketDataTooltip, e)} style={cellStyle} title={titleTrad} >{puTrad !== 0 ? frmtNb(pTrad) : ""}{ximgtrd}</td>) : ("")}
+              {xListeCol[18][1] === 1 && xListeCol[6][1] === 1 ? (<td style={{ ...cellStyle, color: colorT, textAlign: 'center', fontSize: '8px' }}
+                onClick={(e) => handleTooltip(item, "coef", coefT, e)}>{coefT > 0 ? coefT : ""}</td>) : ("")}
+              {xListeCol[8][1] === 1 ? (<td className="tdcenter" style={{ ...cellStyle, color: `rgb(160, 160, 160)` }}>{parseFloat((iQuant) * 0.7).toFixed(2)}</td>) : ("")}
+              {xListeCol[11][1] === 1 && xListeCol[14][1] === 1 ? (<td className={prctN > -20 ? 'tdpdiffgrn' : 'tdpdiff'} style={cellStyle}
+                onClick={(e) => handleTooltip(item, "prct", prctN, e)}>{prctN}{((pTrad > 0) && (pNifty > 0)) ? "%" : ""}</td>) : ("")}
+              {xListeCol[9][1] === 1 ? (<td className={parseFloat(pNifty).toFixed(20) === getMaxValue(pTrad, pNifty, pOS) ? 'tdcentergreen' : 'tdcenterbrd'}
                 style={cellStyle} title={titleNifty}>{puNifty !== 0 ? frmtNb(pNifty) : ""}</td>) : ("")}
-              {xListeCol[17][1] === 1 && xListeCol[8][1] === 1 ? (<td style={{ ...cellStyle, color: colorN, textAlign: 'center', fontSize: '8px' }}
-                onClick={(e) => handleTooltip(item, "coef", coefT, e, dataSet)}>{coefN > 0 ? coefN : ""}</td>) : ("")}
-              {xListeCol[9][1] === 1 && xListeCol[14][1] === 1 ? (<td className={prctO > -20 ? 'tdpdiffgrn' : 'tdpdiff'} style={cellStyle}
-                onClick={(e) => handleTooltip(item, "prct", prctO, e, dataSet)}>{prctO}{((pTrad > 0) && (pOS > 0)) ? "%" : ""}</td>) : ("")}
-              {xListeCol[9][1] === 1 ? (<td className={parseFloat(pOS).toFixed(20) === getMaxValue(pTrad, pNifty, pOS) ? 'tdcentergreen' : 'tdcenterbrd'}
+              {xListeCol[18][1] === 1 && xListeCol[8][1] === 1 ? (<td style={{ ...cellStyle, color: colorN, textAlign: 'center', fontSize: '8px' }}
+                onClick={(e) => handleTooltip(item, "coef", coefT, e)}>{coefN > 0 ? coefN : ""}</td>) : ("")}
+              {xListeCol[11][1] === 1 && xListeCol[14][1] === 1 ? (<td className={prctO > -20 ? 'tdpdiffgrn' : 'tdpdiff'} style={cellStyle}
+                onClick={(e) => handleTooltip(item, "prct", prctO, e)}>{prctO}{((pTrad > 0) && (pOS > 0)) ? "%" : ""}</td>) : ("")}
+              {xListeCol[10][1] === 1 ? (<td className={parseFloat(pOS).toFixed(20) === getMaxValue(pTrad, pNifty, pOS) ? 'tdcentergreen' : 'tdcenterbrd'}
                 onClick={(event) => handleTradeListClick(inputValue, ido, "OS")} style={cellStyle} title={titleOS}>{puOS !== 0 ? frmtNb(pOS) : ""}</td>) : ("")}
-              {xListeCol[17][1] === 1 && xListeCol[9][1] === 1 ? (<td style={{ ...cellStyle, color: colorO, textAlign: 'center', fontSize: '8px' }}
-                onClick={(e) => handleTooltip(item, "coef", coefO, e, dataSet)}>{coefO > 0 ? coefO : ""}</td>) : ("")}
-              {xListeCol[10][1] === 1 ? (<td className="tdcenter" style={{ ...cellStyle, color: `rgb(255, 234, 204)` }} onClick={(e) => handleTooltip(item, "trynft", "yield", e, dataSet)}>
+              {xListeCol[18][1] === 1 && xListeCol[9][1] === 1 ? (<td style={{ ...cellStyle, color: colorO, textAlign: 'center', fontSize: '8px' }}
+                onClick={(e) => handleTooltip(item, "coef", coefO, e)}>{coefO > 0 ? coefO : ""}</td>) : ("")}
+              {xListeCol[12][1] === 1 ? (<td className="tdcenter" style={{ ...cellStyle, color: `rgb(255, 234, 204)` }} onClick={(e) => handleTooltip(item, "trynft", "yield", e)}>
                 {parseFloat(imyield).toFixed(2)}</td>) : ("")}
-              {xListeCol[11][1] === 1 ? (<td className="tdcenter" style={{ ...cellStyle, color: `rgb(255, 225, 183)` }} onClick={(e) => handleTooltip(item, "harvest", 0, e, dataSet)}>
+              {xListeCol[13][1] === 1 ? (<td className="tdcenter" style={{ ...cellStyle, color: `rgb(255, 225, 183)` }} onClick={(e) => handleTooltip(item, "harvest", 0, e)}>
                 {parseFloat(iharvest).toFixed(2)}</td>) : ("")}
-              {xListeCol[12][1] === 1 ? (<td className="tdcenter" style={{ ...cellStyle, color: `rgb(253, 215, 162)` }} onClick={(e) => handleTooltip(item, "harvest", i2bharvest, e, dataSet)}>
+              {xListeCol[14][1] === 1 ? (<td className="tdcenter" style={{ ...cellStyle, color: `rgb(253, 215, 162)` }} onClick={(e) => handleTooltip(item, "harvest", i2bharvest, e)}>
                 {i2bharvest > 0 ? parseFloat(i2bharvest).toFixed(2) : ""}{bswarm && imgbee}{issick ? imgsick : needslove && imglove}</td>) : ("")}
-              {xListeCol[18][1] === 1 ? (<td id={`timer-${xIndex}`} className="tdcenterbrd" style={cellStyle}>{(i2bharvest > 0 || item === "Honey" ? selectedReady === "when" ?
+              {xListeCol[19][1] === 1 ? (<td id={`timer-${xIndex}`} className="tdcenterbrd" style={cellStyle}>{(i2bharvest > 0 || item === "Honey" ? selectedReady === "when" ?
                 (<span>{formatdate(irdyat)}{' '}{ximgrdy}</span>) : timerElement : "")}</td>) : ("")}
-              {xListeCol[13][1] === 1 ? (<td className="tdcenter" style={{ ...cellStyle, color: `rgb(160, 160, 160)` }}>{BBprod > 0 ? parseFloat(BBprod).toFixed(2) : ""}</td>) : ("")}
-              {xListeCol[15][1] === 1 ? (<td className="tdcenter" style={{ ...cellStyle, ...cellDSflStyle }}
-                title={titleDsfl} onClick={(e) => handleTooltip(item, "dailysfl", costp, e, dataSet)}>
+              {xListeCol[15][1] === 1 ? (<td className="tdcenter" style={{ ...cellStyle, color: `rgb(160, 160, 160)` }}>{BBprod > 0 ? parseFloat(BBprod).toFixed(2) : ""}</td>) : ("")}
+              {xListeCol[16][1] === 1 ? (<td className="tdcenter" style={{ ...cellStyle, ...cellDSflStyle }}
+                title={titleDsfl} onClick={(e) => handleTooltip(item, "dailysfl", costp, e)}>
                 {parseFloat(Dsfl).toFixed(2)}</td>) : ("")}
-              {xListeCol[16][1] === 1 ? (<td className="tdcenter" style={{ ...cellStyle, color: `rgb(160, 160, 160)` }}>{parseFloat(dailyprodmx).toFixed(2)}</td>) : ("")}
+              {xListeCol[17][1] === 1 ? (<td className="tdcenter" style={{ ...cellStyle, color: `rgb(160, 160, 160)` }}>{parseFloat(dailyprodmx).toFixed(2)}</td>) : ("")}
             </tr>
           </>
         );
@@ -1986,6 +1888,7 @@ function App() {
 
   function setCook() {
     if (farmData.inventory) {
+      const { it, food, fish, bounty, mutantchickens, sTickets } = dataSetFarm;
       const inventoryEntries = selectedQuantityCook === "farm" || "daily" || "dailymax" ? Object.entries(farmData.inventory) : Object.entries(farmData.inventory);
       const foodNames = Object.keys(food);
       const Compo = [];
@@ -2043,6 +1946,9 @@ function App() {
           const compo = compofood;
           const quant = food[item].compoit[compofood];
           if (it[compo]) {
+            const bhrvstItem = !TryChecked ? xHrvst[compo] : xHrvsttry[compo];
+            dProd[compo] = it[compo].farmit ? bhrvstItem * it[compo].harvest : 0;
+            dProdtry[compo] = it[compo].farmit ? bhrvstItem * it[compo].harvesttry : 0;
             const itdprod = dProd[compo] ? dProd[compo] : 0;
             const itdprodtry = dProdtry[compo] ? dProdtry[compo] : 0;
             const dCook = Math.floor(!TryChecked ? itdprod / quant : itdprodtry / quant);
@@ -2137,8 +2043,8 @@ function App() {
       const timeOver = maxTime > 1; //farmTime / 24;
       const xinputKeep = selectedQuantCook !== "unit" && selectedQuantityCook === "farm" ? <input type="text" value={dataSet.options.inputKeep} onChange={handleInputKeepChange} style={{ width: '11px' }} maxLength={1} /> : "";
       const xinputKeept = selectedQuantCook !== "unit" && selectedQuantityCook === "farm" ? "Keep " : "";
-      const xinputFromLvl = selectedQuantCook !== "unit" && selectedQuantityCook !== "farm" ? <input type="text" value={inputFromLvl} onChange={handleFromLvlChange} style={{ width: '20px', marginLeft: 'auto' }} maxLength={2} /> : "";
-      const xinputToLvl = selectedQuantCook !== "unit" && selectedQuantityCook !== "farm" ? <input type="text" value={inputToLvl} onChange={handleToLvlChange} style={{ width: '20px', marginLeft: 'auto' }} maxLength={2} /> : "";
+      const xinputFromLvl = selectedQuantCook !== "unit" && selectedQuantityCook !== "farm" ? <input type="text" value={inputFromLvl} onChange={handleFromLvlChange} style={{ width: '25px', marginLeft: 'auto' }} maxLength={3} /> : "";
+      const xinputToLvl = selectedQuantCook !== "unit" && selectedQuantityCook !== "farm" ? <input type="text" value={inputToLvl} onChange={handleToLvlChange} style={{ width: '25px', marginLeft: 'auto' }} maxLength={3} /> : "";
       const xinputFromLvlt = selectedQuantCook !== "unit" && selectedQuantityCook !== "farm" ? "From " : "";
       const xinputToLvlt = selectedQuantCook !== "unit" && selectedQuantityCook !== "farm" ? " to " : "";
       const xLvlconft = selectedQuantCook !== "unit" && selectedQuantityCook !== "farm" ? " days, " + fromtolvlxp + "xp" : "";
@@ -2240,13 +2146,12 @@ function App() {
         </>
       );
       setcookData(tableContent);
-      setMutants(mutantchickens);
-      setsTickets(sTickets);
     }
   }
 
   function setFish() {
     if (farmData.inventory) {
+      const { fish, mutantchickens, sTickets } = dataSetFarm;
       var totXPfsh = 0;
       var totCaught = 0;
       var totCost = 0;
@@ -2420,13 +2325,12 @@ function App() {
         </>
       );
       setfishData(tableContent);
-      setMutants(mutantchickens);
-      setsTickets(sTickets);
     }
   }
 
   function setExpand() {
     if (farmData.inventory) {
+      const { it, expandData, mutantchickens, sTickets } = dataSetFarm;
       //const expEntries = Object.entries(expand);
       //const expKeys = Object.keys(expand);
       const expKeys = Object.keys(fromtoexpand.expandData);
@@ -2484,13 +2388,13 @@ function App() {
         const itime = cobj.seconds ? cobj.seconds / (60 * 60 * 24) : 0;
         const time = convTime(itime);
         const level = cobj.bumpkinLevel || "";
-        const imglvlfarm = xexpandData.current === i ? <img src={imglvl} alt={''} className="itico" title="Your lvl" /> : "";
+        const imglvlfarm = expandData.current === i ? <img src={imglvl} alt={''} className="itico" title="Your lvl" /> : "";
         const indexrow = i;
         if (cobj.resources) {
           for (let [resItem, resValue] of Object.entries(cobj.resources)) {
             //console.log("hello");
             const resPrice = resItem === "Block Buck" ?
-              resValue * dataSet.options.gemRatio
+              resValue * dataSet.options.gemsRatio
               : resItem === "Coins" ?
                 resValue
                 : ((!TryChecked ? it[resItem].cost : it[resItem].costtry) * resValue);
@@ -2535,7 +2439,7 @@ function App() {
       for (let [resItem, resValue] of Object.entries(fromtoexpand.expand.totalResources)) {
         //console.log("hello");
         const resPrice = resItem === "Block Buck" ?
-          resValue * dataSet.options.gemRatio
+          resValue * dataSet.options.gemsRatio
           : resItem === "Coins" ?
             resValue
             : ((!TryChecked ? it[resItem].cost : it[resItem].costtry) * resValue);
@@ -2623,13 +2527,12 @@ function App() {
       );
 
       setexpandData(table);
-      setMutants(mutantchickens);
-      setsTickets(sTickets);
     }
   }
 
   function setFlower() {
     if (farmData.inventory) {
+      const { it, flower, mutantchickens, sTickets } = dataSetFarm;
       const flwrKeys = Object.keys(flower);
       const tableContent = flwrKeys.map(element => {
         const cobj = flower[element];
@@ -2700,13 +2603,12 @@ function App() {
       );
 
       setflowerData(table);
-      setMutants(mutantchickens);
-      setsTickets(sTickets);
     }
   }
 
   function setBounty() {
     if (farmData.inventory) {
+      const { it, bounty, mutantchickens, sTickets } = dataSetFarm;
       const bountyKeys = Object.keys(bounty);
       let valueTotal = 0;
       let vTodayTotal = 0;
@@ -2765,12 +2667,12 @@ function App() {
             {xListeColBounty[4][1] === 1 ? <td className="tdcenter">{valuetoday > 0 ? valuetoday : ""}</td> : null}
             {xListeColBounty[5][1] === 1 ? <td className="tdcenter">{toolcostToday > 0 ? toolcostToday : ""}</td> : null}
             {xListeColBounty[5][1] === 1 ? <td className="tdcenter"
-              onClick={(e) => handleTooltip(element, "ratiodig", dataSetDig, e, dataSet)}>{ratioCoinsS > 0 ? ratioCoinsS : ""}</td> : null}
+              onClick={(e) => handleTooltip(element, "ratiodig", dataSetDig, e)}>{ratioCoinsS > 0 ? ratioCoinsS : ""}</td> : null}
             {xListeColBounty[5][1] === 1 ? <td className="tdcenter">{ptoday > 0 ? ptoday : ""}</td> : null}
             {xListeColBounty[5][1] === 1 ? <td className="tdcenter">{valueptoday > 0 ? valueptoday : ""}</td> : null}
             {xListeColBounty[5][1] === 1 ? <td className="tdcenter">{toolcostpToday > 0 ? toolcostpToday : ""}</td> : null}
             {xListeColBounty[5][1] === 1 ? <td className="tdcenter"
-              onClick={(e) => handleTooltip(element, "ratiodigp", dataSetDig, e, dataSet)}>{ratioCoinsPatternS > 0 ? ratioCoinsPatternS : ""}</td> : null}
+              onClick={(e) => handleTooltip(element, "ratiodigp", dataSetDig, e)}>{ratioCoinsPatternS > 0 ? ratioCoinsPatternS : ""}</td> : null}
           </tr>
         );
       });
@@ -2814,12 +2716,12 @@ function App() {
             {xListeColBounty[4][1] === 1 ? <td className="tdcenter">{parseFloat(vTodayTotal).toFixed(CurDec)}</td> : null}
             {xListeColBounty[5][1] === 1 ? <td className="tdcenter">{parseFloat(toolcostTodayTotal).toFixed(CurDec)}</td> : null}
             {xListeColBounty[5][1] === 1 ? <td className="tdcenter"
-              onClick={(e) => handleTooltip("Total", "ratiodig", dataSetDig, e, dataSet)}>{parseFloat(ratioTotal).toFixed(0)}</td> : null}
+              onClick={(e) => handleTooltip("Total", "ratiodig", dataSetDig, e)}>{parseFloat(ratioTotal).toFixed(0)}</td> : null}
             {xListeColBounty[3][1] === 1 ? <td className="tdcenter"></td> : null}
             {xListeColBounty[4][1] === 1 ? <td className="tdcenter">{parseFloat(vTodayPatternTotal).toFixed(CurDec)}</td> : null}
             {xListeColBounty[5][1] === 1 ? <td className="tdcenter">{parseFloat(toolcostTodayPatternTotal).toFixed(CurDec)}</td> : null}
             {xListeColBounty[5][1] === 1 ? <td className="tdcenter"
-              onClick={(e) => handleTooltip("Total", "ratiodigp", dataSetDig, e, dataSet)}>{parseFloat(ratioPTotal).toFixed(0)}</td> : null}
+              onClick={(e) => handleTooltip("Total", "ratiodigp", dataSetDig, e)}>{parseFloat(ratioPTotal).toFixed(0)}</td> : null}
           </tr>
         </thead>
       );
@@ -2836,13 +2738,12 @@ function App() {
       );
 
       setbountyData(table);
-      setMutants(mutantchickens);
-      setsTickets(sTickets);
     }
   }
 
   function setCraftBox() {
     if (farmData.inventory) {
+      const { it, flower, bounty, craft, mutantchickens, sTickets } = dataSetFarm;
       const Keys = Object.keys(craft);
       const imgCoins = <img src={imgcoins} alt={''} className="itico" title="Coins" />;
       const imgSfl = <img src={imgsfl} alt={''} className="itico" title="Flower" />;
@@ -2876,7 +2777,7 @@ function App() {
             {xListeColBounty[1][1] === 1 ? <td className="tdcenter">{stock}</td> : null}
             {xListeColBounty[2][1] === 1 ? <td className="tdcenter">{itime}</td> : null}
             {xListeColBounty[3][1] === 1 ? <td className="tdcenter"
-              onClick={(e) => handleTooltip(itemName, "craftcompo", 0, e, dataSet)}>{icompoimg}</td> : null}
+              onClick={(e) => handleTooltip(itemName, "craftcompo", 0, e)}>{icompoimg}</td> : null}
             {xListeColBounty[4][1] === 1 ? <td className="tdcenter">{parseFloat(icost).toFixed(3)}</td> : null}
             {xListeColBounty[5][1] === 1 ? <td className="tdcenter">{parseFloat(icostm).toFixed(3)}</td> : null}
           </tr>
@@ -2908,13 +2809,12 @@ function App() {
       );
 
       setcraftData(table);
-      setMutants(mutantchickens);
-      setsTickets(sTickets);
     }
   }
 
   function setCropMachine() {
     if (farmData.inventory) {
+      const { it, mutantchickens, sTickets } = dataSetFarm;
       const Keys = Object.keys(it);
       const imgCoins = <img src={imgcoins} alt={''} className="itico" title="Coins" />;
       const imgSfl = <img src={imgsfl} alt={''} className="itico" title="Flower" />;
@@ -2990,13 +2890,12 @@ function App() {
       );
 
       setcropMachineData(table);
-      setMutants(mutantchickens);
-      setsTickets(sTickets);
     }
   }
 
   function setAnimals() {
-    if (Animals) {
+    if (dataSetFarm.Animals) {
+      const { it, Animals, mutantchickens, sTickets } = dataSetFarm;
       let table = [];
       const imgmix = "./icon/res/mixed_grain_v2.webp";
       const ximgmix = <img src={"./icon/res/mixed_grain_v2.webp"} alt={''} className="itico" title={"Food"} />;
@@ -3164,13 +3063,12 @@ function App() {
       }
 
       setanimalData(table);
-      setMutants(mutantchickens);
-      setsTickets(sTickets);
     }
   }
 
   function setMap() {
-    if (isleMap) {
+    if (dataSetFarm.isleMap) {
+      const { nftw, isleMap } = dataSetFarm;
       let minYield = 500;
       let minYieldGH = 500;
       let cropMachineDone = false;
@@ -3371,12 +3269,11 @@ function App() {
       );
 
       setMapData(tableElement);
-      setMutants(mutantchickens);
-      setsTickets(sTickets);
     }
   }
 
   function setfTrades() {
+    const { it, fish, flower, nft, nftw, ftrades } = dataSetFarm;
     if (ftrades) {
       const data = Object.values(ftrades);
       const vegetableNames = data.map((entry) => Object.keys(entry.items)[0]);
@@ -3429,6 +3326,7 @@ function App() {
   }
 
   function setActivityDay() {
+    const { it, fish, flower, nft, nftw, ftrades } = dataSetFarm;
     if (activityData[0]) {
       const actKeys = Object.keys(activityData);
       var totXP = 0;
@@ -3586,12 +3484,11 @@ function App() {
         </>
       );
       setActivityTable(table);
-      setMutants(mutantchickens);
-      setsTickets(sTickets);
     }
   }
   function setActivityItem() {
     if (activityData[0]) {
+      const { it, food, fish, flower, nft, nftw } = dataSetFarm;
       const ActTot = setActivityTot(activityData, "items");
       const allSortedItems = ActTot.allSortedItems;
       const compoHarvested = ActTot.compoHarvested;
@@ -3713,12 +3610,11 @@ function App() {
         </>
       );
       setActivityTable(table);
-      setMutants(mutantchickens);
-      setsTickets(sTickets);
     }
   }
   function setActivityQuest() {
     if (activityData[0]) {
+      const { it, food, fish, flower, nft, nftw } = dataSetFarm;
       const tot = setActivityTotQuest(activityData);
       const Quest = tot.Quest;
       const questKeys = Object.keys(Quest);
@@ -3808,6 +3704,7 @@ function App() {
     }
   }
   function setActivityTot(activityData, xContext) {
+    const { it, food, fish, flower, nft, nftw } = dataSetFarm;
     let compoHarvested = [];
     compoHarvested["XP"] = 0;
     compoHarvested["TKT"] = 0;
@@ -4249,43 +4146,15 @@ function App() {
     }
   }
   async function getPrices(onlyPrices) {
-    //if (testb === false) {
-    var bTrynftArray = [];
-    var bTrynftwArray = [];
-    var bTrybuildArray = [];
-    var bTryskillArray = [];
-    var bTryskilllgcArray = [];
-    var bTrybudArray = [];
-    var bBuyitArray = [];
-    var bSpottryArray = [];
-    if (!onlyPrices) {
-      if (localStorage.getItem("SFLManData") !== null) {
-        const cookieValue = localStorage.getItem("SFLManData");
-        var loadedData = JSON.parse(cookieValue);
-        bTrynftArray = loadedData.bTrynft.length > 0 ? loadedData.bTrynft.reduce((acc, item) => { acc[item.name] = item.value; return acc; }, {}) : "";
-        bTrynftwArray = loadedData.bTrynftw.length > 0 ? loadedData.bTrynftw.reduce((acc, item) => { acc[item.name] = item.value; return acc; }, {}) : "";
-        bTrybuildArray = loadedData.bTrybuild.length > 0 ? loadedData.bTrybuild.reduce((acc, item) => { acc[item.name] = item.value; return acc; }, {}) : "";
-        bTryskillArray = loadedData.bTryskill.length > 0 ? loadedData.bTryskill.reduce((acc, item) => { acc[item.name] = item.value; return acc; }, {}) : "";
-        bTryskilllgcArray = loadedData.bTryskilllgc.length > 0 ? loadedData.bTryskilllgc.reduce((acc, item) => { acc[item.name] = item.value; return acc; }, {}) : "";
-        bTrybudArray = loadedData.bTrybud.length > 0 ? loadedData.bTrybud.reduce((acc, item) => { acc[item.name] = item.value; return acc; }, {}) : "";
-        bBuyitArray = loadedData.bBuyit.length > 0 ? loadedData.bBuyit.reduce((acc, item) => { acc[item.name] = item.value; return acc; }, {}) : "";
-        bSpottryArray = loadedData.bSpottry.length > 0 ? loadedData.bSpottry.reduce((acc, item) => { acc[item.name] = item.value; return acc; }, {}) : "";
-      }
-    }
+    const tryItArrays = filterTryit(dataSetFarm, true);
     let vHeaders = onlyPrices ? {
       onlyprices: "true",
     } : {
       frmid: lastClickedInputValue.current,
-      xoptions: dataSet.options,
-      xtrynft: bTrynftArray,
-      xtrynftw: bTrynftwArray,
-      xtrybuild: bTrybuildArray,
-      xtryskill: bTryskillArray,
-      xtryskilllgc: bTryskilllgcArray,
-      xtrybud: bTrybudArray,
-      xbuyit: bBuyitArray,
-      xspottry: bSpottryArray,
+      options: dataSet.options,
+      tryitarrays: tryItArrays,
     };
+    //console.log("dataSetFarm dans getPrices :", dataSetFarm);
     const response = await fetch(API_URL + "/getdatacrypto", {
       //method: 'GET',
       //headers: vHeaders
@@ -4300,86 +4169,42 @@ function App() {
       setpriceData(JSON.parse(JSON.stringify(responseData.priceData)));
       if (responseData.allData !== "" && responseData.allData !== undefined) {
         setdataSetFarm(responseData.allData);
-        it = responseData.allData.it;
-        tool = responseData.allData.tool;
-        food = responseData.allData.food;
-        fish = responseData.allData.fish;
-        craft = responseData.allData.craft;
-        flower = responseData.allData.flower;
-        bounty = responseData.allData.bounty;
-        compost = responseData.allData.compost;
-        nft = responseData.allData.nft;
-        nftw = responseData.allData.nftw;
-        skilllgc = responseData.allData.skilllgc;
-        skill = responseData.allData.skill;
-        buildng = responseData.allData.buildng;
-        bud = responseData.allData.bud;
-        spot = responseData.allData.spot;
-        mutantchickens = responseData.allData.mutantchickens;
-        sTickets = responseData.allData.sTickets;
-        buildngf = responseData.allData.buildngf;
-        fishingDetails = responseData.allData.fishingDetails;
-        Animals = responseData.allData.Animals;
-        isleMap = responseData.allData.isleMap;
-        ftrades = responseData.allData.ftrades;
-        dataSet.taxFreeSFL = frmtNb(responseData.allData.taxFreeSFL);
-        dataSet.dailychest = responseData.allData.dailychest;
-        dataSet.curSeason = responseData.allData.curSeason;
-        //dataSet.options.tradeTax = responseData.allData.tradeTax;
-        //setanimalData(responseData.allData.Animals);
-        //expand = responseData.allData.expand;
-        //xexpandData = responseData.allData.expandData;
-        //frmOwner = responseData.allData.frmOwner;
-        setFarmData(responseData.allData.frmData);
-        dataSet.farmData = responseData.allData.frmData;
         setBumpkinData(responseData.allData.Bumpkin);
-        //MergeIt(responseData.allData.it, it);
-        //setPlanted(responseData.allData.it);
-        getFarmit(it);
-        getCookit(food);
-        //getBuyit(it, bBuyitArray);
-        //getTryit(nft, nftw, skilllgc, buildng, bud);
-        //getFarmit(it);
-        //getCookit(food);
-        //getTryit(nft, nftw, skill, buildng, bud);
-        //getActive(nft, nftw, skill, buildng, bud);
-        setdeliveriesData(responseData.allData.orderstable);
-        dataSet.orderstable = responseData.allData.orderstable;
-        setfTrades();
-        setitData(it);
-        refreshDataSet();
       }
+      const priceData = responseData.priceData;
+      const balanceUSD = frmtNb(Number(dataSetFarm?.frmData?.balance || 0) * Number(priceData[2]));
+      dataSet.balanceUSD = balanceUSD;
+      const usdwithdraw = frmtNb(Number(dataSet.sflwithdraw) * Number(priceData[2]));
+      dataSet.usdwithdraw = usdwithdraw;
+      dataSet.options.usdSfl = responseData.priceData[2];
       //NFTPrice();
       //xinitprc = true;
       setReqState('');
+      if (responseData.allData.mutantchickens) {
+        setMutants(responseData.allData);
+        setsTickets(responseData.allData.sTickets);
+      }
     } else {
       console.log(`Error : ${response.status}`);
       setReqState('Error refreshing prices');
       //localStorage.clear();
       //console.log("Cleared local data");
     }
-    /*} else {
-      const responseData = xrespPrice;
-      setpriceData(JSON.parse(JSON.stringify(responseData.priceData)));
-      setpriceDataT(responseData.priceDataT);
-      setpriceDataN(responseData.priceDataN);
-      setpriceDataO(responseData.priceDataO);
-      setpriceDataOW(responseData.priceDataOW);
-      NFTPrice();
-    } */
   }
-  function setMutants(table) {
-    const MutItems = table.map(([item, amount], index) => {
-      const itemName = table[index][0].name;
+  function setMutants(dataSetMutant) {
+    const tableMutant = dataSetMutant.mutantchickens;
+    const MutItems = tableMutant.map(([item, amount], index) => {
+      const itemName = tableMutant[index][0].name;
       //const cobj = nft[itemName];
       let itemImg = imgna;
-      if (dataSetFarm.nft[itemName]) { itemImg = dataSetFarm.nft[itemName].img; }
-      if (dataSetFarm.mutant[itemName]) { itemImg = dataSetFarm.mutant[itemName].img; }
+      if (dataSetMutant?.nft?.[itemName]) { itemImg = dataSetMutant?.nft?.[itemName]?.img; }
+      if (dataSetMutant?.mutant?.[itemName]) { itemImg = dataSetMutant?.mutant?.[itemName]?.img; }
       return (
-        <img src={itemImg} alt={''} className="nftico" title={table[index][0].name} />
+        <img src={itemImg} alt={''} className="nftico" title={tableMutant[index][0].name} />
       )
     });
-    setmutData(MutItems);
+    const txtMutants = tableMutant.length > 0 && <><span style={{ fontSize: "11px" }}>Mutant found : {MutItems}</span></>;
+    setmutData(txtMutants);
   }
   function setsTickets(tabletk) {
     if (tabletk.length > 1) {
@@ -4388,24 +4213,6 @@ function App() {
       setticketsData("");
     }
   }
-
-  const withdrawreduc = (xexpandData.type === "desert" || xexpandData.type === "spring" || xexpandData.type === "volcano") ? 2.5 : 0;
-  const withdrawtax = (farmData.balance < 10 ? 30 : farmData.balance < 100 ? 25 : farmData.balance < 1000 ? 20 : farmData.balance < 5000 ? 15 : 10) - withdrawreduc;
-  dataSet.withdrawtax = withdrawtax;
-  const withdrawSFLbeyondTaxFree = Number(taxFreeSFL) - Number(farmData.balance);
-  const withdrawsflFree = (withdrawSFLbeyondTaxFree < 0) ? Number(taxFreeSFL) : Number(farmData.balance);
-  const withdrawsflNotFree = (withdrawsflFree >= Number(farmData.balance)) ? 0 : (Number(farmData.balance) - withdrawsflFree);
-  const withdrawSflNotFreeTaxed = (withdrawsflNotFree > 0) ? (withdrawsflNotFree - (withdrawsflNotFree * (withdrawtax / 100))) : 0;
-  const balanceUSD = frmtNb(Number(farmData.balance) * Number(priceData[2]));
-  dataSet.balanceUSD = balanceUSD;
-  const sflwithdraw = frmtNb(withdrawsflFree + withdrawSflNotFreeTaxed);
-  dataSet.sflwithdraw = sflwithdraw;
-  const usdwithdraw = frmtNb(Number(sflwithdraw) * Number(priceData[2]));
-  dataSet.usdwithdraw = usdwithdraw;
-  const xfishcastmax = fishingDetails && (!TryChecked ? fishingDetails.CastMax : fishingDetails.CastMaxtry);
-  const xfishcost = fishingDetails && ((!TryChecked ? fishingDetails.CastCost : fishingDetails.CastCosttry) / dataSet.options.coinsRatio);
-  const fishcasts = fishingDetails && (fishingDetails.casts + "/" + xfishcastmax);
-  const fishcosts = fishingDetails && (parseFloat(fishingDetails.casts * xfishcost).toFixed(3) + "/" + parseFloat(xfishcastmax * xfishcost).toFixed(3));
 
   useEffect(() => {
     StatusBar.setOverlaysWebView({ overlay: false });
@@ -4484,7 +4291,7 @@ function App() {
     const handleVisibilityChange = () => {
       if (document.visibilityState === 'visible') {
         if (!farmData.balance) return;
-        if (!isAbo) {
+        if (!dataSet.options?.isAbo) {
           startInitialTimeout();
         } else {
           startMainInterval();
@@ -4495,7 +4302,7 @@ function App() {
     };
     clearAll();
     if (farmData.balance) {
-      if (!isAbo) {
+      if (!dataSet.options?.isAbo) {
         startInitialTimeout();
       } else {
         startMainInterval();
@@ -4506,15 +4313,12 @@ function App() {
       clearAll();
       document.removeEventListener('visibilitychange', handleVisibilityChange);
     };
-  }, [farmData?.balance, isAbo]);
+  }, [dataSetFarm]);
   useEffect(() => {
     if (selectedInv === "home") {
       try {
-        const xhomeData = setHome(dataSet, xListeColBounty, handleHomeClic, isOpen);
+        const xhomeData = setHome(dataSet, dataSetFarm, xListeColBounty, handleHomeClic, isOpen);
         sethomeData(xhomeData);
-        setMutants(mutantchickens);
-        setsTickets(sTickets);
-        if (farmData.balance) { setCookie() }
       } catch (error) {
         //localStorage.clear();
         console.log(error);
@@ -4523,7 +4327,6 @@ function App() {
     if (selectedInv === "inv") {
       try {
         setInv();
-        if (farmData.balance) { setCookie() }
       } catch (error) {
         //localStorage.clear();
         console.log(error);
@@ -4532,7 +4335,6 @@ function App() {
     if (selectedInv === "cook") {
       try {
         setCook();
-        if (farmData.balance) { setCookie() }
       } catch (error) {
         //localStorage.clear();
         //console.log("Error, cleared local data");
@@ -4542,7 +4344,6 @@ function App() {
     if (selectedInv === "fish") {
       try {
         setFish();
-        if (farmData.balance) { setCookie() }
       } catch (error) {
         //localStorage.clear();
         //console.log("Error, cleared local data");
@@ -4552,7 +4353,6 @@ function App() {
     if (selectedInv === "flower") {
       try {
         setFlower();
-        if (farmData.balance) { setCookie() }
       } catch (error) {
         //localStorage.clear();
         //console.log("Error, cleared local data");
@@ -4562,7 +4362,6 @@ function App() {
     if (selectedInv === "bounty") {
       try {
         setBounty();
-        if (farmData.balance) { setCookie() }
       } catch (error) {
         //localStorage.clear();
         //console.log("Error, cleared local data");
@@ -4572,7 +4371,6 @@ function App() {
     if (selectedInv === "craft") {
       try {
         setCraftBox();
-        if (farmData.balance) { setCookie() }
       } catch (error) {
         //localStorage.clear();
         //console.log("Error, cleared local data");
@@ -4582,7 +4380,6 @@ function App() {
     if (selectedInv === "cropmachine") {
       try {
         setCropMachine();
-        if (farmData.balance) { setCookie() }
       } catch (error) {
         //localStorage.clear();
         //console.log("Error, cleared local data");
@@ -4592,7 +4389,6 @@ function App() {
     if (selectedInv === "animal") {
       try {
         setAnimals();
-        if (farmData.balance) { setCookie() }
       } catch (error) {
         //localStorage.clear();
         //console.log("Error, cleared local data");
@@ -4602,7 +4398,6 @@ function App() {
     if (selectedInv === "map") {
       try {
         setMap();
-        if (farmData.balance) { setCookie() }
       } catch (error) {
         //localStorage.clear();
         //console.log("Error, cleared local data");
@@ -4611,9 +4406,7 @@ function App() {
     }
     if (selectedInv === "expand") {
       try {
-
         setExpand();
-        if (farmData.balance) { setCookie() }
       } catch (error) {
         //localStorage.clear();
         //console.log("Error, cleared local data");
@@ -4631,23 +4424,24 @@ function App() {
       if (activityDisplay === "quest") {
         setActivityQuest();
       }
-      if (farmData.balance) { setCookie() }
       /* } catch {
         //localStorage.clear();
         //console.log("Error, cleared local data");
       } */
     }
     setdeliveriesData(dataSetFarm.orderstable);
-  }, [farmData, dataSetFarm, itData, selectedCurr, selectedQuant, selectedQuantCook, selectedQuantFish, selectedQuantity, selectedQuantityCook, selectedCostCook,
+    setfTrades();
+    if (farmData.balance) { setCookie() }
+  }, [dataSetFarm, selectedCurr, selectedQuant, selectedQuantCook, selectedQuantFish, selectedQuantity, selectedQuantityCook, selectedCostCook,
     selectedReady, selectedDsfl, selectedInv, selectedDigCur, inputMaxBB, inputKeep, inputFarmTime, inputCoinsRatio, deliveriesData, HarvestD,
     xListeCol, xListeColCook, xListeColFish, xListeColFlower, xListeColExpand, xListeColAnimals, xListeColActivity,
     xListeColActivityItem, CostChecked, TryChecked, BurnChecked, cstPrices, fromtolvltime, inputFromLvl, inputToLvl, fromtoexpand, activityData,
-    activityDisplay, ftradesData, isOpen, options]);
+    activityDisplay, options, isOpen]);
   /* useEffect(() => {
     console.log("InputValue a changé :", inputValue);
   }, [inputValue]); */
   useEffect(() => {
-    if (inputFromLvl > 0 && inputToLvl < 100) { getxpFromToLvl(inputFromLvl, inputToLvl, xdxp) }
+    if (inputFromLvl > 0 && inputToLvl <= 150) { getxpFromToLvl(inputFromLvl, inputToLvl, xdxp) }
   }, [dailyxp]);
   useEffect(() => {
     getFromToExpand(fromexpand + 1, toexpand, selectedExpandType);
@@ -4672,7 +4466,7 @@ function App() {
         <div className="top-frame">
           <h1 className="App-h1">
             <div className="vertical">
-              <div style={{ pointerEvents: 'none' }}>{username !== "" ? username + " lvl" + bumpkinData[0]?.lvl : <span>Farm ID or name</span>}</div>
+              <div style={{ pointerEvents: 'none' }}>{dataSetFarm.username && dataSetFarm.username !== "" ? dataSetFarm.username + " lvl" + bumpkinData[0]?.lvl : <span>Farm ID or name</span>}</div>
               <div class="horizontal">
                 <input
                   type="text"
@@ -4793,18 +4587,18 @@ function App() {
           <div style={{ transform: 'translate(0px, -20px)', margin: "0", padding: "0" }}>
             <div class="horizontal" style={{ margin: "0", padding: "0" }}>
               {farmData.balance ? (<>
-                <div class="horizontal" onClick={(e) => handleTooltip("", "balance", "", e, dataSet)} style={{ margin: "0", padding: "0" }}>
-                  <img src="./icon/res/flowertoken.webp" alt="" title={`${balanceUSD}usd-${withdrawtax}% = ${sflwithdraw}sfl = ${usdwithdraw}usd (${taxFreeSFL}sfl free)`} />
+                <div class="horizontal" onClick={(e) => handleTooltip("", "balance", "", e)} style={{ margin: "0", padding: "0" }}>
+                  <img src="./icon/res/flowertoken.webp" alt="" title={`${dataSet.balanceUSD}usd-${dataSet.withdrawtax}% = ${dataSet.sflwithdraw}sfl = ${dataSet.usdwithdraw}usd (${dataSet.taxFreeSFL}sfl free)`} />
                   {frmtNb(farmData.balance)}
                   {PBarSFL()}
-                  {isBanned ? isBanned : null}
-                  {mutData ? mutData : null}
+                  {dataSet.isBanned ? dataSet.isBanned : null}
                 </div>
+                <span>{mutData ? mutData : null}</span>
               </>) : null}
               <p className="reqstat">{reqState}</p>
             </div>
             {farmData.balance ? (<>
-              <div className="tabletrades" onClick={(e) => handleTooltip("", "trades", "", e, dataSet)} style={{ margin: "0", padding: "0" }}>
+              <div className="tabletrades" onClick={(e) => handleTooltip("", "trades", "", e)} style={{ margin: "0", padding: "0" }}>
                 {<>{ftradesData ? ftradesData : ""}</>}
               </div>
               <div style={{ position: 'relative', display: 'flex', alignItems: 'left', height: '20px', width: '180px', top: '1px', overflow: 'hidden', margin: "0", padding: "0" }}>
@@ -4832,7 +4626,7 @@ function App() {
                       <MenuItem value="cropmachine"><img src="./icon/skillr/efficiency_ext_module.png" alt="" className="itico" />Crop Machine</MenuItem>
                       <MenuItem value="map"><img src="./icon/ui/world.png" alt="" className="itico" />Map</MenuItem>
                       <MenuItem value="expand"><img src="./icon/tools/hammer.png" alt="" className="itico" />Expand</MenuItem>
-                      {isAbo ? <MenuItem value="activity"><img src="./icon/ui/stopwatch.png" alt="" className="itico" />Activity</MenuItem> : null}
+                      {dataSet.options.isAbo ? <MenuItem value="activity"><img src="./icon/ui/stopwatch.png" alt="" className="itico" />Activity</MenuItem> : null}
                     </Select>
                   </FormControl>
                 </div>
@@ -4862,7 +4656,7 @@ function App() {
                   <>
                     <span>
                       <img src={imgrod} alt="" className="itico" title="Daily casts" />
-                      {fishcasts} - Cost: {fishcosts}
+                      {dataSet.fishcasts} - Cost: {dataSet.fishcosts}
                     </span>
                     {fishData || null}
                   </>
@@ -4873,7 +4667,7 @@ function App() {
                 cropmachine: cropMachineData || null,
                 animal: animalData || null,
                 map: mapData || null,
-                expand: expandData || null,
+                expand: expandDataTable || null,
                 activity: activityTable || null,
               };
 
@@ -4895,12 +4689,11 @@ function App() {
           />
         )}
         {showfGraph && (
-          <ModalGraph onClose={handleClosefGraph} graphtype={GraphType} frmid={lastClickedInputValue.current} it={it} API_URL={API_URL} />
+          <ModalGraph onClose={handleClosefGraph} graphtype={GraphType} frmid={lastClickedInputValue.current} it={dataSetFarm.it} API_URL={API_URL} />
         )}
         {showfTNFT && (
-          <ModalTNFT onClose={(dataSet, dataSetFarm) => { handleClosefTNFT(dataSet, dataSetFarm) }}
+          <ModalTNFT onClose={handleClosefTNFT}
             frmid={lastClickedInputValue.current}
-            coinsRatio={dataSet.options.coinsRatio}
             API_URL={API_URL}
             dataSet={dataSet}
             dataSetFarm={dataSetFarm}
@@ -4933,6 +4726,7 @@ function App() {
             context={tooltipData.context}
             value={tooltipData.value}
             dataSet={dataSet}
+            dataSetFarm={dataSetFarm}
           />
         )}
       </div >
@@ -4941,38 +4735,19 @@ function App() {
   function setCookie() {
     try {
       const bvversion = vversion;
-      const bFarmitArray = Object.entries(bFarmit).map(([key, value]) => ({ name: key, value }));
-      const bCookitArray = Object.entries(bCookit).map(([key, value]) => ({ name: key, value }));
-      const bBuyitArray = Object.entries(dataSet.it)
-        .filter(([item, obj]) => obj && obj.buyit !== undefined && obj.buyit !== null)
-        .map(([item, obj]) => ({ name: item, value: obj.buyit }));
-      const bSpottryArray = Object.entries(dataSet.it)
-        .filter(([item, obj]) => obj && obj.spottry !== undefined && obj.spottry !== null)
-        .map(([item, obj]) => ({ name: item, value: obj.spottry }));
-      const filteredTryit = filterTryit(true);
-      const bTrynftArray = filteredTryit.bTrynftArray;
-      const bTrynftwArray = filteredTryit.bTrynftwArray;
-      const bTrybuildArray = filteredTryit.bTrybuildArray;
-      const bTryskillArray = filteredTryit.bTryskillArray;
-      const bTryskilllgcArray = filteredTryit.bTryskilllgcArray;
-      const bTrybudArray = filteredTryit.bTrybudArray;
-
-      const xHrvstArray = Object.entries(xHrvst).map(([key, value]) => ({ name: key, value }));
-      const xHrvsttryArray = Object.entries(xHrvsttry).map(([key, value]) => ({ name: key, value }));
-      const xBurningArray = Object.entries(xBurning).map(([key, value]) => ({ name: key, value }));
-      const fruitPlantedArray = Object.entries(fruitPlanted).map(([key, value]) => ({ name: key, value }));
-      const dProdArray = Object.entries(dProd).map(([key, value]) => ({ name: key, value }));
-      const dProdtryArray = Object.entries(dProdtry).map(([key, value]) => ({ name: key, value }));
       var dataToStore = {
+        dataSetFarm: dataSetFarm,
+        dataSet: dataSet,
         vversion: bvversion,
         inputValue: inputValue,
         //inputKeep: inputKeep,
-        xoptions: dataSet.options,
+        //bBuyit: bBuyitArray,
+        //bSpottry: bSpottryArray,
         //inputMaxBB: dataSet.inputMaxBB,
         //inputFarmTime: dataSet.inputFarmTime,
         //inputAnimalLvl: dataSet.inputAnimalLvl,
         //coinsRatio: dataSet.options.coinsRatio,
-        inputFromLvl: inputFromLvl,
+        /* inputFromLvl: inputFromLvl,
         inputToLvl: inputToLvl,
         selectedInv: selectedInv,
         selectedCurr: selectedCurr,
@@ -4990,23 +4765,21 @@ function App() {
         xListeColActivityItem: xListeColActivityItem,
         TryChecked: false, //TryChecked,
         CostChecked: CostChecked,
-        xHrvst: xHrvstArray,
-        xHrvsttry: xHrvsttryArray,
-        xBurning: xBurningArray,
-        cstPrices: cstPrices,
         bFarmit: bFarmitArray,
         bCookit: bCookitArray,
-        bBuyit: bBuyitArray,
-        bSpottry: bSpottryArray,
         bTrynft: bTrynftArray,
         bTrynftw: bTrynftwArray,
         bTrybuild: bTrybuildArray,
         bTryskill: bTryskillArray,
         bTryskilllgc: bTryskilllgcArray,
         bTrybud: bTrybudArray,
-        fruitPlanted: fruitPlantedArray,
-        dProd: dProdArray,
-        dProdtry: dProdtryArray,
+        fruitPlanted: fruitPlantedArray, */
+        /* xHrvst: xHrvst,
+        xHrvsttry: xHrvsttry,
+        xBurning: xBurning,
+        cstPrices: cstPrices,
+        dProd: dProd,
+        dProdtry: dProdtry, */
       };
       var dataToStoreString = JSON.stringify(dataToStore);
       //document.cookie = "sflman=" + dataToStoreString + ";expires=31 Dec 2024 23:59:59 UTC;";
@@ -5033,18 +4806,19 @@ function App() {
           return;
         }
         vversion = loadedData.vversion;
+        setdataSetFarm(loadedData.dataSetFarm);
+        dataSet = loadedData.dataSet;
+        DefaultOptions();
         setInputValue(loadedData.inputValue);
-        dataSet.options = loadedData.xoptions;
-        if (!dataSet.options?.animalLvl) { dataSet.options.animalLvl = {} }
-        if (!dataSet.options?.animalLvl?.Chicken) { dataSet.options.animalLvl.Chicken = 5 }
-        if (!dataSet.options?.animalLvl?.Cow) { dataSet.options.animalLvl.Cow = 5 }
-        if (!dataSet.options?.animalLvl?.Sheep) { dataSet.options.animalLvl.Sheep = 5 }
+        //dataSet.options = loadedData.xoptions;
         setInputKeep(dataSet.options.inputKeep);
         lastClickedInputKeep.current = dataSet.options.inputKeep;
         setInputMaxBB(dataSet.options.inputMaxBB);
         //vinputMaxBB = loadedData.inputMaxBB;
         //dataSet.inputMaxBB = loadedData.inputMaxBB;
         setInputFarmTime(dataSet.options.inputFarmTime);
+        //bBuyit = loadedData.bBuyit.reduce((acc, item) => { acc[item.name] = item.value; return acc; }, {});
+        //bSpottry = loadedData.bSpottry.reduce((acc, item) => { acc[item.name] = item.value; return acc; }, {});
         //vinputFarmTime = loadedData.inputFarmTime;
         //dataSet.inputFarmTime = loadedData.inputFarmTime;
         //setInputAnimalLvl(dataSet.options.inputAnimalLvl);
@@ -5052,7 +4826,7 @@ function App() {
         //dataSet.inputAnimalLvl = loadedData.inputAnimalLvl;
         //coinsRatio = loadedData.coinsRatio || 320;
         //dataSet.options.coinsRatio = loadedData.coinsRatio || 320;
-        setInputFromLvl(loadedData.inputFromLvl);
+        /* setInputFromLvl(loadedData.inputFromLvl);
         setInputToLvl(loadedData.inputToLvl);
         setCstPrices(loadedData.cstPrices);
         //setSelectedInv(loadedData.selectedInv);
@@ -5076,13 +4850,8 @@ function App() {
         setXListeColActivityItem(loadedData.xListeColActivityItem && loadedData.xListeColActivityItem);
         setTryChecked(loadedData.TryChecked);
         setCostChecked(loadedData.CostChecked);
-        xHrvst = loadedData.xHrvst.reduce((acc, item) => { acc[item.name] = item.value; return acc; }, {});
-        xHrvsttry = loadedData.xHrvsttry.reduce((acc, item) => { acc[item.name] = item.value; return acc; }, {});
-        xBurning = loadedData.xBurning.reduce((acc, item) => { acc[item.name] = item.value; return acc; }, {});
         bFarmit = loadedData.bFarmit.reduce((acc, item) => { acc[item.name] = item.value; return acc; }, {});
         bCookit = loadedData.bCookit.reduce((acc, item) => { acc[item.name] = item.value; return acc; }, {});
-        bBuyit = loadedData.bBuyit.reduce((acc, item) => { acc[item.name] = item.value; return acc; }, {});
-        bSpottry = loadedData.bSpottry.reduce((acc, item) => { acc[item.name] = item.value; return acc; }, {});
 
         let bTrynft = loadedData.bTrynft.reduce((acc, item) => { acc[item.name] = item.value; return acc; }, {});
         let bTrynftw = loadedData.bTrynftw.reduce((acc, item) => { acc[item.name] = item.value; return acc; }, {});
@@ -5100,9 +4869,12 @@ function App() {
 
         //Object.entries(it).forEach(([item]) => { it[item].buyit = bBuyit[item].buyit; });
 
-        fruitPlanted = loadedData.fruitPlanted.reduce((acc, item) => { acc[item.name] = item.value; return acc; }, {});
-        dProd = loadedData.dProd.reduce((acc, item) => { acc[item.name] = item.value; return acc; }, {});
-        dProdtry = loadedData.dProdtry.reduce((acc, item) => { acc[item.name] = item.value; return acc; }, {});
+        fruitPlanted = loadedData.fruitPlanted.reduce((acc, item) => { acc[item.name] = item.value; return acc; }, {}); */
+        /* xHrvst = loadedData.xHrvst;
+        xHrvsttry = loadedData.xHrvsttry;
+        dProd = loadedData.dProd;
+        dProdtry = loadedData.dProdtry;
+        xBurning = loadedData.xBurning; */
       } else {
         DefaultOptions();
       }
@@ -5110,18 +4882,19 @@ function App() {
     catch (error) {
       localStorage.removeItem("SFLManData");
       //localStorage.clear();
-      console.log("Error, cleared local data");
+      console.log("Load Error, cleared local data");
       console.log(error);
     }
     function DefaultOptions() {
-      dataSet.options.inputMaxBB = 1;
-      dataSet.options.inputFarmTime = 15;
-      //dataSet.options.inputAnimalLvl = 5;
-      dataSet.options.coinsRatio = 320;
-      dataSet.options.gemsRatio = 20;
-      dataSet.options.inputKeep = 3;
-      dataSet.options.tradeTax = 10;
+      if (!dataSet.options?.inputFarmTime) { dataSet.options.inputFarmTime = 15 }
+      if (!dataSet.options?.inputMaxBB) { dataSet.options.inputMaxBB = 1 }
+      if (!dataSet.options?.inputKeep) { dataSet.options.inputKeep = 3 }
+      if (!dataSet.options?.tradeTax) { dataSet.options.tradeTax = 10 }
+      if (!dataSet.options?.gemsRatio) { dataSet.options.gemsRatio = 10 }
+      if (!dataSet.options?.gemsPack) { dataSet.options.gemsPack = 7400 }
+      if (!dataSet.options?.coinsRatio) { dataSet.options.coinsRatio = 320 }
       if (!dataSet.options?.animalLvl) { dataSet.options.animalLvl = {} }
+      if (!dataSet.options?.inputMaxBB) { dataSet.options.inputMaxBB = 1 }
       if (!dataSet.options?.animalLvl?.Chicken) { dataSet.options.animalLvl.Chicken = 5 }
       if (!dataSet.options?.animalLvl?.Cow) { dataSet.options.animalLvl.Cow = 5 }
       if (!dataSet.options?.animalLvl?.Sheep) { dataSet.options.animalLvl.Sheep = 5 }
@@ -5156,7 +4929,7 @@ function App() {
         from: xfrom,
         to: xto,
         type: xtype,
-        spot: spot
+        spot: dataSetFarm.spot || 0
       }
     });
     if (responseExpand.ok) {
@@ -5188,52 +4961,35 @@ function App() {
       }
     }
   }
-  function refreshDataSet() {
-    dataSet.it = it;
-    dataSet.food = food;
-    dataSet.fish = fish;
-    dataSet.flower = flower;
-    dataSet.bounty = bounty;
-    dataSet.craft = craft;
-    dataSet.nft = nft;
-    dataSet.nftw = nftw;
-    dataSet.skill = skill;
-    dataSet.skilllgc = skilllgc;
-    dataSet.buildng = buildng;
-    dataSet.buildngf = buildngf;
-    dataSet.bud = bud;
-    dataSet.tool = tool;
-    dataSet.compost = compost;
-    dataSet.spot = spot;
-    dataSet.ftrades = ftrades;
-    dataSet.animals = Animals;
-    //dataSet.forTry = TryChecked;
-    if (!dataSet.options?.animalLvl) {
-      dataSet.options.animalLvl = Object.fromEntries(
-        Object.keys(Animals).map(animal => [animal, 5])
-      );
-    }
-    if (!dataSet.options?.notifList) {
-      dataSet.options.notifList = Object.keys(it)
-        .filter(key =>
-          !(it[key]?.matcat === 2) &&
-          !(key === "Wild Mushroom") &&
-          !(key === "Magic Mushroom")
-        )
-        .map(key => [key, 1]);
-      dataSet.options.notifList.push(['Bee Swarm', 1]);
-    }
-    if (dataSet.options.notifList.some(([key]) => key === 'Wild Mushroom')) {
-      dataSet.options.notifList = dataSet.options.notifList.filter(([key]) => key !== 'Wild Mushroom');
-    }
-    if (dataSet.options.notifList.some(([key]) => key === 'Magic Mushroom')) {
-      dataSet.options.notifList = dataSet.options.notifList.filter(([key]) => key !== 'Magic Mushroom');
-    }
-    if (!dataSet.options.notifList.some(([key]) => key === 'Market Sold')) {
-      dataSet.options.notifList.push(['Market Sold', 1]);
-    }
-    if (!dataSet.options.notifList.some(([key]) => key === 'Animal needs love')) {
-      dataSet.options.notifList.push(['Animal needs love', 1]);
+  function refreshDataSet(dataSetRefresh) {
+    if (dataSetRefresh.it) {
+      if (!dataSet.options?.animalLvl) {
+        dataSet.options.animalLvl = Object.fromEntries(
+          Object.keys(dataSetRefresh.Animals).map(animal => [animal, 5])
+        );
+      }
+      if (!dataSet.options?.notifList) {
+        dataSet.options.notifList = Object.keys(dataSetRefresh.it)
+          .filter(key =>
+            !(dataSetRefresh.it[key]?.matcat === 2) &&
+            !(key === "Wild Mushroom") &&
+            !(key === "Magic Mushroom")
+          )
+          .map(key => [key, 1]);
+        dataSet.options.notifList.push(['Bee Swarm', 1]);
+      }
+      if (dataSet.options.notifList.some(([key]) => key === 'Wild Mushroom')) {
+        dataSet.options.notifList = dataSet.options.notifList.filter(([key]) => key !== 'Wild Mushroom');
+      }
+      if (dataSet.options.notifList.some(([key]) => key === 'Magic Mushroom')) {
+        dataSet.options.notifList = dataSet.options.notifList.filter(([key]) => key !== 'Magic Mushroom');
+      }
+      if (!dataSet.options.notifList.some(([key]) => key === 'Market Sold')) {
+        dataSet.options.notifList.push(['Market Sold', 1]);
+      }
+      if (!dataSet.options.notifList.some(([key]) => key === 'Animal needs love')) {
+        dataSet.options.notifList.push(['Animal needs love', 1]);
+      }
     }
   }
 }
@@ -5329,7 +5085,7 @@ const getMaxValue = (value1, value2, value3) => {
   const positiveValues = [parseFloat(value1).toFixed(20), parseFloat(value2).toFixed(20), parseFloat(value3).toFixed(20)].filter(value => value > 0);
   return positiveValues.length > 0 ? parseFloat(Math.max(...positiveValues)).toFixed(20).toString() : null;
 };
-function setTryit(xnft, xnftw, xskill, xbuildng, xbud) {
+/* function setTryit(xnft, xnftw, xskill, xbuildng, xbud) {
   const nftEntries = Object.entries(xnft);
   const nftwEntries = Object.entries(xnftw);
   const sklEntries = Object.entries(xskill);
@@ -5390,41 +5146,6 @@ function getCookit(xfood) {
   itEntries.forEach(([item], index) => { xfood[item].cookit = bCookit[item] ? bCookit[item] : 0 });
   //console.log(food);
 }
-function filterTryit(toArray) {
-  const result = {};
-  let bTrynft = {};
-  let bTrynftw = {};
-  let bTrybuild = {};
-  let bTryskill = {};
-  let bTryskilllgc = {};
-  let bTrybud = {};
-  function xfilterTryit() {
-    Object.entries(nft).forEach(([item]) => { bTrynft[item] = nft[item].tryit; });
-    Object.entries(nftw).forEach(([item]) => { bTrynftw[item] = nftw[item].tryit; });
-    Object.entries(skill).forEach(([item]) => { bTryskill[item] = skill[item].tryit; });
-    Object.entries(skilllgc).forEach(([item]) => { bTryskilllgc[item] = skilllgc[item].tryit; });
-    Object.entries(buildng).forEach(([item]) => { bTrybuild[item] = buildng[item].tryit; });
-    Object.entries(bud).forEach(([item]) => { bTrybud[item] = bud[item].tryit; });
-  }
-  xfilterTryit();
-  if (toArray) {
-    result.bTrynftArray = Object.entries(bTrynft).map(([key, value]) => ({ name: key, value }));
-    result.bTrynftwArray = Object.entries(bTrynftw).map(([key, value]) => ({ name: key, value }));
-    result.bTrybuildArray = Object.entries(bTrybuild).map(([key, value]) => ({ name: key, value }));
-    result.bTryskillArray = Object.entries(bTryskill).map(([key, value]) => ({ name: key, value }));
-    result.bTryskilllgcArray = Object.entries(bTryskilllgc).map(([key, value]) => ({ name: key, value }));
-    result.bTrybudArray = Object.entries(bTrybud).map(([key, value]) => ({ name: key, value }));
-    return result;
-  } else {
-    result.bTrynft = bTrynft;
-    result.bTrynftw = bTrynftw;
-    result.bTrybuild = bTrybuild;
-    result.bTryskill = bTryskill;
-    result.bTryskilllgc = bTryskilllgc;
-    result.bTrybud = bTrybud;
-    return result;
-  }
-}
 function MergeIt(xit, xittry) {
   const ittryEntries = Object.entries(xittry);
   ittryEntries.forEach(([item], index) => {
@@ -5475,6 +5196,6 @@ function setPlanted(xit) {
   itEntries.forEach(([item], index) => {
     if (xit[item].cat === "fruit") { xit[item].planted = fruitPlanted[item] }
   });
-}
+} */
 
 export default App;

@@ -1,7 +1,8 @@
 import React, { useEffect, useState } from 'react';
 import { frmtNb, convtimenbr, convTime, ColorValue, Timer } from './fct.js';
 
-const Tooltip = ({ onClose, item, context, value, clickPosition, dataSet }) => {
+const Tooltip = ({ onClose, item, context, value, clickPosition, dataSet, dataSetFarm }) => {
+    const { it, flower, fish, buildng, craft, tool, nft, nftw, skill, skilllgc, bud, bounty, Animals, spot } = dataSetFarm || {};
     const ForTry = (value === "trynft") || dataSet.forTry;
     let activeortry = ForTry ? "tryit" : "isactive";
     let costortry = ForTry ? "costtry" : "cost";
@@ -43,7 +44,7 @@ const Tooltip = ({ onClose, item, context, value, clickPosition, dataSet }) => {
     const imgspring = <img src="./icon/ui/spring.webp" alt={''} className="resico" title="Spring" />;
     const imgsummer = <img src="./icon/ui/summer.webp" alt={''} className="resico" title="Summer" />;
     const imgautumn = <img src="./icon/ui/autumn.webp" alt={''} className="resico" title="Autumn" />;
-    const Item = dataSet.it[item];
+    const Item = it[item] || {};
     const tradeTax = (100 - dataSet.options.tradeTax) / 100;
     let txt = "";
     const [isOpen, setIsOpen] = useState(false);
@@ -81,16 +82,16 @@ const Tooltip = ({ onClose, item, context, value, clickPosition, dataSet }) => {
     try {
         if (context === "costp") {
             const itemImg = <img src={Item?.img ?? imgna} alt={item ?? "?"} style={{ width: "22px", height: "22px" }} />;
-            const itemTool = dataSet.tool[Item?.tool];
+            const itemTool = tool[Item?.tool];
             const imgTool = <img src={itemTool?.img ?? imgna} style={{ width: "22px", height: "22px" }} />
-            const imgOil = <img src={dataSet.it["Oil"].img ?? imgna} style={{ width: "20px", height: "20px" }} />
+            const imgOil = <img src={it["Oil"].img ?? imgna} style={{ width: "20px", height: "20px" }} />
             const toolCost = itemTool && itemTool[costortry];
             let prodCost = Item[costortry] / dataSet.options.coinsRatio;
             let txtCost = "";
             let isFree = Item[costortry] === 0;
             if (Item.cat === "crop") {
                 const oilQuant = Item.greenhouse && Item.oil;
-                const oilCost = Item.greenhouse ? (oilQuant * (dataSet.it["Oil"][costortry] / dataSet.options.coinsRatio)) : 0;
+                const oilCost = Item.greenhouse ? (oilQuant * (it["Oil"][costortry] / dataSet.options.coinsRatio)) : 0;
                 const costTotal = (Item[seedortry] / dataSet.options.coinsRatio) + oilCost;
                 txtCost = (
                     <><div>Seed cost {frmtNb(Item[seedortry])}{imgcoins} {oilQuant && oilQuant}{oilQuant && imgOil}
@@ -106,10 +107,10 @@ const Tooltip = ({ onClose, item, context, value, clickPosition, dataSet }) => {
             if (Item.cat === "mineral" || Item.cat === "gem" || Item.cat === "oil") {
                 if (itemTool) {
                     const toolCompo = Object.keys(itemTool).map((itemName, itIndex) => (
-                        itemTool[itemName] && dataSet.it[itemName] ? (
+                        itemTool[itemName] && it[itemName] ? (
                             <>
                                 {itemTool[itemName]}
-                                <img src={dataSet.it[itemName].img} className="resicon" alt={itemName} />
+                                <img src={it[itemName].img} className="resicon" alt={itemName} />
                             </>
                         ) : null));
                     txtCost = (
@@ -121,7 +122,7 @@ const Tooltip = ({ onClose, item, context, value, clickPosition, dataSet }) => {
                         let itemToolCompo = "";
                         let toolCost = 0; //Item[costortry];
                         let imgSeason = imgna;
-                        let SeasonCurName = dataSet.curSeason;
+                        let SeasonCurName = dataSetFarm.curSeason;
                         if (SeasonCurName === "winter") { imgSeason = imgwinter; };
                         if (SeasonCurName === "spring") { imgSeason = imgspring; };
                         if (SeasonCurName === "summer") { imgSeason = imgsummer; };
@@ -131,17 +132,17 @@ const Tooltip = ({ onClose, item, context, value, clickPosition, dataSet }) => {
                         let toolCompo = [];
                         toolCompo.push(<><span>{imgSeason} :</span> </>);
                         for (let itemName in obsiCompoOrTry) {
-                            if (dataSet.it[itemName]) { itemToolCompo = dataSet.it[itemName]; }
-                            if (dataSet.fish[itemName]) { itemToolCompo = dataSet.fish[itemName]; }
-                            if (dataSet.flower[itemName]) { itemToolCompo = dataSet.flower[itemName]; }
-                            if (dataSet.craft[itemName]) { itemToolCompo = dataSet.craft[itemName]; }
+                            if (it[itemName]) { itemToolCompo = it[itemName]; }
+                            if (fish[itemName]) { itemToolCompo = fish[itemName]; }
+                            if (flower[itemName]) { itemToolCompo = flower[itemName]; }
+                            if (craft[itemName]) { itemToolCompo = craft[itemName]; }
                             toolCost += itemToolCompo[costortry] * obsiCompoOrTry[itemName];
                             toolCompo.push(<span><img src={itemToolCompo.img} className="resicon" title={itemName} />x{obsiCompoOrTry[itemName]}</span>);
                         }
                         //prodCost = toolCost / dataSet.options.coinsRatio;
                         let txtCompos = [];
-                        Object.keys(dataSet.it[item][key("compos")]).map(SeasonName => {
-                            if (SeasonName === dataSet.curSeason) return;
+                        Object.keys(it[item][key("compos")]).map(SeasonName => {
+                            if (SeasonName === dataSetFarm.curSeason) return;
                             if (SeasonName === "winter") { imgSeason = imgwinter; };
                             if (SeasonName === "spring") { imgSeason = imgspring; };
                             if (SeasonName === "summer") { imgSeason = imgsummer; };
@@ -149,12 +150,12 @@ const Tooltip = ({ onClose, item, context, value, clickPosition, dataSet }) => {
                             let lineCompos = [];
                             let toolCostOther = 0;
                             lineCompos.push(<><span>{imgSeason} :</span> </>);
-                            for (let itemName in dataSet.it[item][key("compos")][SeasonName]) {
-                                const compoQuant = dataSet.it[item][key("compos")][SeasonName][itemName];
-                                if (dataSet.it[itemName]) { itemToolCompo = dataSet.it[itemName]; }
-                                if (dataSet.fish[itemName]) { itemToolCompo = dataSet.fish[itemName]; }
-                                if (dataSet.flower[itemName]) { itemToolCompo = dataSet.flower[itemName]; }
-                                if (dataSet.craft[itemName]) { itemToolCompo = dataSet.craft[itemName]; }
+                            for (let itemName in it[item][key("compos")][SeasonName]) {
+                                const compoQuant = it[item][key("compos")][SeasonName][itemName];
+                                if (it[itemName]) { itemToolCompo = it[itemName]; }
+                                if (fish[itemName]) { itemToolCompo = fish[itemName]; }
+                                if (flower[itemName]) { itemToolCompo = flower[itemName]; }
+                                if (craft[itemName]) { itemToolCompo = craft[itemName]; }
                                 toolCostOther += itemToolCompo[costortry] * compoQuant;
                                 lineCompos.push(<span><img src={itemToolCompo.img} className="resicon" title={itemName} />x{compoQuant}</span>);
                             }
@@ -176,7 +177,7 @@ const Tooltip = ({ onClose, item, context, value, clickPosition, dataSet }) => {
                 const aniSpot = Item[spotortry];
                 const foodCost = (Item[foodcostortry] / dataSet.options.coinsRatio);
                 const urlImgFood = Item[foodortry] === "Mix" ? "./icon/res/mixed_grain_v2.webp" :
-                    dataSet.it[Item[foodortry]].img ?? imgna;
+                    it[Item[foodortry]].img ?? imgna;
                 const imgFood = <img src={urlImgFood} style={{ width: "20px", height: "20px" }} />
                 txtCost = (
                     <><div>{imgFood}x{frmtNb(aniFoodQuant)} cost {frmtNb(foodCost)}{imgsfl}</div>
@@ -185,12 +186,12 @@ const Tooltip = ({ onClose, item, context, value, clickPosition, dataSet }) => {
             }
             if (Item.cat === "fruit") {
                 const oilQuant = Item.greenhouse && Item.oil;
-                const oilCost = Item.greenhouse ? (oilQuant * (dataSet.it["Oil"][costortry] / dataSet.options.coinsRatio)) : 0;
+                const oilCost = Item.greenhouse ? (oilQuant * (it["Oil"][costortry] / dataSet.options.coinsRatio)) : 0;
                 const costTotal = (Item[seedortry] / dataSet.options.coinsRatio) + oilCost;
-                const itemTool = dataSet.tool["Axe"];
+                const itemTool = tool["Axe"];
                 const imgTool = <img src={itemTool.img ?? imgna} style={{ width: "22px", height: "22px" }} />
                 const toolCost = Item[toolcostortry];
-                const toolFree = dataSet.nft["Foreman Beaver"][activeortry] || dataSet.skill["No Axe No Worries"][activeortry] ? true : false;
+                const toolFree = nft["Foreman Beaver"][activeortry] || skill["No Axe No Worries"][activeortry] ? true : false;
                 txtCost = (
                     <><div>Seed cost {frmtNb(Item[seedortry])}{imgcoins} {oilQuant && oilQuant}{oilQuant && imgOil}
                         {'('}{frmtNb(costTotal)}{imgsfl}{')'}</div>
@@ -216,9 +217,9 @@ const Tooltip = ({ onClose, item, context, value, clickPosition, dataSet }) => {
         }
         if (context === "harvest") {
             const itemImg = <img src={Item?.img ?? imgna} alt={item ?? "?"} style={{ width: "22px", height: "22px" }} />;
-            const itemTool = dataSet.tool[Item.tool];
+            const itemTool = tool[Item.tool];
             const imgTool = itemTool && <img src={itemTool?.img ?? imgna} style={{ width: "22px", height: "22px" }} />;
-            //let itemSpot = dataSet.spot[dataSet.it[item].cat.toLowerCase()];
+            //let itemSpot = spot[it[item].cat.toLowerCase()];
             let itemSpot = value > 0 ? Item["planted"] : Item[spotortry]; // > Item[stockortry] ? Item[stockortry] : Item[spotortry]; //value > 0 ? Item["planted"] : Item[spotortry];
             let nodeCost = Item[costortry] * (Item[harvestortry] / itemSpot);
             let txtCompo = "";
@@ -226,10 +227,10 @@ const Tooltip = ({ onClose, item, context, value, clickPosition, dataSet }) => {
             //let animalCostp2p = 0;
             if (Item?.cat === "crop") {
                 const cropOrGreenhouse = Item.greenhouse ? "greenhouse" : "crop";
-                //itemSpot = dataSet.spot[cropOrGreenhouse];
-                const imgOil = <img src={dataSet.it["Oil"].img ?? imgna} style={{ width: "20px", height: "20px" }} />;
+                //itemSpot = spot[cropOrGreenhouse];
+                const imgOil = <img src={it["Oil"].img ?? imgna} style={{ width: "20px", height: "20px" }} />;
                 const oilQuant = Item.greenhouse ? Item.oil : 0;
-                const oilCost = oilQuant * dataSet.it["Oil"][costortry];
+                const oilCost = oilQuant * it["Oil"][costortry];
                 nodeCost = Item[seedortry] + oilCost;
                 const txtOilQuantTotal = Item.greenhouse && <span> {oilQuant * itemSpot}{imgOil}</span>;
                 txtCompo = <div> Seeds: {frmtNb(Item[seedortry] * itemSpot)}{imgcoins} {txtOilQuantTotal}
@@ -243,13 +244,13 @@ const Tooltip = ({ onClose, item, context, value, clickPosition, dataSet }) => {
             }
             if (Item?.cat === "mineral" || Item.cat === "gem" || Item.cat === "oil") {
                 if (itemTool) {
-                    //itemSpot = dataSet.spot[item.toLowerCase()];
+                    //itemSpot = spot[item.toLowerCase()];
                     nodeCost = itemTool[costortry];
                     const txtTool = Object.keys(itemTool).map((itemName, itIndex) => (
-                        itemTool[itemName] && dataSet.it[itemName] ? (
+                        itemTool[itemName] && it[itemName] ? (
                             <>
                                 {itemTool[itemName] * itemSpot}
-                                <img src={dataSet.it[itemName].img} className="resicon" alt={itemName} />
+                                <img src={it[itemName].img} className="resicon" alt={itemName} />
                             </>
                         ) : null));
                     txtCompo = <div>{imgTool}x{itemSpot} cost {frmtNb(itemTool[sflortry] * itemSpot)}{imgcoins} {txtTool} {'('}{frmtNb((nodeCost * itemSpot) / dataSet.options.coinsRatio)}{imgsfl}{')'}</div>;
@@ -260,10 +261,10 @@ const Tooltip = ({ onClose, item, context, value, clickPosition, dataSet }) => {
                         isFree = false;
                         const obsiCompoOrTry = ForTry ? Item.compotry : Item.compo;
                         const toolCompo = Object.keys(obsiCompoOrTry).map((itemName, itIndex) => {
-                            if (dataSet.it[itemName]) { itemToolCompo = dataSet.it[itemName]; }
-                            if (dataSet.fish[itemName]) { itemToolCompo = dataSet.fish[itemName]; }
-                            if (dataSet.flower[itemName]) { itemToolCompo = dataSet.flower[itemName]; }
-                            if (dataSet.craft[itemName]) { itemToolCompo = dataSet.craft[itemName]; }
+                            if (it[itemName]) { itemToolCompo = it[itemName]; }
+                            if (fish[itemName]) { itemToolCompo = fish[itemName]; }
+                            if (flower[itemName]) { itemToolCompo = flower[itemName]; }
+                            if (craft[itemName]) { itemToolCompo = craft[itemName]; }
                             nodeCost += itemToolCompo[costortry] * obsiCompoOrTry[itemName];
                             return (
                                 <React.Fragment key={itIndex}>
@@ -283,18 +284,18 @@ const Tooltip = ({ onClose, item, context, value, clickPosition, dataSet }) => {
                 const aniName = Item.animal;
                 //itemSpot = Item[spotortry]; //aniName !== "Chicken" ? dataSet.spot[aniName.toLowerCase()] : dataSet.spot["egg"];
                 nodeCost = Item[foodcostortry];
-                //const imgFood = dataSet.it[dataSet.it[item][foodortry]].img;
+                //const imgFood = it[it[item][foodortry]].img;
                 const urlImgFood = Item[foodortry] === "Mix" ? "./icon/res/mixed_grain_v2.webp" :
-                    dataSet.it[Item[foodortry]].img ?? imgna;
+                    it[Item[foodortry]].img ?? imgna;
                 const txtImgFood = <img src={urlImgFood} style={{ width: "22px", height: "22px" }} />;
-                const quantFood = dataSet.it[item][foodquantortry] * itemSpot;
+                const quantFood = it[item][foodquantortry] * itemSpot;
                 let txtFoodV = null;
                 let animalCost = 0;
                 if (value > 0) {
                     let quantfoodortry = ForTry ? "quantfoodtry" : "quantfood";
                     let costfoodortry = ForTry ? "costFoodtry" : "costFood";
                     let costfoodp2portry = ForTry ? "costFoodp2ptry" : "costFoodp2p";
-                    const animalV = dataSet.animals[aniName];
+                    const animalV = Animals[aniName];
                     const foodTotals = {};
                     Object.keys(animalV).forEach(animalItem => {
                         const foodName = animalV[animalItem][foodortry];
@@ -307,7 +308,7 @@ const Tooltip = ({ onClose, item, context, value, clickPosition, dataSet }) => {
                     const foodList = Object.entries(foodTotals).map(([foodName, totalQuant]) => {
                         const foodImg = foodName === "Mix"
                             ? <img src="./icon/res/mixed_grain_v2.webp" style={{ width: "20px", height: "20px" }} />
-                            : <img src={dataSet.it[foodName]?.img ?? imgna} style={{ width: "20px", height: "20px" }} />;
+                            : <img src={it[foodName]?.img ?? imgna} style={{ width: "20px", height: "20px" }} />;
                         return (
                             <span key={foodName} style={{ marginRight: 3 }}>
                                 {foodImg}x{frmtNb(totalQuant)}
@@ -325,13 +326,13 @@ const Tooltip = ({ onClose, item, context, value, clickPosition, dataSet }) => {
             if (Item.cat === "fruit") {
                 //const fruitOrGreenhouse = Item.greenhouse ? "greenhouse" : "fruit";
                 //itemSpot = Item.imgseason === "FullMoon" ? 1 : dataSet.spot[fruitOrGreenhouse];
-                const imgOil = <img src={dataSet.it["Oil"].img ?? imgna} style={{ width: "20px", height: "20px" }} />
+                const imgOil = <img src={it["Oil"].img ?? imgna} style={{ width: "20px", height: "20px" }} />
                 const oilQuant = Item.greenhouse ? Item.oil : 0;
-                const oilCost = oilQuant * dataSet.it["Oil"][costortry];
-                const itemTool = dataSet.tool["Axe"];
+                const oilCost = oilQuant * it["Oil"][costortry];
+                const itemTool = tool["Axe"];
                 const imgTool = <img src={itemTool.img ?? imgna} style={{ width: "22px", height: "22px" }} />
                 const toolCost = Item[toolcostortry];
-                const toolFree = dataSet.nft["Foreman Beaver"][activeortry] || dataSet.skill["No Axe No Worries"][activeortry] ? true : false;
+                const toolFree = nft["Foreman Beaver"][activeortry] || skill["No Axe No Worries"][activeortry] ? true : false;
                 const harvestNb = Item[nbharvestortry];
                 nodeCost = (Item[seedortry] + oilCost + toolCost) / harvestNb;
                 const prodCost = (nodeCost * itemSpot) / dataSet.options.coinsRatio;
@@ -346,7 +347,7 @@ const Tooltip = ({ onClose, item, context, value, clickPosition, dataSet }) => {
             }
             if (Item?.cat === "honey") {
                 //itemSpot = dataSet.spot.beehive;
-                nodeCost = dataSet.it["Flower"][costortry];
+                nodeCost = it["Flower"][costortry];
                 const prodCost = (nodeCost * itemSpot) / dataSet.options.coinsRatio;
                 txtCompo = <div> Seeds: {frmtNb(prodCost)}{imgsfl}</div>;
             }
@@ -377,10 +378,10 @@ const Tooltip = ({ onClose, item, context, value, clickPosition, dataSet }) => {
         }
         if (context === "dailysfl") {
             const itemImg = <img src={Item?.img ?? imgna} alt={item ?? "?"} style={{ width: "22px", height: "22px" }} />;
-            const itemTool = dataSet.tool[Item.tool];
+            const itemTool = tool[Item.tool];
             const imgTool = itemTool && <img src={itemTool?.img ?? imgna} style={{ width: "22px", height: "22px" }} />;
-            const imgOil = <img src={dataSet.it["Oil"].img ?? imgna} style={{ width: "20px", height: "20px" }} />
-            //let itemSpot = dataSet.spot[dataSet.it[item].cat.toLowerCase()];
+            const imgOil = <img src={it["Oil"].img ?? imgna} style={{ width: "20px", height: "20px" }} />
+            //let itemSpot = spot[it[item].cat.toLowerCase()];
             let itemSpot = Item[spotortry]; // > Item[stockortry] ? Item[stockortry] : Item[spotortry];
             const cycleD = Item[dailycycleortry] || 1;
             let dailySpot = cycleD * itemSpot;
@@ -394,7 +395,7 @@ const Tooltip = ({ onClose, item, context, value, clickPosition, dataSet }) => {
             if (Item.cat === "crop") {
                 dailySpot = cycleD * itemSpot;
                 const oilQuant = Item.greenhouse && (Item.oil * dailySpot);
-                const oilCost = Item.greenhouse ? (oilQuant * (dataSet.it["Oil"][costortry])) : 0;
+                const oilCost = Item.greenhouse ? (oilQuant * (it["Oil"][costortry])) : 0;
                 dailyCoinsCost = (dailySpot * Item[seedortry]) + oilCost;
                 dailySflCost = (dailyCoinsCost / dataSet.options.coinsRatio);
                 txtCompo = <div>Seeds x{dailySpot}: {frmtNb(Item[seedortry] * dailySpot)}{imgcoins}{oilQuant && " + "}{oilQuant && imgOil}{oilQuant && "x"}{oilQuant && oilQuant}
@@ -402,11 +403,11 @@ const Tooltip = ({ onClose, item, context, value, clickPosition, dataSet }) => {
                 txtStock = <span>seed stock: {Item[stockortry]}</span>;
             }
             if (Item.cat === "wood") {
-                //dailyCoinsCost = dailySpot * (dataSet.nft["Foreman Beaver"][activeortry] ? 0 : itemTool[costortry]);
+                //dailyCoinsCost = dailySpot * (nft["Foreman Beaver"][activeortry] ? 0 : itemTool[costortry]);
                 //dailySflCost = (dailyCoinsCost / dataSet.options.coinsRatio);
-                txtCompo = dataSet.nft["Foreman Beaver"][activeortry] ? null :
+                txtCompo = nft["Foreman Beaver"][activeortry] ? null :
                     <div>{imgTool}x{dailySpot} cost {frmtNb(dailyCoinsCost)}{imgcoins} {'('}{frmtNb(dailySflCost)}{imgsfl}{')'}</div>;
-                txtStock = dataSet.nft["Foreman Beaver"][activeortry] ? null : <span>tool stock: {Item[stockortry]}</span>;
+                txtStock = nft["Foreman Beaver"][activeortry] ? null : <span>tool stock: {Item[stockortry]}</span>;
             }
             if (Item.cat === "mineral" || Item.cat === "gem" || Item.cat === "oil") {
                 if (itemTool) {
@@ -414,10 +415,10 @@ const Tooltip = ({ onClose, item, context, value, clickPosition, dataSet }) => {
                     //dailyCoinsCost = (isToolCost ? dailySpot * itemTool[costortry] : 0);
                     //dailySflCost = (isToolCost ? (dailyCoinsCost / dataSet.options.coinsRatio) : 0);
                     const toolCompo = Object.keys(itemTool).map((itemName, itIndex) => (
-                        itemTool[itemName] && dataSet.it[itemName] ? (
+                        itemTool[itemName] && it[itemName] ? (
                             <>
                                 {itemTool[itemName] * dailySpot}
-                                <img src={dataSet.it[itemName].img} className="resicon" alt={itemName} />
+                                <img src={it[itemName].img} className="resicon" alt={itemName} />
                             </>
                         ) : null));
                     txtCompo = isToolCost && <div>{imgTool}x{dailySpot} cost {frmtNb(itemTool[sflortry] * dailySpot)}{imgcoins}{toolCompo} {'('}{frmtNb(dailySflCost)}{imgsfl}{')'}</div>;
@@ -430,10 +431,10 @@ const Tooltip = ({ onClose, item, context, value, clickPosition, dataSet }) => {
                         isFree = false;
                         const obsiCompoOrTry = ForTry ? Item.compotry : Item.compo;
                         const toolCompo = Object.keys(obsiCompoOrTry).map((itemName, itIndex) => {
-                            if (dataSet.it[itemName]) { itemToolCompo = dataSet.it[itemName]; }
-                            if (dataSet.fish[itemName]) { itemToolCompo = dataSet.fish[itemName]; }
-                            if (dataSet.flower[itemName]) { itemToolCompo = dataSet.flower[itemName]; }
-                            if (dataSet.craft[itemName]) { itemToolCompo = dataSet.craft[itemName]; }
+                            if (it[itemName]) { itemToolCompo = it[itemName]; }
+                            if (fish[itemName]) { itemToolCompo = fish[itemName]; }
+                            if (flower[itemName]) { itemToolCompo = flower[itemName]; }
+                            if (craft[itemName]) { itemToolCompo = craft[itemName]; }
                             toolCost += itemToolCompo[costortry] * obsiCompoOrTry[itemName];
                             return (
                                 <React.Fragment key={itIndex}>
@@ -454,7 +455,7 @@ const Tooltip = ({ onClose, item, context, value, clickPosition, dataSet }) => {
                 const aniName = Item.animal;
                 dailySpot = cycleD * itemSpot;
                 const urlImgFood = Item[foodortry] === "Mix" ? "./icon/res/mixed_grain_v2.webp" :
-                    dataSet.it[Item[foodortry]].img ?? imgna;
+                    it[Item[foodortry]].img ?? imgna;
                 const imgFood = <img src={urlImgFood} style={{ width: "20px", height: "20px" }} />
                 const aniFoodQuant = Item[foodquantortry];
                 const foodQuant = aniFoodQuant * dailySpot;
@@ -468,7 +469,7 @@ const Tooltip = ({ onClose, item, context, value, clickPosition, dataSet }) => {
             if (Item.cat === "fruit") {
                 /* dailySpot = cycleD * itemSpot;
                 const oilQuant = Item.greenhouse && (Item.oil * dailySpot);
-                const oilCost = Item.greenhouse ? (oilQuant * (dataSet.it["Oil"][costortry])) : 0;
+                const oilCost = Item.greenhouse ? (oilQuant * (it["Oil"][costortry])) : 0;
                 dailyCoinsCost = (dailySpot * Item[seedortry]) + oilCost;
                 dailySflCost = (dailyCoinsCost / dataSet.options.coinsRatio);
                 txtCompo = <div>Seed cost {frmtNb(dailyCoinsCost)}{imgcoins} for {dailySpot}seed {oilQuant && oilQuant}{oilQuant && imgOil}
@@ -476,17 +477,17 @@ const Tooltip = ({ onClose, item, context, value, clickPosition, dataSet }) => {
                 txtStock = <span>seed stock: {Item[stockortry]}</span>; */
                 dailySpot = cycleD * itemSpot;
                 const oilQuant = Item.greenhouse ? Item.oil * dailySpot : 0;
-                const oilCost = oilQuant * dataSet.it["Oil"][costortry];
-                const itemTool = dataSet.tool["Axe"];
+                const oilCost = oilQuant * it["Oil"][costortry];
+                const itemTool = tool["Axe"];
                 const imgTool = <img src={itemTool.img ?? imgna} style={{ width: "22px", height: "22px" }} />
                 const toolCost = Item[toolcostortry];
                 const harvestNb = Item[nbharvestortry];
-                const toolFree = dataSet.nft["Foreman Beaver"][activeortry] || dataSet.skill["No Axe No Worries"][activeortry] ? true : false;
-                //const woodHrvst = (itemSpot * (1 - dataSet.skill["No Axe No Worries"][activeortry] + dataSet.skill["Fruity Woody"][activeortry]));
+                const toolFree = nft["Foreman Beaver"][activeortry] || skill["No Axe No Worries"][activeortry] ? true : false;
+                //const woodHrvst = (itemSpot * (1 - skill["No Axe No Worries"][activeortry] + skill["Fruity Woody"][activeortry]));
                 const woodAvg = Item[woodavgortry]; //((cycleD / harvestNb) * woodHrvst);
-                const woodImg = <img src={dataSet.it["Wood"].img ?? imgna} style={{ width: "20px", height: "20px" }} />;
+                const woodImg = <img src={it["Wood"].img ?? imgna} style={{ width: "20px", height: "20px" }} />;
                 //const dailyReplant = itemSpot * Math.ceil(cycleD / harvestNb);
-                //dailySfl += woodAvg > 0 ? ((dataSet.it["Wood"].costp2pt * tradeTax) * woodAvg) : 0;
+                //dailySfl += woodAvg > 0 ? ((it["Wood"].costp2pt * tradeTax) * woodAvg) : 0;
                 //nodeCost = (Item[seedortry] + oilCost + toolCost) / harvestNb;
                 //const prodCost = (nodeCost * dailySpot) / dataSet.options.coinsRatio;
                 if (!Item.greenhouse) {
@@ -551,7 +552,7 @@ const Tooltip = ({ onClose, item, context, value, clickPosition, dataSet }) => {
                         const itemRdyAt = itemsObject ? item.readyAt : item.craft[crafting].readyAt;
                         return (
                             <div key={index}>
-                                <img src={dataSet[itemType][itemName].img} className="resicon" alt={itemName} />
+                                <img src={dataSetFarm[itemType][itemName].img} className="resicon" alt={itemName} />
                                 {itemAmount > 1 && "x" + itemAmount} {" "}
                                 ready in <Timer timestamp={itemRdyAt} />
                             </div>
@@ -623,7 +624,7 @@ const Tooltip = ({ onClose, item, context, value, clickPosition, dataSet }) => {
             }
         }
         if (context === "trynft") {
-            const booststable = { ...dataSet.skilllgc, ...dataSet.skill, ...dataSet.buildng, ...dataSet.nft, ...dataSet.nftw, ...dataSet.bud };
+            const booststable = { ...skilllgc, ...skill, ...buildng, ...nft, ...nftw, ...bud };
             const imtemimg = <img src={Item?.img ?? imgna} alt={item} style={{ width: "22px", height: "22px" }} />;
             let filteredBoosts = [];
             let txtItem = "";
@@ -651,7 +652,7 @@ const Tooltip = ({ onClose, item, context, value, clickPosition, dataSet }) => {
                     if (Item.greenhouse && isGreenhouseBoost) { isBoostValid = true; }
                     if (isBoostValid) {
                         if (Item.greenhouse) {
-                            if (dataSet.it[boost?.boostit] && item !== boost?.boostit) { isBoostValid = false; }
+                            if (it[boost?.boostit] && item !== boost?.boostit) { isBoostValid = false; }
                             if (!isGreenhouseBoost) {
                                 if (boosttype === "time") {
                                     if (boost?.boostit === "crop") { isBoostValid = false; }
@@ -671,10 +672,10 @@ const Tooltip = ({ onClose, item, context, value, clickPosition, dataSet }) => {
                         if (nftitem === "No Axe No Worries" && Item.greenhouse) { isBoostValid = false; }
                         if (nftitem === "Feller's Discount" && Item.greenhouse) { isBoostValid = false; }
                         if (!tryset) {
-                            if (nftitem === "Frozen Heart" && dataSet.curSeason !== "winter") { isBoostValid = false; }
-                            if (nftitem === "Autumn's Embrace" && dataSet.curSeason !== "autumn") { isBoostValid = false; }
-                            if (nftitem === "Blossom Ward" && dataSet.curSeason !== "spring") { isBoostValid = false; }
-                            if (nftitem === "Solflare Aegis" && dataSet.curSeason !== "summer") { isBoostValid = false; }
+                            if (nftitem === "Frozen Heart" && dataSetFarm.curSeason !== "winter") { isBoostValid = false; }
+                            if (nftitem === "Autumn's Embrace" && dataSetFarm.curSeason !== "autumn") { isBoostValid = false; }
+                            if (nftitem === "Blossom Ward" && dataSetFarm.curSeason !== "spring") { isBoostValid = false; }
+                            if (nftitem === "Solflare Aegis" && dataSetFarm.curSeason !== "summer") { isBoostValid = false; }
                         }
                         if (Item.scat === "barn" && nftitem === "Double Bale" && !booststable["Bale Economy"][activeOrTryit]) { isBoostValid = false; }
                     }
@@ -729,7 +730,7 @@ const Tooltip = ({ onClose, item, context, value, clickPosition, dataSet }) => {
         }
         if (context === "trynftsupply") {
             if (value === "nft") {
-                const nftItem = dataSet.nft[item] ? dataSet.nft[item] : null;
+                const nftItem = nft[item] ? nft[item] : null;
                 const imtemimg = <img src={nftItem?.img ?? imgna} alt={item} style={{ width: "22px", height: "22px" }} />;
                 txt = (
                     <><div>{imtemimg}{item} supply</div>
@@ -740,7 +741,7 @@ const Tooltip = ({ onClose, item, context, value, clickPosition, dataSet }) => {
                 );
             }
             if (value === "nftw") {
-                const nftItem = dataSet.nftw[item] ? dataSet.nftw[item] : null;
+                const nftItem = nftw[item] ? nftw[item] : null;
                 const imtemimg = <img src={nftItem?.img ?? imgna} alt={item} style={{ width: "22px", height: "22px" }} />;
                 txt = (
                     <><div>{imtemimg}{item} supply</div>
@@ -752,7 +753,7 @@ const Tooltip = ({ onClose, item, context, value, clickPosition, dataSet }) => {
             }
         }
         if (context === "trades") {
-            const trades = dataSet.ftrades;
+            const trades = dataSetFarm.ftrades;
             if (trades && Object.keys(trades).length > 0) {
                 let totalPrice = 0;
                 let totalMarketPrice = 0;
@@ -784,23 +785,23 @@ const Tooltip = ({ onClose, item, context, value, clickPosition, dataSet }) => {
                                 const price = traderow.sfl;
                                 let marketPrice = 0;
                                 let itemImg = "";
-                                if (dataSet.nft[itemName]) {
-                                    marketPrice = dataSet.nft[itemName].pricemsfl * quantity;
-                                    itemImg = <img src={dataSet.nft[itemName].img} className="resicon" />;
+                                if (nft[itemName]) {
+                                    marketPrice = nft[itemName].pricemsfl * quantity;
+                                    itemImg = <img src={nft[itemName].img} className="resicon" />;
                                 }
-                                if (dataSet.nftw[itemName]) {
-                                    marketPrice = dataSet.nftw[itemName].pricemsfl * quantity;
-                                    itemImg = <img src={dataSet.nftw[itemName].img} className="resicon" />;
+                                if (nftw[itemName]) {
+                                    marketPrice = nftw[itemName].pricemsfl * quantity;
+                                    itemImg = <img src={nftw[itemName].img} className="resicon" />;
                                 }
-                                if (dataSet.it[itemName]) {
-                                    marketPrice = dataSet.it[itemName].costp2pt * quantity;
-                                    itemImg = <img src={dataSet.it[itemName].img} className="resicon" />;
+                                if (it[itemName]) {
+                                    marketPrice = it[itemName].costp2pt * quantity;
+                                    itemImg = <img src={it[itemName].img} className="resicon" />;
                                 }
-                                if (dataSet.fish[itemName]) {
-                                    itemImg = <img src={dataSet.fish[itemName].img} className="resicon" />;
+                                if (fish[itemName]) {
+                                    itemImg = <img src={fish[itemName].img} className="resicon" />;
                                 }
-                                if (dataSet.flower[itemName]) {
-                                    itemImg = <img src={dataSet.flower[itemName].img} className="resicon" />;
+                                if (flower[itemName]) {
+                                    itemImg = <img src={flower[itemName].img} className="resicon" />;
                                 }
                                 const marketDiff = marketPrice ? ((price - marketPrice) / marketPrice * 100).toFixed(2) + "%" : "N/A";
                                 const marketDiffStyle = marketPrice && ((price - marketPrice) / marketPrice * 100) > 20 ? { color: "red" } : {};
@@ -865,23 +866,23 @@ const Tooltip = ({ onClose, item, context, value, clickPosition, dataSet }) => {
             </>
         }
         if (context === "craftcompo") {
-            const itemImg = <img src={dataSet.craft[item]?.img ?? imgna} alt={item ?? "?"} style={{ width: "22px", height: "22px" }} />;
+            const itemImg = <img src={craft[item]?.img ?? imgna} alt={item ?? "?"} style={{ width: "22px", height: "22px" }} />;
             let totalCost = 0;
             let totalCostM = 0;
-            const tableContent = Object.keys(dataSet.craft[item].compo).map((key) => {
-                const compoQuant = dataSet.craft[item].compo[key];
+            const tableContent = Object.keys(craft[item].compo).map((key) => {
+                const compoQuant = craft[item].compo[key];
                 let itemBase = {};
-                if (dataSet.it[key]) {
-                    itemBase = dataSet.it;
+                if (it[key]) {
+                    itemBase = it;
                 }
-                if (dataSet.bounty[key]) {
-                    itemBase = dataSet.bounty;
+                if (bounty[key]) {
+                    itemBase = bounty;
                 }
-                if (dataSet.flower[key]) {
-                    itemBase = dataSet.flower;
+                if (flower[key]) {
+                    itemBase = flower;
                 }
-                if (dataSet.craft[key]) {
-                    itemBase = dataSet.craft;
+                if (craft[key]) {
+                    itemBase = craft;
                 }
                 const icompoToAdd = itemBase[key].img || imgna;
                 const icompoImg = <img src={icompoToAdd} alt={key} className="resicon" title={key} />;
@@ -923,23 +924,23 @@ const Tooltip = ({ onClose, item, context, value, clickPosition, dataSet }) => {
             );
             txt = table;
             /* let icompoimg = [];
-                for (let key in dataSet.craft[item].compo) {
-                const compoQuant = dataSet.craft[item].compo[key];
+                for (let key in craft[item].compo) {
+                const compoQuant = craft[item].compo[key];
                 let itemBase = {};
                 let icompoToAdd = imgna;
                 let icompoValue = 0;
                 let icompoValueM = 0;
-                if (dataSet.it[key]) {
-                    itemBase = dataSet.it;
+                if (it[key]) {
+                    itemBase = it;
                 }
-                if (dataSet.bounty[key]) {
-                    itemBase = dataSet.bounty;
+                if (bounty[key]) {
+                    itemBase = bounty;
                 }
-                if (dataSet.flower[key]) {
-                    itemBase = dataSet.flower;
+                if (flower[key]) {
+                    itemBase = flower;
                 }
-                if (dataSet.craft[key]) {
-                    itemBase = dataSet.craft;
+                if (craft[key]) {
+                    itemBase = craft;
                 }
                 icompoToAdd = itemBase[key].img || imgna;
                 icompoValue = itemBase[key][costortry] / dataSet.options.coinsRatio || 0;
@@ -957,7 +958,7 @@ const Tooltip = ({ onClose, item, context, value, clickPosition, dataSet }) => {
             </> */
         }
         if (context === "ratiodig" || context === "ratiodigp") {
-            const itemImg = <img src={dataSet.bounty[item]?.img ?? imgna} alt={item ?? "?"} style={{ width: "22px", height: "22px" }} />;
+            const itemImg = <img src={bounty[item]?.img ?? imgna} alt={item ?? "?"} style={{ width: "22px", height: "22px" }} />;
             let txtItem = "";
             let txtItemImg = "";
             let txtPattern = "";

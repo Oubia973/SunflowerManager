@@ -5,7 +5,7 @@ const config: CapacitorConfig = {
   appName: 'Sunflower Manager',
   webDir: 'build',
   server: {
-    url: 'https://sunflower.ott2tv.com',
+    url: 'https://sunflowermanager.xyz',
     cleartext: false
   },
   plugins: {
