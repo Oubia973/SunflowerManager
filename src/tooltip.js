@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import { frmtNb, convtimenbr, convTime, ColorValue, Timer } from './fct.js';
 
 const Tooltip = ({ onClose, item, context, value, clickPosition, dataSet, dataSetFarm }) => {
@@ -48,8 +48,28 @@ const Tooltip = ({ onClose, item, context, value, clickPosition, dataSet, dataSe
     const tradeTax = (100 - dataSet.options.tradeTax) / 100;
     let txt = "";
     const [isOpen, setIsOpen] = useState(false);
-    //const [pos, setPos] = useState({ x: clickPosition.x, y: clickPosition.y });
     const [justOpened, setJustOpened] = useState(true);
+    //const [pos, setPos] = useState({ x: clickPosition.x, y: clickPosition.y });
+    const [pos, setPos] = useState({ x: 200, y: 200 });
+    const [dragging, setDragging] = useState(false);
+    const offset = useRef({ x: 0, y: 0 });
+    const handleMouseDown = (e) => {
+        setDragging(true);
+        offset.current = {
+            x: e.clientX - pos.x,
+            y: e.clientY - pos.y,
+        };
+    };
+    const handleMouseMove = (e) => {
+        if (!dragging) return;
+        setPos({
+            x: e.clientX - offset.current.x,
+            y: e.clientY - offset.current.y,
+        });
+    };
+    const handleMouseUp = () => {
+        setDragging(false);
+    };
     const closeModal = () => {
         setIsOpen(false);
         setTimeout(onClose, 300);
@@ -106,13 +126,26 @@ const Tooltip = ({ onClose, item, context, value, clickPosition, dataSet, dataSe
             }
             if (Item.cat === "mineral" || Item.cat === "gem" || Item.cat === "oil") {
                 if (itemTool) {
-                    const toolCompo = Object.keys(itemTool).map((itemName, itIndex) => (
+                    /* const toolCompo = Object.keys(itemTool).map((itemName, itIndex) => (
                         itemTool[itemName] && it[itemName] ? (
                             <>
                                 {itemTool[itemName]}
                                 <img src={it[itemName].img} className="resicon" alt={itemName} />
                             </>
-                        ) : null));
+                        ) : null)); */
+                    const toolCompo = Object.keys(itemTool).map((itemName, itIndex) => {
+                        const cleanName = ForTry ? itemName.replace(/try$/, "") : itemName;
+                        const hasTryset = itemTool[cleanName] >= 0 && itemTool[cleanName + "try"] >= 0;
+                        const hasQuant = ForTry ? (hasTryset ? (itemName.endsWith("try") && itemTool[itemName] > 0) : itemTool[itemName] > 0) : (!itemName.endsWith("try") && itemTool[itemName] > 0);
+                        //console.log(itemTool, itemName, hasQuant, itemTool[itemName]);
+                        return (
+                            hasQuant && it[cleanName] ? (
+                                <React.Fragment key={itIndex}>
+                                    {itemTool[itemName]}
+                                    <img src={it[cleanName].img} className="resicon" alt={cleanName} />
+                                </React.Fragment>
+                            ) : null);
+                    });
                     txtCost = (
                         <><div>{imgTool} cost {frmtNb(itemTool[sflortry])}{imgcoins}
                             {toolCompo} {'('}{frmtNb(toolCost / dataSet.options.coinsRatio)}{imgsfl}{')'}</div></>
@@ -177,7 +210,8 @@ const Tooltip = ({ onClose, item, context, value, clickPosition, dataSet, dataSe
                 const aniSpot = Item[spotortry];
                 const foodCost = (Item[foodcostortry] / dataSet.options.coinsRatio);
                 const urlImgFood = Item[foodortry] === "Mix" ? "./icon/res/mixed_grain_v2.webp" :
-                    it[Item[foodortry]].img ?? imgna;
+                    Item[foodortry] === "Omnifeed" ? "./icon/res/omnifeed.webp" :
+                        it[Item[foodortry]].img ?? imgna;
                 const imgFood = <img src={urlImgFood} style={{ width: "20px", height: "20px" }} />
                 txtCost = (
                     <><div>{imgFood}x{frmtNb(aniFoodQuant)} cost {frmtNb(foodCost)}{imgsfl}</div>
@@ -201,15 +235,17 @@ const Tooltip = ({ onClose, item, context, value, clickPosition, dataSet, dataSe
                 );
             }
             const profit = (Item.costp2pt * tradeTax) - prodCost;
-            const profitMul = (Item.costp2pt * tradeTax) / prodCost;
+            const profitMul = frmtNb((Item.costp2pt * tradeTax) / prodCost);
+            const profiPercent = (Math.ceil(profitMul * 100) - 100) || 0;
             const colorProfitMul = ColorValue(profitMul);
             txt = !Item?.buyit ? (
                 <><div>{itemImg} {item} cost</div>
                     <div>{isFree ? null : txtCost}</div>
-                    <div>{itemImg}x{frmtNb(Item[harvestortry] / Item[spotortry])} average by node</div>
+                    {/* <div>{itemImg}x{frmtNb(Item[harvestortry] / (Item[spotortry] || 1))} average by node</div> */}
+                    <div>{itemImg}x{frmtNb(Item[key("harvestnode")])} average by node</div>
                     <div>Your production cost {frmtNb(prodCost)}{imgsfl}</div>
                     <div>Marketplace{imgmp}-{dataSet.options.tradeTax}% tax {frmtNb(Item.costp2pt * tradeTax)}{imgsfl}</div>
-                    <div>Profit {frmtNb(profit)}{imgsfl} <span style={{ color: colorProfitMul }}>x{frmtNb(profitMul)}</span></div></>
+                    <div>Profit {frmtNb(profit)}{imgsfl} <span style={{ color: colorProfitMul }}>{profiPercent}%</span></div></>
             ) : (
                 <><div>{itemImg} {item}</div>
                     <div>You buy this item for {frmtNb(Item.costp2pt)}{imgsfl}</div></>
@@ -240,12 +276,26 @@ const Tooltip = ({ onClose, item, context, value, clickPosition, dataSet, dataSe
                 nodeCost = itemTool[costortry];
                 //nodeCost = dataSet.nft["Foreman Beaver"][activeortry] ? 0 : itemTool[costortry];
                 const txtTool = <div>{imgTool}x{itemSpot} cost {frmtNb(nodeCost * itemSpot)}{imgcoins} {'('}{frmtNb((nodeCost * itemSpot) / dataSet.options.coinsRatio)}{imgsfl}{')'}</div>;
-                txtCompo = <div>{dataSet.nft["Foreman Beaver"][activeortry] ? "nothing" : txtTool}</div>;
+                txtCompo = <div>{nft["Foreman Beaver"][activeortry] ? "nothing" : txtTool}</div>;
             }
             if (Item?.cat === "mineral" || Item.cat === "gem" || Item.cat === "oil") {
                 if (itemTool) {
                     //itemSpot = spot[item.toLowerCase()];
                     nodeCost = itemTool[costortry];
+                    const nTools = it[item][key("toolshrvst")];
+                    const toolCompo = Object.keys(itemTool).map((itemName, itIndex) => {
+                        const cleanName = ForTry ? itemName.replace(/try$/, "") : itemName;
+                        const hasTryset = itemTool[cleanName] >= 0 && itemTool[cleanName + "try"] >= 0;
+                        const hasQuant = ForTry ? (hasTryset ? (itemName.endsWith("try") && itemTool[itemName] > 0) : itemTool[itemName] > 0) : (!itemName.endsWith("try") && itemTool[itemName] > 0);
+                        //console.log(itemTool, itemName, hasQuant, itemTool[itemName]);
+                        return (
+                            hasQuant && it[cleanName] ? (
+                                <React.Fragment key={itIndex}>
+                                    {itemTool[itemName] * nTools}
+                                    <img src={it[cleanName].img} className="resicon" alt={cleanName} />
+                                </React.Fragment>
+                            ) : null);
+                    });
                     const txtTool = Object.keys(itemTool).map((itemName, itIndex) => (
                         itemTool[itemName] && it[itemName] ? (
                             <>
@@ -253,7 +303,7 @@ const Tooltip = ({ onClose, item, context, value, clickPosition, dataSet, dataSe
                                 <img src={it[itemName].img} className="resicon" alt={itemName} />
                             </>
                         ) : null));
-                    txtCompo = <div>{imgTool}x{itemSpot} cost {frmtNb(itemTool[sflortry] * itemSpot)}{imgcoins} {txtTool} {'('}{frmtNb((nodeCost * itemSpot) / dataSet.options.coinsRatio)}{imgsfl}{')'}</div>;
+                    txtCompo = <div>{imgTool}x{nTools} cost {frmtNb(itemTool[sflortry] * nTools)}{imgcoins} {toolCompo} {'('}{frmtNb((nodeCost * itemSpot) / dataSet.options.coinsRatio)}{imgsfl}{')'}</div>;
                 } else {
                     if (item === "Obsidian") {
                         let itemToolCompo = "";
@@ -286,7 +336,8 @@ const Tooltip = ({ onClose, item, context, value, clickPosition, dataSet, dataSe
                 nodeCost = Item[foodcostortry];
                 //const imgFood = it[it[item][foodortry]].img;
                 const urlImgFood = Item[foodortry] === "Mix" ? "./icon/res/mixed_grain_v2.webp" :
-                    it[Item[foodortry]].img ?? imgna;
+                    Item[foodortry] === "Omnifeed" ? "./icon/res/omnifeed.webp" :
+                        it[Item[foodortry]].img ?? imgna;
                 const txtImgFood = <img src={urlImgFood} style={{ width: "22px", height: "22px" }} />;
                 const quantFood = it[item][foodquantortry] * itemSpot;
                 let txtFoodV = null;
@@ -308,7 +359,8 @@ const Tooltip = ({ onClose, item, context, value, clickPosition, dataSet, dataSe
                     const foodList = Object.entries(foodTotals).map(([foodName, totalQuant]) => {
                         const foodImg = foodName === "Mix"
                             ? <img src="./icon/res/mixed_grain_v2.webp" style={{ width: "20px", height: "20px" }} />
-                            : <img src={it[foodName]?.img ?? imgna} style={{ width: "20px", height: "20px" }} />;
+                            : foodName === "Omnifeed" ? <img src="./icon/res/omnifeed.webp" style={{ width: "20px", height: "20px" }} />
+                                : <img src={it[foodName]?.img ?? imgna} style={{ width: "20px", height: "20px" }} />;
                         return (
                             <span key={foodName} style={{ marginRight: 3 }}>
                                 {foodImg}x{frmtNb(totalQuant)}
@@ -358,6 +410,7 @@ const Tooltip = ({ onClose, item, context, value, clickPosition, dataSet, dataSe
             const txtProdCost = !isFree && <div>Your production cost: {txtCompo}</div>;
             const profit = harvestCostp2pt - prodCostFinal;
             const profitMul = harvestCostp2pt / prodCostFinal;
+            const profiPercent = (Math.ceil(profitMul * 100) - 100) || 0;
             const colorProfitMul = ColorValue(profitMul);
             const txtHarvest = value > 0 ? (<>
                 <div>Harvest {itemImg}x{parseFloat(value).toFixed(2)} for {itemSpot} nodes</div>
@@ -370,7 +423,7 @@ const Tooltip = ({ onClose, item, context, value, clickPosition, dataSet, dataSe
                     {txtHarvest}
                     {txtProdCost}
                     <div>Marketplace{imgmp}-{dataSet.options.tradeTax}% tax {frmtNb(harvestCostp2pt)}{imgsfl}</div>
-                    <div>Profit {frmtNb(profit)}{imgsfl} <span style={{ color: colorProfitMul }}>x{frmtNb(profitMul)}</span></div></>
+                    <div>Profit {frmtNb(profit)}{imgsfl} <span style={{ color: colorProfitMul }}>{profiPercent}%</span></div></>
             ) : (
                 <><div>{itemImg} {item}</div>
                     <div>You buy this item for {frmtNb(Item.costp2pt)}{imgsfl}</div></>
@@ -412,16 +465,23 @@ const Tooltip = ({ onClose, item, context, value, clickPosition, dataSet, dataSe
             if (Item.cat === "mineral" || Item.cat === "gem" || Item.cat === "oil") {
                 if (itemTool) {
                     const isToolCost = Item[costortry] !== 0;
+                    const nTools = it[item][key("toolshrvst")] * cycleD;
                     //dailyCoinsCost = (isToolCost ? dailySpot * itemTool[costortry] : 0);
                     //dailySflCost = (isToolCost ? (dailyCoinsCost / dataSet.options.coinsRatio) : 0);
-                    const toolCompo = Object.keys(itemTool).map((itemName, itIndex) => (
-                        itemTool[itemName] && it[itemName] ? (
-                            <>
-                                {itemTool[itemName] * dailySpot}
-                                <img src={it[itemName].img} className="resicon" alt={itemName} />
-                            </>
-                        ) : null));
-                    txtCompo = isToolCost && <div>{imgTool}x{dailySpot} cost {frmtNb(itemTool[sflortry] * dailySpot)}{imgcoins}{toolCompo} {'('}{frmtNb(dailySflCost)}{imgsfl}{')'}</div>;
+                    const toolCompo = Object.keys(itemTool).map((itemName, itIndex) => {
+                        const cleanName = ForTry ? itemName.replace(/try$/, "") : itemName;
+                        const hasTryset = itemTool[cleanName] >= 0 && itemTool[cleanName + "try"] >= 0;
+                        const hasQuant = ForTry ? (hasTryset ? (itemName.endsWith("try") && itemTool[itemName] > 0) : itemTool[itemName] > 0) : (!itemName.endsWith("try") && itemTool[itemName] > 0);
+                        //console.log(itemTool, itemName, hasQuant, itemTool[itemName]);
+                        return (
+                            hasQuant && it[cleanName] ? (
+                                <React.Fragment key={itIndex}>
+                                    {itemTool[itemName] * nTools}
+                                    <img src={it[cleanName].img} className="resicon" alt={cleanName} />
+                                </React.Fragment>
+                            ) : null);
+                    });
+                    txtCompo = isToolCost && <div>{imgTool}x{nTools} cost {frmtNb(itemTool[sflortry] * nTools)}{imgcoins}{toolCompo} {'('}{frmtNb(dailySflCost)}{imgsfl}{')'}</div>;
                     txtStock = isToolCost && <span>tool stock: {Item[stockortry]}</span>;
                 }
                 else {
@@ -455,7 +515,8 @@ const Tooltip = ({ onClose, item, context, value, clickPosition, dataSet, dataSe
                 const aniName = Item.animal;
                 dailySpot = cycleD * itemSpot;
                 const urlImgFood = Item[foodortry] === "Mix" ? "./icon/res/mixed_grain_v2.webp" :
-                    it[Item[foodortry]].img ?? imgna;
+                    Item[foodortry] === "Omnifeed" ? "./icon/res/omnifeed.webp" :
+                        it[Item[foodortry]].img ?? imgna;
                 const imgFood = <img src={urlImgFood} style={{ width: "20px", height: "20px" }} />
                 const aniFoodQuant = Item[foodquantortry];
                 const foodQuant = aniFoodQuant * dailySpot;
@@ -514,6 +575,7 @@ const Tooltip = ({ onClose, item, context, value, clickPosition, dataSet, dataSe
             const txtProdCost = !isFree && <div>{txtCompo}</div>;
             const profit = dailySfl - dailySflCost;
             const profitMul = dailySfl / dailySflCost;
+            const profiPercent = (Math.ceil(profitMul * 100) - 100) || 0;
             const colorProfitMul = ColorValue(profitMul);
             const hrvstDSfl = frmtNb(Item[harvestortry] * cycleD * (Item.costp2pt * tradeTax));
             const txtHrvstDSfl = Item.cat === "fruit" && !Item.greenhouse ? <span> {"("}{hrvstDSfl}{imgsfl}{")"}</span> : null;
@@ -530,7 +592,7 @@ const Tooltip = ({ onClose, item, context, value, clickPosition, dataSet, dataSe
                     {txtToolsBurn}
                     {txtProdCost}
                     <div>Marketplace{imgmp}-{dataSet.options.tradeTax}% tax {frmtNb(dailySfl)}{imgsfl}</div>
-                    <div>Profit {frmtNb(profit)}{imgsfl} <span style={{ color: colorProfitMul }}>x{frmtNb(profitMul)}</span></div></>
+                    <div>Profit {frmtNb(profit)}{imgsfl} <span style={{ color: colorProfitMul }}>{profiPercent}%</span></div></>
             ) : (
                 <><div>{itemImg} {item}</div>
                     <div>You buy this item for {frmtNb(Item.costp2pt)}{imgsfl}</div></>
@@ -698,7 +760,7 @@ const Tooltip = ({ onClose, item, context, value, clickPosition, dataSet, dataSe
                 filteredBoosts = [...filterBoosts(item, "yield", ForTry), ...filterBoosts(item, "time", ForTry), ...filterBoosts(item, "cost", ForTry)];
                 txtItem = (<>
                     <div>{imtemimg}{item} yield : {frmtNb(Item[myieldortry])}</div>
-                    <div>{frmtNb(Item[harvestortry] / Item[spotortry])} average by node</div>
+                    <div>{frmtNb(Item[key("harvestnode")])} average by node</div>
                     <div>Boosts :</div>
                 </>);
             }
@@ -855,6 +917,7 @@ const Tooltip = ({ onClose, item, context, value, clickPosition, dataSet, dataSe
             let isFree = Item[costortry] === 0;
             const profit = ((Item.costp2pt * value.itemQuant) * tradeTax) - prodCost;
             const profitMul = ((Item.costp2pt * value.itemQuant) * tradeTax) / prodCost;
+            const profiPercent = (Math.ceil(profitMul * 100) - 100) || 0;
             const colorProfitMul = ColorValue(profitMul);
             const tradeTaxSFL = (Item.costp2pt * value.itemQuant * dataSet.options.tradeTax) / 100;
             let txtCost = <div>Your production cost {frmtNb(prodCost)}{imgsfl}</div>;
@@ -862,7 +925,7 @@ const Tooltip = ({ onClose, item, context, value, clickPosition, dataSet, dataSe
                 <div>Marketplace{imgmp} {frmtNb(Item.costp2pt * value.itemQuant)}{imgsfl}</div>
                 <div>Trade tax {dataSet.options.tradeTax}% {frmtNb(tradeTaxSFL)}{imgsfl}</div>
                 <div>{(isFree || !value.CostChecked) ? null : txtCost}</div>
-                <div>Profit {frmtNb(profit)}{imgsfl} {value.CostChecked && (<span style={{ color: colorProfitMul }}>x{frmtNb(profitMul)}</span>)}</div>
+                <div>Profit {frmtNb(profit)}{imgsfl} {value.CostChecked && (<span style={{ color: colorProfitMul }}>{profiPercent}%</span>)}</div>
             </>
         }
         if (context === "craftcompo") {
@@ -997,8 +1060,18 @@ const Tooltip = ({ onClose, item, context, value, clickPosition, dataSet, dataSe
         return null;
     }
     return (
-        <div className={`tooltip-wrapper ${isOpen ? "open" : ""}`}>
+        <div className={`tooltip-wrapper ${isOpen ? "open" : ""}`}
+            onMouseMove={handleMouseMove}
+            onMouseUp={handleMouseUp}
+            onMouseLeave={handleMouseUp}>
             <div className="tooltip"
+                onMouseDown={handleMouseDown}
+                style={{
+                    position: "fixed",
+                    left: `${pos.x}px`,
+                    top: `${pos.y}px`,
+                    cursor: dragging ? "grabbing" : "grab",
+                }}
             /* style={{
                 left: typeof pos.x === "number" ? `${pos.x}px` : pos.x,
                 top: typeof pos.y === "number" ? `${pos.y}px` : pos.y,

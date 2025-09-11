@@ -13,9 +13,7 @@ import CounterInput from "./counterinput.js";
 import { FormControl, InputLabel, Select, MenuItem, Switch, FormControlLabel } from '@mui/material';
 import { frmtNb, ColorValue, Timer, filterTryit } from './fct.js';
 import { setHome } from './setHome.js';
-//import xrespFarm from './respFarm.json';
-//import xrespPrice from './respPrice.json';
-//import xrespBumpkin from './respBumpkin.json';
+import { setMarket } from './setMarket.js';
 
 import { Capacitor } from '@capacitor/core';
 import { PushNotifications } from '@capacitor/push-notifications';
@@ -26,13 +24,11 @@ const isNativeApp = Capacitor.isNativePlatform();
 const runLocal = true;
 const API_URL = runLocal ? "" : process.env.REACT_APP_API_URL;
 
-var vversion = 0.04;
+var vversion = 0.06;
 let dataSet = {};
 dataSet.options = {};
 
 var dateSeason = "";
-var tktName = "";
-var imgtkt = "";
 
 const imgsfl = './icon/res/flowertoken.webp';
 const imgSFL = <img src={imgsfl} alt={''} className="itico" title="Flower" />;
@@ -54,60 +50,10 @@ const imgexchng = './icon/ui/exchange.png';
 const imgna = './icon/nft/na.png';
 const imgrod = './icon/tools/fishing_rod.png';
 
-/* var it = [];
-var tool = [];
-var food = [];
-var fish = [];
-var flower = [];
-var bounty = [];
-var craft = [];
-var compost = [];
-//var fishing = [];
-//var expand = [];
-var xexpandData = [];
-var nft = [];
-var nftw = [];
-var skilllgc = [];
-var skill = [];
-var buildng = [];
-var buildngf = [];
-var bud = [];
-var spot = {};
-var mutantchickens = [];
-var sTickets = [];
-var fishingDetails = "";
-var ftrades = {};
-var Animals = {};
-var CropMachine = {};
-var isleMap = {};
-//var frmOwner = "";
-var isAbo = false;
-var isVip = false;
-var username = "";
-var taxFreeSFL = 0;
-var isBanned = ""; */
-
-var bFarmit = [];
-var bCookit = [];
 var bCustomSeedCM = [];
-/* var bBuyit = [];
-var bSpottry = [];
-var bTrynft = [];
-var bTrynftw = [];
-var bTrybuild = [];
-var bTryskill = [];
-var bTryskilllgc = [];
-var bTrybud = [];
-var bnft = [];
-var bnftw = [];
-var bbuild = [];
-var bskill = [];
-var bbud = []; */
-var fruitPlanted = [];
 var xdxp = 0;
 
 //var xinitprc = false;
-//var xnotifiedTimers = [];
 var dProd = [];
 var dProdtry = [];
 var xHrvst = [];
@@ -119,7 +65,8 @@ xBurning.burn = [];
 xBurning.burntry = [];
 var cstPricesb = [10000, 5000, 1000, 1000, 1000, 1000, 1000, 1000, 1000, 1000, 1000, 1000, 1000, 1000, 500, 100, 50, 50, 50, 1000, 100, 100, 100, 100, 100, 100, 100];
 var platformListings = "Trades";
-//var coinsRatio = 320;
+let buttonClicked = false
+let initialIntervalDone = false
 
 let helpImage = "./image/helpgeneral.jpg";
 
@@ -152,6 +99,8 @@ function App() {
   const [bumpkinData, setBumpkinData] = useState([]);
   const [reqState, setReqState] = useState("");
   const [homeData, sethomeData] = useState(null);
+  const [marketData, setmarketData] = useState(null);
+  const [Refresh, setRefresh] = useState(null);
   const [isOpen, setIsOpen] = useState({});
   const [invData, setinvData] = useState(null);
   const [cookData, setcookData] = useState(null);
@@ -191,7 +140,6 @@ function App() {
   const [selectedCMSeedMax, setselectedCMSeedMax] = useState(true);
   const [selectedDigCur, setSelectedDigCur] = useState('sfl');
   const [activeTimers, setActiveTimers] = useState([]);
-  const [notifiedTimers, setNotifiedTimers] = useState([]);
   const [GraphType, setGraphType] = useState('');
   const [mutData, setmutData] = useState([]);
   const [ticketsData, setticketsData] = useState([]);
@@ -201,6 +149,7 @@ function App() {
   const [activityTable, setActivityTable] = useState([]);
   const [searchProgress, setSearchProgress] = useState(0);
   const progressTimerRef = useRef(null);
+  const [cdButton, setcdButton] = useState(false);
   const [xListeCol, setXListeCol] = useState([
     ['Hoard', 1],
     ['Item name', 0],
@@ -424,6 +373,9 @@ function App() {
   const handleChangeInv = (event) => {
     const selectedValue = event.target.value;
     setSelectedInv(selectedValue);
+    if (selectedValue === 'market') {
+      setRefresh(new Date().getMilliseconds());
+    }
   }
   const handleChangeReady = (event) => {
     const selectedValue = event.target.value;
@@ -440,26 +392,6 @@ function App() {
   const handleChangeDigCur = (event) => {
     const selectedValue = event.target.value;
     setSelectedDigCur(selectedValue);
-  }
-  /* const handleTimerFinish = (index) => {
-    setActiveTimers((prevTimers) => prevTimers.filter((_, i) => i !== index));
-    if (Notification.permission === 'granted') {
-      console.log(`Timer finish for index ${index}`);
-      if (!notifiedTimers.includes(index) && !xnotifiedTimers.includes(index)) {
-        createNotification(index);
-      }
-    }
-  }; */
-  function createNotification(index) {
-    /*     if (xinit = true) {
-          const notification = new Notification('Sunflower Manager', {
-            body: index + ' ready.',
-          });
-          xnotifiedTimers.push(index);
-          setNotifiedTimers((prevTimers) => [...prevTimers, index]);
-          console.log(`Creating notification for index ${index}`);
-        } */
-
   }
   async function subscribeToPush() {
     if (isNativeApp) {
@@ -488,6 +420,14 @@ function App() {
         console.warn('Push permission not granted');
       }
     } else {
+      function urlBase64ToUint8Array(base64String) {
+        const padding = '='.repeat((4 - base64String.length % 4) % 4);
+        const base64 = (base64String + padding)
+          .replace(/\-/g, '+').replace(/_/g, '/');
+
+        const rawData = atob(base64);
+        return Uint8Array.from([...rawData].map(char => char.charCodeAt(0)));
+      }
       const registration = await navigator.serviceWorker.ready;
       const webPushK = process.env.REACT_APP_WEBPUSH_PUBLICKEY;
       const subscription = await registration.pushManager.subscribe({
@@ -518,14 +458,6 @@ function App() {
       headers: { 'Content-Type': 'application/json' },
     });
     //console.log('FCM subscription saved');
-  }
-  function urlBase64ToUint8Array(base64String) {
-    const padding = '='.repeat((4 - base64String.length % 4) % 4);
-    const base64 = (base64String + padding)
-      .replace(/\-/g, '+').replace(/_/g, '/');
-
-    const rawData = atob(base64);
-    return Uint8Array.from([...rawData].map(char => char.charCodeAt(0)));
   }
   async function unsubscribeFromPush() {
     if (isNativeApp) {
@@ -564,9 +496,6 @@ function App() {
       }
     }
   }
-  /* const startTimer = (timestamp) => {
-    setActiveTimers((prevTimers) => [...prevTimers, timestamp]);
-  }; */
   const handleChangeCurr = (event) => {
     const selectedValue = event.target.value;
     setSelectedCurr(selectedValue);
@@ -682,13 +611,7 @@ function App() {
       case "tradeTax":
         dataSet.options.tradeTax = xvalue;
         setOptions({ ...dataSet.options });
-        //setInputCoinsRatio(xvalue);
         break;
-      /* case "AnimalLvl":
-        if (xvalue > 15) xvalue = 15;
-        dataSet.options.inputAnimalLvl = xvalue;
-        setInputAnimalLvl(xvalue);
-        break; */
       case "usePriceFood":
         dataSet.options.usePriceFood = xvalue;
         setOptions({ ...dataSet.options });
@@ -698,18 +621,8 @@ function App() {
         setOptions({ ...dataSet.options });
         break;
       case "useNotifications":
-        /* if (xvalue === true) {
-          subscribeToPush();
-        } else {
-          unsubscribeFromPush();
-        } */
         dataSet.options.useNotifications = xvalue;
-        //setOptions({ ...dataSet.options });
         setuseNotif(xvalue);
-        /* setOptions(prev => {
-          const newOptions = { ...prev, useNotifications: xvalue };
-          return newOptions;
-        }); */
         break;
       default:
         console.warn("Champ inconnu :", name);
@@ -726,37 +639,12 @@ function App() {
     if (value > 0 && value <= 150) { getxpFromToLvl(inputFromLvl, value, xdxp) }
   };
   const handleButtonClick = async (reset) => {
-    //if (Notification.permission !== 'granted') { Notification.requestPermission() }
-    //subscribeToPush();
+    if (cdButton) return;
     activeTimers.forEach(timerId => {
       clearInterval(timerId);
     });
-    //setActiveTimers([]);
-    //setNotifiedTimers([]);
-    //xnotifiedTimers = [];
     try {
       lastClickedInputValue.current = inputValue;
-      /* var bTrynftArray = [];
-      var bTrynftwArray = [];
-      var bTrybuildArray = [];
-      var bTryskillArray = [];
-      var bTryskilllgcArray = [];
-      var bTrybudArray = [];
-      var bBuyitArray = [];
-      var bSpottryArray = [];
-      if (localStorage.getItem("SFLManData") !== null) {
-        const cookieValue = localStorage.getItem("SFLManData");
-        var loadedData = JSON.parse(cookieValue);
-        bTrynftArray = loadedData.bTrynft.length > 0 ? loadedData.bTrynft.reduce((acc, item) => { acc[item.name] = item.value; return acc; }, {}) : "";
-        bTrynftwArray = loadedData.bTrynftw.length > 0 ? loadedData.bTrynftw.reduce((acc, item) => { acc[item.name] = item.value; return acc; }, {}) : "";
-        bTrybuildArray = loadedData.bTrybuild.length > 0 ? loadedData.bTrybuild.reduce((acc, item) => { acc[item.name] = item.value; return acc; }, {}) : "";
-        bTryskillArray = loadedData.bTryskill.length > 0 ? loadedData.bTryskill.reduce((acc, item) => { acc[item.name] = item.value; return acc; }, {}) : "";
-        bTryskilllgcArray = loadedData.bTryskilllgc.length > 0 ? loadedData.bTryskilllgc.reduce((acc, item) => { acc[item.name] = item.value; return acc; }, {}) : "";
-        bTrybudArray = loadedData.bTrybud.length > 0 ? loadedData.bTrybud.reduce((acc, item) => { acc[item.name] = item.value; return acc; }, {}) : "";
-        bBuyitArray = loadedData.bBuyit.length > 0 ? loadedData.bBuyit.reduce((acc, item) => { acc[item.name] = item.value; return acc; }, {}) : "";
-        bSpottryArray = loadedData.bSpottry.length > 0 ? loadedData.bSpottry.reduce((acc, item) => { acc[item.name] = item.value; return acc; }, {}) : "";
-      } */
-      //username = "";
       if (reset) { setFarmData([]); }
       const tryItArrays = filterTryit(dataSetFarm, true);
       //setInputValue(lastClickedInputValue.current);
@@ -790,21 +678,23 @@ function App() {
           } else if (response.status === 200) {
             const responseData = await response.json();
             setdataSetFarm(responseData);
+            buttonClicked = true;
+            dataSet.options.username = responseData.username;
+            dataSet.options.farmId = responseData.farmid;
             dataSet.isBanned = responseData.isbanned ?
               <div style={{ color: "red", margin: "0", padding: "0" }}><img src={"./icon/ui/suspicious.png"} />
                 <span>BANNED {responseData.isbannedstatus}</span></div>
               : "";
-            dataSet.options.farmId = inputValue;
             dataSet.options.isAbo = responseData.isabo;
             dataSet.isVip = responseData.vip;
             dataSet.dateVip = responseData.datevip;
             dataSet.dailychest = responseData.dailychest;
-            //dataSet.options.tradeTax = responseData.tradeTax;
             dataSet.taxFreeSFL = frmtNb(responseData.taxFreeSFL);
             dataSet.bumpkin = responseData.Bumpkin[0];
             dateSeason = new Date(responseData.constants.dateSeason);
-            tktName = responseData.constants.tktName;
-            imgtkt = responseData.constants.imgtkt;
+            dataSet.tktName = responseData.constants.tktName;
+            dataSet.imgtkt = responseData.constants.imgtkt;
+            //dataSet.options.tradeTax = responseData.tradeTax;
             if (dataSet.farmId !== inputValue || !dataSet.bumpkinImg) {
               const response = await fetch(API_URL + "/getbumpkin", {
                 method: 'GET',
@@ -812,6 +702,7 @@ function App() {
                   //tokenuri: bumpkinData[0].tkuri,
                   //bknid: 1, //bumpkinData[0].id,
                   frmid: inputValue,
+                  username: responseData.username,
                   tknuri: responseData.Bumpkin[0].tkuri,
                 }
               });
@@ -828,16 +719,13 @@ function App() {
             setReqState('');
             setFarmData(responseData.frmData);
             setBumpkinData(responseData.Bumpkin);
-            //getPlanted(it);
-            //NFTPrice();
-            //setfTrades();
-            //setdeliveriesData(responseData.orderstable);
             setSelectedExpandType(responseData.expandData.type);
             //setfromtoexpand(responseData.expandData);
             //getFromToExpand(fromexpand, toexpand);
             //setanimalData(responseData.Animals);
             refreshDataSet(responseData);
             const { frmData, expandData, fishingDetails, taxFreeSFL } = responseData;
+            dataSet.balance = frmData.balance;
             const balance = frmData.balance;
             const withdrawreduc = (expandData?.type === "desert" || expandData?.type === "spring" || expandData?.type === "volcano") ? 2.5 : 0;
             const withdrawtax = (balance < 10 ? 30 : balance < 100 ? 25 : balance < 1000 ? 20 : balance < 5000 ? 15 : 10) - withdrawreduc;
@@ -856,10 +744,15 @@ function App() {
             if (responseData.mutantchickens) {
               setMutants(responseData);
             }
+            setRefresh(new Date().getMilliseconds());
           } else {
             setReqState(`Error : ${response.status}`);
             //console.error("Error fetching farm data:", response.status);
           }
+          setcdButton(true);
+          setTimeout(() => {
+            setcdButton(false);
+          }, 2000);
         } catch (error) {
           //setReqState(`Error : ${response.status}`);
           //console.error("Error during fetchFarmData:", error);
@@ -1366,7 +1259,8 @@ function App() {
                 {xListeCol[5][1] === 1 ? (<th className="thcenter">Betty</th>) : ("")}
                 {xListeCol[6][1] === 1 ? (<th className="thcenter">Ratio<div>{imgCoins}/{imgSFL}</div></th>) : ("")}
                 {xListeCol[7][1] === 1 ? (<th className="thtrad" onClick={() => handleTraderClick()}><div className="overlay-trad"></div>Market</th>) : ("")}
-                {xListeCol[18][1] === 1 && xListeCol[6][1] === 1 ? (<th className="thcenter" onClick={(e) => handleTooltip("coef", "th", "", e)}>Coef</th>) : ("")}
+                {xListeCol[18][1] === 1 && xListeCol[6][1] === 1 ? (<th className="thcenter" style={{ fontSize: `10px` }}
+                  onClick={(e) => handleTooltip("coef", "th", "", e)}>Profit<div>%</div></th>) : ("")}
                 {xListeCol[8][1] === 2 ? (<th className="thcenter" style={{ color: `rgb(160, 160, 160)` }}
                   onClick={(e) => handleTooltip("withdraw", "th", "", e)} >Withdraw</th>) : ("")}
                 {xListeCol[11][1] === 1 && xListeCol[14][1] === 1 ? (<th className="thcenter" onClick={(e) => handleTooltip("diff", "th", "", e)}>Diff</th>) : ("")}
@@ -1388,7 +1282,7 @@ function App() {
                 </th>) : ("")}
                 {xListeCol[15][1] === 1 ? (<th className="thcenter" style={{ color: `rgb(160, 160, 160)` }} onClick={(e) => handleTooltip("1restock", "th", "", e)}>1restock</th>) : ("")}
                 {xListeCol[16][1] === 1 ? (<th className="thcenter"><div className="selectquantityback"><FormControl variant="standard" id="formselectquant" className="selectquant" size="small">
-                  <InputLabel>Daily SFL</InputLabel>
+                  <InputLabel>Daily {imgSFL}</InputLabel>
                   <Select value={selectedDsfl} onChange={handleChangeDsfl} onClick={(e) => e.stopPropagation()}>
                     <MenuItem value="trader">Market</MenuItem>
                     <MenuItem value="nifty">Niftyswap</MenuItem>
@@ -1714,12 +1608,13 @@ function App() {
         }
         pOS = convPrice;
         const pTCoef = (puTrad * (1 - nTTax) / convPricep);
-        const coefT = pTCoef !== "Infinity" ? parseFloat(pTCoef).toFixed(2) : "";
+        const profiPercent = ((Math.ceil(pTCoef * 100) - 100) || 0);
+        const coefT = pTCoef !== "Infinity" ? profiPercent : "";
         const pNCoef = ((((puNifty * 0.7) * (1 - NTax))) / convPricep);
         const coefN = pNCoef !== "Infinity" ? parseFloat(pNCoef).toFixed(2) : "";
         const pOCoef = ((((puOS * 0.7) * (1 - OTax))) / convPricep);
         const coefO = pOCoef !== "Infinity" ? parseFloat(pOCoef).toFixed(2) : "";
-        const colorT = ColorValue(coefT);
+        const colorT = ColorValue(pTCoef);
         const colorN = ColorValue(coefN);
         const colorO = ColorValue(coefO);
         const prctN = ((pTrad > 0) && (pNifty > 0)) ? parseFloat(((pNifty - pTrad) / pTrad) * 100).toFixed(0) : "";
@@ -1834,8 +1729,8 @@ function App() {
               {xListeCol[6][1] === 1 ? (<td className="tdcenterbrd" style={cellCoinRatioStyle}>{xcoinsRatio > 0 ? frmtNb(xcoinsRatio) : ""}</td>) : ("")}
               {xListeCol[7][1] === 1 ? (<td className={parseFloat(pTrad).toFixed(20) === getMaxValue(pTrad, pNifty, pOS) ? 'tdcentergreen' : 'tdcenterbrd'}
                 onClick={(e) => handleTooltip(item, "market", marketDataTooltip, e)} style={cellStyle} title={titleTrad} >{puTrad !== 0 ? frmtNb(pTrad) : ""}{ximgtrd}</td>) : ("")}
-              {xListeCol[18][1] === 1 && xListeCol[6][1] === 1 ? (<td style={{ ...cellStyle, color: colorT, textAlign: 'center', fontSize: '8px' }}
-                onClick={(e) => handleTooltip(item, "coef", coefT, e)}>{coefT > 0 ? coefT : ""}</td>) : ("")}
+              {xListeCol[18][1] === 1 && xListeCol[6][1] === 1 ? (<td style={{ ...cellStyle, color: colorT, textAlign: 'center', fontSize: '10px' }}
+                onClick={(e) => handleTooltip(item, "coef", coefT, e)}>{pTrad > 0 ? coefT : ""}</td>) : ("")}
               {xListeCol[8][1] === 1 ? (<td className="tdcenter" style={{ ...cellStyle, color: `rgb(160, 160, 160)` }}>{parseFloat((iQuant) * 0.7).toFixed(2)}</td>) : ("")}
               {xListeCol[11][1] === 1 && xListeCol[14][1] === 1 ? (<td className={prctN > -20 ? 'tdpdiffgrn' : 'tdpdiff'} style={cellStyle}
                 onClick={(e) => handleTooltip(item, "prct", prctN, e)}>{prctN}{((pTrad > 0) && (pNifty > 0)) ? "%" : ""}</td>) : ("")}
@@ -2829,7 +2724,7 @@ function App() {
         const iseedMax = (TryChecked ? cobj.stocktry : cobj.stock) * 2.5;
         const iseeds = selectedCMSeedMax ? iseedMax : bCustomSeedCM[index];
         const nHarvest = Math.floor(iseedMax / (TryChecked ? CM.spottry : CM.spot));
-        const imyieldp = (TryChecked ? cobj.myieldptry : cobj.myieldp);
+        const imyieldp = (TryChecked ? cobj.harvestnodetry : cobj.harvestnode);
         const harvestTotal = iseeds * imyieldp;
         const itime = convTime((convtimenbr(icropTime)) * nHarvest);
         const iseedCost = (TryChecked ? cobj.seedtry / dataSet.options.coinsRatio : cobj.seed / dataSet.options.coinsRatio) * iseeds;
@@ -2898,8 +2793,9 @@ function App() {
       const { it, Animals, mutantchickens, sTickets } = dataSetFarm;
       let table = [];
       const imgmix = "./icon/res/mixed_grain_v2.webp";
-      const ximgmix = <img src={"./icon/res/mixed_grain_v2.webp"} alt={''} className="itico" title={"Food"} />;
-      const imgomni = <img src={"./icon/res/omnifeed.webp"} alt={''} className="itico" title={"Corn"} />;
+      const ximgmix = <img src={imgmix} alt={''} className="itico" title={"Food"} />;
+      const imgomni = "./icon/res/omnifeed.webp";
+      const ximgomni = <img src={imgomni} alt={''} className="itico" title={"Corn"} />;
       const imgcorn = <img src={it["Corn"].img} alt={''} className="itico" title={"Corn"} />;
       const imgwheat = <img src={it["Wheat"].img} alt={''} className="itico" title={"Wheat"} />;
       const imgbarley = <img src={it["Barley"].img} alt={''} className="itico" title={"Barley"} />;
@@ -2923,6 +2819,12 @@ function App() {
         //let love1Total = 0;
         //let love2Total = 0;
         const itemName = key;
+        const prod1name = (itemName === "Chicken") ? "Egg" : (itemName === "Cow") ? "Milk" : (itemName === "Sheep") ? "Wool" : "";
+        const xprod1img = it[prod1name].img || imgna;
+        const prod1img = <img src={xprod1img} alt={''} className="itico" title={prod1name} />;
+        const prod2name = (itemName === "Chicken") ? "Feather" : (itemName === "Cow") ? "Leather" : (itemName === "Sheep") ? "Merino Wool" : "";;
+        const xprod2img = it[prod2name].img || imgna;
+        const prod2img = <img src={xprod2img} alt={''} className="itico" title={prod2name} />;
         const tableContent = animalKeys.map(element => {
           const cobj = element;
           const itemImg = (itemName === "Chicken") ? imgchkn : (itemName === "Cow") ? imgcow : (itemName === "Sheep") ? imgsheep : imgna;
@@ -2930,28 +2832,26 @@ function App() {
           const xlvl = cobj.lvl > 0 ? cobj.lvl : '';
           const food = Number(parseFloat(!TryChecked ? cobj.quantfood : cobj.quantfoodtry).toFixed(2));
           const foodname = !TryChecked ? cobj.food : cobj.foodtry;
-          const xfoodimg = it[foodname] ? it[foodname].img : foodname === "Mix" ? imgmix : imgna;
+          const xfoodimg = it[foodname] ? it[foodname].img : (foodname === "Mix" ? imgmix : (foodname === "Omnifeed" ? imgomni : imgna));
           const foodimg = <img src={xfoodimg} alt={''} className="itico" title={foodname} />;
           const foodcost = frmtNb((!TryChecked ? cobj.costFood : cobj.costFoodtry) / dataSet.options.coinsRatio) || 0;
           const foodcostp2p = frmtNb(!TryChecked ? cobj.costFoodp2p : cobj.costFoodp2ptry) || 0;
           const prod1 = Number(parseFloat(!TryChecked ? cobj.yield1 : cobj.yield1try).toFixed(2)) || 0;
-          const prod1name = (itemName === "Chicken") ? "Egg" : (itemName === "Cow") ? "Milk" : (itemName === "Sheep") ? "Wool" : "";
-          const xprod1img = it[prod1name].img || imgna;
-          const prod1img = <img src={xprod1img} alt={''} className="itico" title={prod1name} />;
           const prod1cost = frmtNb((!TryChecked ? cobj.costyield1 : cobj.costyield1try) / dataSet.options.coinsRatio) || 0;
           const prod1costp2p = it[prod1name].costp2pt || 0;
           const prod2 = Number(parseFloat(cobj.yield2).toFixed(2)) || 0;
-          const prod2name = (itemName === "Chicken") ? "Feather" : (itemName === "Cow") ? "Leather" : (itemName === "Sheep") ? "Merino Wool" : "";;
-          const xprod2img = it[prod2name].img || imgna;
-          const prod2img = <img src={xprod2img} alt={''} className="itico" title={prod2name} />;
           const prod2cost = frmtNb((!TryChecked ? cobj.costyield2 : cobj.costyield2try) / dataSet.options.coinsRatio) || 0;
           const prod2costp2p = it[prod2name].costp2pt || 0;
           const prod1costuwithfoodp2p = frmtNb(foodcostp2p / prod1);
           const coefprod1p2p = frmtNb(prod1costp2p / prod1cost);
+          const coefprod1p2pPercent = (Math.ceil(coefprod1p2p * 100) - 100) || 0;
           const coefprod1costuwithfoodp2p = frmtNb(prod1costp2p / prod1costuwithfoodp2p);
+          const coefprod1costuwithfoodp2pPercent = (Math.ceil(coefprod1costuwithfoodp2p * 100) - 100) || 0;
           const prod2costuwithfoodp2p = frmtNb(foodcostp2p / prod2);
           const coefprod2p2p = frmtNb(prod2costp2p / prod2cost);
+          const coefprod2p2pPercent = (Math.ceil(coefprod2p2p * 100) - 100) || 0;
           const coefprod2costuwithfoodp2p = frmtNb(prod2costp2p / prod2costuwithfoodp2p);
+          const coefprod2costuwithfoodp2pPercent = (Math.ceil(coefprod2costuwithfoodp2p * 100) - 100) || 0;
           const color1 = ColorValue(coefprod1p2p);
           const color1costufoodp2p = ColorValue(coefprod1costuwithfoodp2p);
           const color2 = ColorValue(coefprod2p2p);
@@ -2965,7 +2865,7 @@ function App() {
           foodTotal.wheat += (foodname === "Wheat") ? food : 0;
           foodTotal.barley += (foodname === "Barley") ? food : 0;
           foodTotal.kale += (foodname === "Kale") ? food : 0;
-          foodTotal.omni += (foodname === "Omni") ? food : 0;
+          foodTotal.omni += (foodname === "Omnifeed") ? food : 0;
           if (foodname === "Mix") {
             foodTotal.corn += food;
             foodTotal.wheat += food;
@@ -2987,16 +2887,16 @@ function App() {
               {xListeColAnimals[4][1] === 1 ? <td className="tdcenter">{food}{foodimg}</td> : null}
               {xListeColAnimals[5][1] === 1 ? <td className="tdcenter">{foodcost}</td> : null}
               {xListeColAnimals[6][1] === 1 ? <td className="tdcenter">{foodcostp2p}</td> : null}
-              {xListeColAnimals[7][1] === 1 ? <td className="tdcenter">{prod1cost}</td> : null}
-              {xListeColAnimals[8][1] === 1 ? (<td style={{ ...cellStyle, color: color1, textAlign: 'center', fontSize: '8px' }}>{coefprod1p2p > 0 ? coefprod1p2p : ""}</td>) : ("")}
+              {xListeColAnimals[7][1] === 1 ? <td className="tdcenterbrdleft">{prod1cost}</td> : null}
+              {xListeColAnimals[8][1] === 1 ? (<td style={{ ...cellStyle, color: color1, textAlign: 'center', fontSize: '10px' }}>{coefprod1p2pPercent}</td>) : ("")}
               {xListeColAnimals[8][1] === 1 ? <td className="tdcenter">{prod1costuwithfoodp2p}</td> : null}
-              {xListeColAnimals[8][1] === 1 ? (<td style={{ ...cellStyle, color: color1costufoodp2p, textAlign: 'center', fontSize: '8px' }}>{coefprod1costuwithfoodp2p > 0 ? coefprod1costuwithfoodp2p : ""}</td>) : ("")}
+              {xListeColAnimals[8][1] === 1 ? (<td style={{ ...cellStyle, color: color1costufoodp2p, textAlign: 'center', fontSize: '10px' }}>{coefprod1costuwithfoodp2pPercent}</td>) : ("")}
               {xListeColAnimals[8][1] === 1 ? <td className="tdcenter">{prod1costp2p}</td> : null}
-              {xListeColAnimals[9][1] === 1 ? <td className="tdcenter">{prod2cost}</td> : null}
-              {xListeColAnimals[10][1] === 1 ? (<td style={{ ...cellStyle, color: color2, textAlign: 'center', fontSize: '8px' }}>{coefprod2p2p > 0 ? coefprod2p2p : ""}</td>) : ("")}
+              {xListeColAnimals[9][1] === 1 ? <td className="tdcenterbrdleft">{prod2cost}</td> : null}
+              {xListeColAnimals[10][1] === 1 ? (<td style={{ ...cellStyle, color: color2, textAlign: 'center', fontSize: '10px' }}>{coefprod2p2pPercent}</td>) : ("")}
               {xListeColAnimals[10][1] === 1 ? <td className="tdcenter">{prod2costuwithfoodp2p}</td> : null}
-              {xListeColAnimals[10][1] === 1 ? (<td style={{ ...cellStyle, color: color2costufoodp2p, textAlign: 'center', fontSize: '8px' }}>{coefprod2costuwithfoodp2p > 0 ? coefprod2costuwithfoodp2p : ""}</td>) : ("")}
-              {xListeColAnimals[10][1] === 1 ? <td className="tdcenter">{prod2costp2p}</td> : null}
+              {xListeColAnimals[10][1] === 1 ? (<td style={{ ...cellStyle, color: color2costufoodp2p, textAlign: 'center', fontSize: '10px' }}>{coefprod2costuwithfoodp2pPercent}</td>) : ("")}
+              {xListeColAnimals[10][1] === 1 ? <td className="tdcenterbrdright">{prod2costp2p}</td> : null}
             </tr>
           );
         });
@@ -3011,16 +2911,16 @@ function App() {
               {xListeColAnimals[4][1] === 1 ? <th className="thcenter">Food</th> : null}
               {xListeColAnimals[5][1] === 1 ? <th className="thcenter">Food cost</th> : null}
               {xListeColAnimals[6][1] === 1 ? <th className="thcenter">{imgtrade}</th> : null}
-              {xListeColAnimals[7][1] === 1 ? <th className="thcenter" title="Prod cost per unit">Prod1 cost/u</th> : null}
+              {xListeColAnimals[7][1] === 1 ? <th className="thcenterbrdleft" title="Prod cost per unit">{prod1img}cost/u</th> : null}
               {xListeColAnimals[8][1] === 1 ? <th className="thcenter" title="Coef market / production"> % </th> : null}
               {xListeColAnimals[8][1] === 1 ? <th className="thcenter" title="Prod cost per unit buying food at market">{ximgmix}{imgtrade}</th> : null}
               {xListeColAnimals[8][1] === 1 ? <th className="thcenter" title="Coef market / production buying food comp at p2p"> % </th> : null}
               {xListeColAnimals[8][1] === 1 ? <th className="thcenter" title="Market price per unit">{imgtrade}</th> : null}
-              {xListeColAnimals[9][1] === 1 ? <th className="thcenter" title="Prod cost per unit">Prod2 cost/u</th> : null}
+              {xListeColAnimals[9][1] === 1 ? <th className="thcenterbrdleft" title="Prod cost per unit">{prod2img}cost/u</th> : null}
               {xListeColAnimals[10][1] === 1 ? <th className="thcenter" title="Coef market / production"> % </th> : null}
               {xListeColAnimals[10][1] === 1 ? <th className="thcenter" title="Prod cost per unit buying food at market">{ximgmix}{imgtrade}</th> : null}
               {xListeColAnimals[10][1] === 1 ? <th className="thcenter" title="Coef market / production buying food comp at p2p"> % </th> : null}
-              {xListeColAnimals[10][1] === 1 ? <th className="thcenter" title="Market price per unit">{imgtrade}</th> : null}
+              {xListeColAnimals[10][1] === 1 ? <th className="thcenterbrdright" title="Market price per unit">{imgtrade}</th> : null}
             </tr>
             <tr>
               <td></td>
@@ -3033,20 +2933,20 @@ function App() {
                 {foodTotal.wheat > 0 && parseFloat(foodTotal.wheat).toFixed(2)}{foodTotal.wheat > 0 && imgwheat}
                 {foodTotal.barley > 0 && parseFloat(foodTotal.barley).toFixed(2)}{foodTotal.barley > 0 && imgbarley}
                 {foodTotal.kale > 0 && parseFloat(foodTotal.kale).toFixed(2)}{foodTotal.kale > 0 && imgkale}
-                {foodTotal.omni > 0 && parseFloat(foodTotal.omni).toFixed(2)}{foodTotal.omni > 0 && imgomni}
+                {foodTotal.omni > 0 && parseFloat(foodTotal.omni).toFixed(2)}{foodTotal.omni > 0 && ximgomni}
               </td> : null}
               {xListeColAnimals[5][1] === 1 ? <td className="tdcenter">{parseFloat(foodcostTotal).toFixed(3)}{ximgsfl}</td> : null}
               {xListeColAnimals[6][1] === 1 ? <td className="tdcenter">{parseFloat(foodcostp2pTotal).toFixed(3)}{ximgsfl}</td> : null}
-              {xListeColAnimals[7][1] === 1 ? <td className="tdcenter"></td> : null}
+              {xListeColAnimals[7][1] === 1 ? <td className="tdcenterbrdleft"></td> : null}
               {xListeColAnimals[8][1] === 1 ? <td className="tdcenter"></td> : null}
               {xListeColAnimals[8][1] === 1 ? <td className="tdcenter"></td> : null}
               {xListeColAnimals[8][1] === 1 ? <td className="tdcenter"></td> : null}
               {xListeColAnimals[8][1] === 1 ? <td className="tdcenter"></td> : null}
-              {xListeColAnimals[9][1] === 1 ? <td className="tdcenter"></td> : null}
+              {xListeColAnimals[9][1] === 1 ? <td className="tdcenterbrdleft"></td> : null}
               {xListeColAnimals[10][1] === 1 ? <td className="tdcenter"></td> : null}
               {xListeColAnimals[10][1] === 1 ? <td className="tdcenter"></td> : null}
               {xListeColAnimals[10][1] === 1 ? <td className="tdcenter"></td> : null}
-              {xListeColAnimals[10][1] === 1 ? <td className="tdcenter"></td> : null}
+              {xListeColAnimals[10][1] === 1 ? <td className="tdcenterbrdright"></td> : null}
             </tr>
           </thead>
         );
@@ -3343,7 +3243,7 @@ function App() {
       var totdeliveriessfl = 0;
       var totdeliveriescoins = 0;
       const ximgxp = <i><img src={imgxp} alt='' className="resico" title="XP" style={{ width: `20px`, height: `20px` }} /></i>;
-      const ximgtkt = <i><img src={imgtkt} alt='' className="itico" title="Tickets" /></i>;
+      const ximgtkt = <i><img src={dataSet.imgtkt} alt='' className="itico" title="Tickets" /></i>;
       //const ximgcoins = <i><img src={imgcoins} alt='' className="itico" title="Coins" /></i>;
       const ximgdchest = <i><img src="./icon/ui/synced.gif" alt='' className="itico" title="Tickets from daily chest" style={{ width: `20px`, height: `20px` }} /></i>;
       //const ximgcrop = <i><img src={imgcrop} alt='' className="resico" title="Tickets from crops" style={{ width: `20px`, height: `20px` }} /></i>;
@@ -3352,7 +3252,7 @@ function App() {
       //const ximgtntcl = <i><img src="./icon/fish/tentacle.png" alt='' className="itico" title="Tickets from tentacles" /></i>;
       const imgdeliv = <i><img src="./icon/ui/delivery_board.png" alt='' className="resico" title="Deliveries" /></i>;
       const imgchore = <i><img src="./icon/ui/expression_chat.png" alt='' className="resico" title="Chores" style={{ width: `20px`, height: `20px` }} /></i>;
-      //const imgmaxtkt = <i><img src={imgtkt} alt='' className="resico" title="Tickets max by day" /></i>;
+      //const imgmaxtkt = <i><img src={dataSet.imgtkt} alt='' className="resico" title="Tickets max by day" /></i>;
       let i = 0;
       const sfs = new Date() - dateSeason;
       const dfs = Math.floor(sfs / (1000 * 60 * 60 * 24));
@@ -3507,7 +3407,7 @@ function App() {
       const tableContent = allSortedItems.map(([element]) => {
         if (compoHarvested[element] > 0 || compoBurn[element] > 0 || compoTraded[element] > 0) {
           const cobj = it[element] || fish[element] || flower[element] || nft[element] || nftw[element] || null;
-          const ico = cobj ? cobj.img : element === "SFL" ? imgsfl : element === "TKT" ? imgtkt : element === "COINS" ? imgcoins : imgxp;
+          const ico = cobj ? cobj.img : element === "SFL" ? imgsfl : element === "TKT" ? dataSet.imgtkt : element === "COINS" ? imgcoins : imgxp;
           const iburn = element === "SFL" ? '' : compoBurn[element] || '';
           var iquant = compoHarvested[element] ? compoHarvested[element] : '';
           var iquantmax = 0;
@@ -3699,8 +3599,6 @@ function App() {
         </>
       );
       setActivityTable(table);
-      setMutants(mutantchickens);
-      setsTickets(sTickets);
     }
   }
   function setActivityTot(activityData, xContext) {
@@ -3902,7 +3800,7 @@ function App() {
           let correspondancetkn = patterntkn.exec(OrderItem.reward);
           let pattern = /(.*?)<img/g;
           let correspondance = pattern.exec(OrderItem.reward);
-          let correspondancetktname = OrderItem.reward.includes(imgtkt);
+          let correspondancetktname = OrderItem.reward.includes(dataSet.imgtkt);
           const istkt = correspondancetktname;
           const issfl = correspondancetkn && correspondancetkn[1] === "flowertoken.webp";
           const iscoins = correspondancetkn && correspondancetkn[1] === "coins.png";
@@ -3995,7 +3893,7 @@ function App() {
           }
 
           if (choreItem && choreItem.completed && completedToday) {
-            if (choreItem.rewarditem === tktName) {
+            if (choreItem.rewarditem === dataSet.tktName) {
               compoHarvested["TKT"] = compoHarvested["TKT"] || 0;
               compoHarvested["TKT"] += choreItem.reward;
               tot.chorestkt += choreItem.reward;
@@ -4004,8 +3902,8 @@ function App() {
               compoHarvested[choreItem.rewarditem] += choreItem.reward;
             }
           }
-          tot.tktMax += choreItem && (choreItem.rewarditem === tktName) && Number(choreItem.reward);
-          //if ((choreItem.rewarditem === tktName)) { console.log("tktMax +chore: " + item + "-> " + choreItem.reward) }
+          tot.tktMax += choreItem && (choreItem.rewarditem === dataSet.tktName) && Number(choreItem.reward);
+          //if ((choreItem.rewarditem === dataSet.tktName)) { console.log("tktMax +chore: " + item + "-> " + choreItem.reward) }
           //}
         });
       }
@@ -4166,23 +4064,47 @@ function App() {
     });
     if (response.ok) {
       const responseData = await response.json();
+      const respData = responseData.allData;
       setpriceData(JSON.parse(JSON.stringify(responseData.priceData)));
-      if (responseData.allData !== "" && responseData.allData !== undefined) {
-        setdataSetFarm(responseData.allData);
-        setBumpkinData(responseData.allData.Bumpkin);
+      if (respData !== "" && respData !== undefined) {
+        setdataSetFarm(respData);
+        setFarmData(respData.frmData);
+        dataSet.options.isAbo = respData.isabo;
+        dataSet.isVip = respData.vip;
+        dataSet.dateVip = respData.datevip;
+        dataSet.dailychest = respData.dailychest;
+        dataSet.taxFreeSFL = frmtNb(respData.taxFreeSFL);
+        dataSet.bumpkin = respData.Bumpkin[0];
+        setBumpkinData(respData.Bumpkin);
+        const { frmData, expandData, fishingDetails, taxFreeSFL } = respData;
+        dataSet.balance = frmData.balance;
+        const balance = frmData.balance;
+        const withdrawreduc = (expandData?.type === "desert" || expandData?.type === "spring" || expandData?.type === "volcano") ? 2.5 : 0;
+        const withdrawtax = (balance < 10 ? 30 : balance < 100 ? 25 : balance < 1000 ? 20 : balance < 5000 ? 15 : 10) - withdrawreduc;
+        dataSet.withdrawtax = withdrawtax;
+        const withdrawSFLbeyondTaxFree = Number(taxFreeSFL) - Number(balance);
+        const withdrawsflFree = (withdrawSFLbeyondTaxFree < 0) ? Number(taxFreeSFL) : Number(balance);
+        const withdrawsflNotFree = (withdrawsflFree >= Number(balance)) ? 0 : (Number(balance) - withdrawsflFree);
+        const withdrawSflNotFreeTaxed = (withdrawsflNotFree > 0) ? (withdrawsflNotFree - (withdrawsflNotFree * (withdrawtax / 100))) : 0;
+        const sflwithdraw = frmtNb(withdrawsflFree + withdrawSflNotFreeTaxed);
+        dataSet.sflwithdraw = sflwithdraw;
+        const xfishcastmax = fishingDetails && (!TryChecked ? fishingDetails.CastMax : fishingDetails.CastMaxtry);
+        const xfishcost = fishingDetails && ((!TryChecked ? fishingDetails.CastCost : fishingDetails.CastCosttry) / dataSet.options.coinsRatio);
+        dataSet.fishcasts = fishingDetails && (fishingDetails.casts + "/" + xfishcastmax);
+        dataSet.fishcosts = fishingDetails && (parseFloat(fishingDetails.casts * xfishcost).toFixed(3) + "/" + parseFloat(xfishcastmax * xfishcost).toFixed(3));
       }
       const priceData = responseData.priceData;
-      const balanceUSD = frmtNb(Number(dataSetFarm?.frmData?.balance || 0) * Number(priceData[2]));
+      const balanceUSD = frmtNb(Number(dataSet?.balance || 0) * Number(priceData[2]));
       dataSet.balanceUSD = balanceUSD;
-      const usdwithdraw = frmtNb(Number(dataSet.sflwithdraw) * Number(priceData[2]));
+      const usdwithdraw = frmtNb(Number(dataSet?.sflwithdraw || 0) * Number(priceData[2]));
       dataSet.usdwithdraw = usdwithdraw;
       dataSet.options.usdSfl = responseData.priceData[2];
       //NFTPrice();
       //xinitprc = true;
       setReqState('');
-      if (responseData.allData.mutantchickens) {
-        setMutants(responseData.allData);
-        setsTickets(responseData.allData.sTickets);
+      if (respData.mutantchickens) {
+        setMutants(respData);
+        setsTickets(respData.sTickets);
       }
     } else {
       console.log(`Error : ${response.status}`);
@@ -4208,7 +4130,7 @@ function App() {
   }
   function setsTickets(tabletk) {
     if (tabletk.length > 1) {
-      setticketsData(<div><img src={imgtkt} alt={''} className="itico" />{tabletk[1].amount}</div>);
+      setticketsData(<div><img src={dataSet.imgtkt} alt={''} className="itico" />{tabletk[1].amount}</div>);
     } else {
       setticketsData("");
     }
@@ -4233,7 +4155,6 @@ function App() {
     let startTime = Date.now();
     let duration = 60 * 1000;
     let timeoutId = null;
-
     const updateProgress = () => {
       const elapsed = Date.now() - startTime;
       const progress = Math.min((elapsed / duration) * 100, 100);
@@ -4286,11 +4207,12 @@ function App() {
       timeoutId = setTimeout(() => {
         fetchData();
         startMainInterval();
+        initialIntervalDone = true;
       }, 20 * 1000);
     };
     const handleVisibilityChange = () => {
       if (document.visibilityState === 'visible') {
-        if (!farmData.balance) return;
+        if (!buttonClicked) return;
         if (!dataSet.options?.isAbo) {
           startInitialTimeout();
         } else {
@@ -4301,8 +4223,8 @@ function App() {
       }
     };
     clearAll();
-    if (farmData.balance) {
-      if (!dataSet.options?.isAbo) {
+    if (buttonClicked) {
+      if (!dataSet.options?.isAbo && !initialIntervalDone) {
         startInitialTimeout();
       } else {
         startMainInterval();
@@ -4459,6 +4381,20 @@ function App() {
     }
     // eslint-disable-next-line
   }, [useNotif]);
+  useEffect(() => {
+    if (selectedInv === "market") {
+      const fetchMarket = async () => {
+        try {
+          const xmarketData = await setMarket(dataSet, dataSetFarm, API_URL, xListeColBounty);
+          setmarketData(xmarketData);
+        } catch (error) {
+          //localStorage.clear();
+          console.log(error);
+        }
+      };
+      fetchMarket();
+    }
+  }, [Refresh]);
 
   return (
     <>
@@ -4466,7 +4402,7 @@ function App() {
         <div className="top-frame">
           <h1 className="App-h1">
             <div className="vertical">
-              <div style={{ pointerEvents: 'none' }}>{dataSetFarm.username && dataSetFarm.username !== "" ? dataSetFarm.username + " lvl" + bumpkinData[0]?.lvl : <span>Farm ID or name</span>}</div>
+              <div style={{ pointerEvents: 'none' }}>{dataSet.options.username && dataSet.options.username !== "" ? dataSet.options.username + (bumpkinData[0]?.lvl > 0 ? (" lvl" + bumpkinData[0]?.lvl) : "") : <span>Farm ID or name</span>}</div>
               <div class="horizontal">
                 <input
                   type="text"
@@ -4481,9 +4417,31 @@ function App() {
                 />
                 <div style={{ position: "relative", left: -4, top: -2 }}>
                   <button
-                    onClick={handleButtonClick}
+                    onClick={(e) => {
+                      const el = e.currentTarget;
+                      if (el.disabled) return;
+                      handleButtonClick();
+                      el.disabled = true;
+                      el.classList.add("is-wait");
+                      setTimeout(() => {
+                        el.disabled = false;
+                        el.classList.remove("is-wait");
+                        el.dataset.locked = "";
+                      }, 2000);
+                    }}
+                    //onClick={handleButtonClick}
                     className="button"
+                    onPointerDown={(e) => {
+                      const el = e.currentTarget;
+                      if (el.dataset.locked === "1") {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        return;
+                      }
+                      el.dataset.locked = "1";
+                    }}
                     style={{ left: 1, top: 3, zIndex: 2 }}
+                    disabled={cdButton}
                   >
                     <img src="./icon/ui/search.png" alt="" className="resico" />
                   </button>
@@ -4588,10 +4546,8 @@ function App() {
             <div class="horizontal" style={{ margin: "0", padding: "0" }}>
               {farmData.balance ? (<>
                 <div class="horizontal" onClick={(e) => handleTooltip("", "balance", "", e)} style={{ margin: "0", padding: "0" }}>
-                  <img src="./icon/res/flowertoken.webp" alt="" title={`${dataSet.balanceUSD}usd-${dataSet.withdrawtax}% = ${dataSet.sflwithdraw}sfl = ${dataSet.usdwithdraw}usd (${dataSet.taxFreeSFL}sfl free)`} />
-                  {frmtNb(farmData.balance)}
-                  {PBarSFL()}
-                  {dataSet.isBanned ? dataSet.isBanned : null}
+                  {/* <img src="./icon/res/flowertoken.webp" alt="" title={`${dataSet.balanceUSD}usd-${dataSet.withdrawtax}% = ${dataSet.sflwithdraw}sfl = ${dataSet.usdwithdraw}usd (${dataSet.taxFreeSFL}sfl free)`} /> */}
+                  {imgSFL}{frmtNb(dataSet.balance)}{PBarSFL()}{dataSet.isBanned ? dataSet.isBanned : null}
                 </div>
                 <span>{mutData ? mutData : null}</span>
               </>) : null}
@@ -4626,6 +4582,7 @@ function App() {
                       <MenuItem value="cropmachine"><img src="./icon/skillr/efficiency_ext_module.png" alt="" className="itico" />Crop Machine</MenuItem>
                       <MenuItem value="map"><img src="./icon/ui/world.png" alt="" className="itico" />Map</MenuItem>
                       <MenuItem value="expand"><img src="./icon/tools/hammer.png" alt="" className="itico" />Expand</MenuItem>
+                      <MenuItem value="market"><img src={imgexchng} alt="" className="itico" />Market</MenuItem>
                       {dataSet.options.isAbo ? <MenuItem value="activity"><img src="./icon/ui/stopwatch.png" alt="" className="itico" />Activity</MenuItem> : null}
                     </Select>
                   </FormControl>
@@ -4668,6 +4625,7 @@ function App() {
                 animal: animalData || null,
                 map: mapData || null,
                 expand: expandDataTable || null,
+                market: marketData || null,
                 activity: activityTable || null,
               };
 
@@ -4689,7 +4647,12 @@ function App() {
           />
         )}
         {showfGraph && (
-          <ModalGraph onClose={handleClosefGraph} graphtype={GraphType} frmid={lastClickedInputValue.current} it={dataSetFarm.it} API_URL={API_URL} />
+          <ModalGraph onClose={handleClosefGraph}
+            graphtype={GraphType}
+            frmid={dataSet.options.farmid}
+            username={dataSet.options.username}
+            it={dataSetFarm.it}
+            API_URL={API_URL} />
         )}
         {showfTNFT && (
           <ModalTNFT onClose={handleClosefTNFT}
@@ -4706,7 +4669,7 @@ function App() {
           <ModalDlvr
             onClose={() => { handleClosefDlvr() }}
             tableData={deliveriesData}
-            imgtkt={imgtkt}
+            imgtkt={dataSet.imgtkt}
             coinsRatio={dataSet.options.coinsRatio}
             TryChecked={TryChecked}
             handleTryCheckedChange={handleTryCheckedChange}
@@ -4735,8 +4698,11 @@ function App() {
   function setCookie() {
     try {
       const bvversion = vversion;
+      let xdataSetFarm = JSON.parse(JSON.stringify(dataSetFarm));
+      //delete xdataSetFarm?.frmData;
+      //delete xdataSetFarm?.initialIntervalDone;
       var dataToStore = {
-        dataSetFarm: dataSetFarm,
+        dataSetFarm: xdataSetFarm,
         dataSet: dataSet,
         vversion: bvversion,
         inputValue: inputValue,
@@ -5085,117 +5051,5 @@ const getMaxValue = (value1, value2, value3) => {
   const positiveValues = [parseFloat(value1).toFixed(20), parseFloat(value2).toFixed(20), parseFloat(value3).toFixed(20)].filter(value => value > 0);
   return positiveValues.length > 0 ? parseFloat(Math.max(...positiveValues)).toFixed(20).toString() : null;
 };
-/* function setTryit(xnft, xnftw, xskill, xbuildng, xbud) {
-  const nftEntries = Object.entries(xnft);
-  const nftwEntries = Object.entries(xnftw);
-  const sklEntries = Object.entries(xskill);
-  const bldEntries = Object.entries(xbuildng);
-  const budEntries = Object.entries(xbud);
-  nftEntries.forEach(([item], index) => { bTrynft[item] = xnft[item].tryit });
-  nftwEntries.forEach(([item], index) => { bTrynftw[item] = xnftw[item].tryit });
-  sklEntries.forEach(([item], index) => { bTryskill[item] = xskill[item].tryit });
-  bldEntries.forEach(([item], index) => { bTrybuild[item] = xbuildng[item].tryit });
-  budEntries.forEach(([item], index) => { bTrybud[item] = xbud[item].tryit });
-}
-function setActive(xnft, xnftw, xskill, xbuildng, xbud) {
-  const nftEntries = Object.entries(xnft);
-  const nftwEntries = Object.entries(xnftw);
-  const sklEntries = Object.entries(xskill);
-  const bldEntries = Object.entries(xbuildng);
-  const budEntries = Object.entries(xbud);
-  nftEntries.forEach(([item], index) => { bnft[item] = xnft[item].isactive });
-  nftwEntries.forEach(([item], index) => { bnftw[item] = xnftw[item].isactive });
-  sklEntries.forEach(([item], index) => { bskill[item] = xskill[item].isactive });
-  bldEntries.forEach(([item], index) => { bbuild[item] = xbuildng[item].isactive });
-  budEntries.forEach(([item], index) => { bbud[item] = xbud[item].isactive });
-}
-function getTryit(xnft, xnftw, xskill, xbuildng, xbud) {
-  const nftEntries = Object.entries(xnft);
-  const nftwEntries = Object.entries(xnftw);
-  const sklEntries = Object.entries(xskill);
-  const bldEntries = Object.entries(xbuildng);
-  const budEntries = Object.entries(xbud);
-  nftEntries.forEach(([item], index) => { xnft[item].tryit = bTrynft[item] });
-  nftwEntries.forEach(([item], index) => { xnftw[item].tryit = bTrynftw[item] });
-  sklEntries.forEach(([item], index) => { xskill[item].tryit = bTryskill[item] });
-  bldEntries.forEach(([item], index) => { xbuildng[item].tryit = bTrybuild[item] });
-  budEntries.forEach(([item], index) => { xbud[item].tryit = bTrybud[item] });
-}
-function setFarmit(xit) {
-  const itEntries = Object.entries(xit);
-  itEntries.forEach(([item], index) => { bFarmit[item] = xit[item].farmit });
-  //console.log(food);
-}
-function getFarmit(xit) {
-  const itEntries = Object.entries(xit);
-  itEntries.forEach(([item], index) => { xit[item].farmit = bFarmit[item] ? bFarmit[item] : 0 });
-  //console.log(food);
-}
-function getBuyit(xit, bBuyit) {
-  const itEntries = Object.entries(xit);
-  itEntries.forEach(([item], index) => { xit[item].buyit = bBuyit[item] ? bBuyit[item] : 0 });
-  //console.log(food);
-}
-function setCookit(xfood) {
-  const itEntries = Object.entries(xfood);
-  itEntries.forEach(([item], index) => { bCookit[item] = xfood[item].cookit });
-  //console.log(food);
-}
-function getCookit(xfood) {
-  const itEntries = Object.entries(xfood);
-  itEntries.forEach(([item], index) => { xfood[item].cookit = bCookit[item] ? bCookit[item] : 0 });
-  //console.log(food);
-}
-function MergeIt(xit, xittry) {
-  const ittryEntries = Object.entries(xittry);
-  ittryEntries.forEach(([item], index) => {
-    xit[item].costtry = xittry[item].costtry;
-    xit[item].timetry = xittry[item].timetry;
-    xit[item].harvesttry = xittry[item].harvesttry;
-    xit[item].harvestdmaxtry = xittry[item].harvestdmaxtry;
-    xit[item].stocktry = xittry[item].stocktry;
-    xit[item].myieldtry = xittry[item].myieldtry;
-    xit[item].mtimetry = xittry[item].mtimetry;
-  });
-}
-function MergeFood(xfood, xfoodtry) {
-  const ittryEntries = Object.entries(xfoodtry);
-  ittryEntries.forEach(([item], index) => {
-    xfood[item].costtry = xfoodtry[item].costtry;
-    xfood[item].timetry = xfoodtry[item].timetry;
-    xfood[item].timecrptry = xfoodtry[item].timecrptry;
-    xfood[item].xptry = xfoodtry[item].xptry;
-    xfood[item].xphtry = xfoodtry[item].xphtry;
-  });
-}
-function MergeFish(xfish, xfishtry) {
-  const ittryEntries = Object.entries(xfishtry);
-  ittryEntries.forEach(([item], index) => {
-    xfish[item].xptry = xfishtry[item].xptry;
-    xfish[item].costtry = xfishtry[item].costtry;
-  });
-}
-function MergeBounty(xbounty, xbountytry) {
-  const bountytryEntries = Object.entries(xbountytry);
-  bountytryEntries.forEach(([item], index) => {
-    xbounty[item].costtry = xbountytry[item].costtry;
-  });
-}
-function MergeFishing(xFishing, xFishingtry) {
-  xFishing["CastCosttry"] = xFishingtry["CastCosttry"];
-  xFishing["CastMaxtry"] = xFishingtry["CastMaxtry"];
-}
-function getPlanted(xit) {
-  const itEntries = Object.entries(xit);
-  itEntries.forEach(([item], index) => {
-    if (xit[item].cat === "fruit") { fruitPlanted[item] = xit[item].planted }
-  });
-}
-function setPlanted(xit) {
-  const itEntries = Object.entries(xit);
-  itEntries.forEach(([item], index) => {
-    if (xit[item].cat === "fruit") { xit[item].planted = fruitPlanted[item] }
-  });
-} */
 
 export default App;

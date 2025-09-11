@@ -189,50 +189,10 @@ export function filterTryit(dataSet, toArray) {
     result.xtryskill = ConvToArray(bTryskill);
     result.xtryskilllgc = ConvToArray(bTryskilllgc);
     result.xtrybud = ConvToArray(bTrybud);
-    result.xbuyit = ConvToArray(bTrybud);
+    result.xbuyit = ConvToArray(bTryBuy);
     result.xspottry = ConvToArray(bTrySpot);
     result.xfarmit = ConvToArray(bFarm);
     result.xcookit = ConvToArray(bCook);
-    /* result.xtrynft = Object.entries(bTrynft)
-      .filter(([key, value]) => value !== 0)
-      .map(([key, value]) => ({ name: key, value }))
-      .reduce((acc, item) => { acc[item.name] = item.value; return acc; }, {});
-    result.xtrynftw = Object.entries(bTrynftw)
-      .filter(([key, value]) => value !== 0)
-      .map(([key, value]) => ({ name: key, value }))
-      .reduce((acc, item) => { acc[item.name] = item.value; return acc; }, {});
-    result.xtrybuild = Object.entries(bTrybuild)
-      .filter(([key, value]) => value !== 0)
-      .map(([key, value]) => ({ name: key, value }))
-      .reduce((acc, item) => { acc[item.name] = item.value; return acc; }, {});
-    result.xtryskill = Object.entries(bTryskill)
-      .filter(([key, value]) => value !== 0)
-      .map(([key, value]) => ({ name: key, value }))
-      .reduce((acc, item) => { acc[item.name] = item.value; return acc; }, {});
-    result.xtryskilllgc = Object.entries(bTryskilllgc)
-      .filter(([key, value]) => value !== 0)
-      .map(([key, value]) => ({ name: key, value }))
-      .reduce((acc, item) => { acc[item.name] = item.value; return acc; }, {});
-    result.xtrybud = Object.entries(bTrybud)
-      .filter(([key, value]) => value !== 0)
-      .map(([key, value]) => ({ name: key, value }))
-      .reduce((acc, item) => { acc[item.name] = item.value; return acc; }, {});
-    result.xfarmit = Object.entries(bFarm)
-      .filter(([key, value]) => value !== 0)
-      .map(([key, value]) => ({ name: key, value }))
-      .reduce((acc, item) => { acc[item.name] = item.value; return acc; }, {});
-    result.xcookit = Object.entries(bCook)
-      .filter(([key, value]) => value !== 0)
-      .map(([key, value]) => ({ name: key, value }))
-      .reduce((acc, item) => { acc[item.name] = item.value; return acc; }, {});
-    result.xbuyit = Object.entries(bTryBuy)
-      .filter(([key, value]) => value !== 0)
-      .map(([key, value]) => ({ name: key, value }))
-      .reduce((acc, item) => { acc[item.name] = item.value; return acc; }, {});
-    result.xspottry = Object.entries(bTrySpot)
-      .filter(([key, value]) => value !== 0)
-      .map(([key, value]) => ({ name: key, value }))
-      .reduce((acc, item) => { acc[item.name] = item.value; return acc; }, {}); */
     return result;
   } else {
     result.bTrynft = bTrynft;

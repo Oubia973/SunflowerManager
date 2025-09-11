@@ -13,6 +13,9 @@ let showSkill = false;
 
 let helpImage = "./image/helptrynft.jpg";
 
+const imgsfl = './icon/res/flowertoken.webp';
+const imgSFL = <img src={imgsfl} alt={''} className="itico" title="Flower" />;
+
 function ModalTNFT({ onClose, frmid, API_URL, dataSet, dataSetFarm, onReset, handleTryCheckedChange, TryChecked }) {
   const [dataSetLocal, setdataSetLocal] = useState(dataSetFarm);
   const [tableNFT, settableNFT] = useState([]);
@@ -22,6 +25,8 @@ function ModalTNFT({ onClose, frmid, API_URL, dataSet, dataSetFarm, onReset, han
   const [tableFlexDirection, setTableFlexDirection] = useState('row');
   const [tableView, setTableView] = useState('both');
   const [showHelp, setShowHelp] = useState(false);
+  const [cdButton, setcdButton] = useState(false);
+  const [iTotBuyCheck, setTotBuyCheck] = useState(false);
   function key(name) {
     if (name === "active") { return TryChecked ? "tryit" : "isactive"; }
     return TryChecked ? name + "try" : name;
@@ -55,6 +60,7 @@ function ModalTNFT({ onClose, frmid, API_URL, dataSet, dataSetFarm, onReset, han
     setShowHelp(false);
   };
   const Refresh = async () => {
+    if (cdButton) return;
     try {
       const tryItArrays = filterTryit(dataSetLocal, true);
       const headers = {
@@ -80,6 +86,10 @@ function ModalTNFT({ onClose, frmid, API_URL, dataSet, dataSetFarm, onReset, han
         }
       }
       onReset(dataSet, dataSetLocal);
+      setcdButton(true);
+      setTimeout(() => {
+        setcdButton(false);
+      }, 2000);
     } catch (error) {
       console.log(`Error : ${error}`);
     }
@@ -88,24 +98,13 @@ function ModalTNFT({ onClose, frmid, API_URL, dataSet, dataSetFarm, onReset, han
     try {
       const newDataSet = {
         ...dataSetLocal,
-        nft: Object.fromEntries(
-          Object.entries(dataSetLocal.nft).map(([key, value]) => [key, { ...value, tryit: value.isactive }])
-        ),
-        nftw: Object.fromEntries(
-          Object.entries(dataSetLocal.nftw).map(([key, value]) => [key, { ...value, tryit: value.isactive }])
-        ),
-        buildng: Object.fromEntries(
-          Object.entries(dataSetLocal.buildng).map(([key, value]) => [key, { ...value, tryit: value.isactive }])
-        ),
-        skill: Object.fromEntries(
-          Object.entries(dataSetLocal.skill).map(([key, value]) => [key, { ...value, tryit: value.isactive }])
-        ),
-        skilllgc: Object.fromEntries(
-          Object.entries(dataSetLocal.skilllgc).map(([key, value]) => [key, { ...value, tryit: value.isactive }])
-        ),
-        bud: Object.fromEntries(
-          Object.entries(dataSetLocal.bud).map(([key, value]) => [key, { ...value, tryit: value.isactive }])
-        ),
+        nft: Object.fromEntries(Object.entries(dataSetLocal.nft).map(([key, value]) => [key, { ...value, tryit: value.isactive }])),
+        nftw: Object.fromEntries(Object.entries(dataSetLocal.nftw).map(([key, value]) => [key, { ...value, tryit: value.isactive }])),
+        buildng: Object.fromEntries(Object.entries(dataSetLocal.buildng).map(([key, value]) => [key, { ...value, tryit: value.isactive }])),
+        skill: Object.fromEntries(Object.entries(dataSetLocal.skill).map(([key, value]) => [key, { ...value, tryit: value.isactive }])),
+        skilllgc: Object.fromEntries(Object.entries(dataSetLocal.skilllgc).map(([key, value]) => [key, { ...value, tryit: value.isactive }])),
+        bud: Object.fromEntries(Object.entries(dataSetLocal.bud).map(([key, value]) => [key, { ...value, tryit: value.isactive }])),
+        it: Object.fromEntries(Object.entries(dataSetLocal.it).map(([key, value]) => [key, { ...value, spottry: value.spot }])),
       };
       setdataSetLocal(newDataSet);
       onReset(dataSet, newDataSet);
@@ -209,14 +208,23 @@ function ModalTNFT({ onClose, frmid, API_URL, dataSet, dataSetFarm, onReset, han
       const newDataSetLocal = { ...dataSetLocal, [baseName]: newbase };
       setdataSetLocal(newDataSetLocal);
       onReset(dataSet, newDataSetLocal);
+      setTotBuyCheck(true);
     }
   };
   const handleBuyitChange = (item) => {
-    const { it } = dataSetLocal;
-    const newbase = { ...it, [item]: { ...it[item], tryit: base[item].buyit === 1 ? 0 : 1 } };
+    const it = { ...dataSetLocal.it };
+    const newbase = { ...it, [item]: { ...it[item], buyit: it[item].buyit === 1 ? 0 : 1 } };
     const newDataSetLocal = { ...dataSetLocal, ["it"]: newbase };
     setdataSetLocal(newDataSetLocal);
     onReset(dataSet, newDataSetLocal);
+  };
+  const handleBuyitTotalChange = () => {
+    const { it } = dataSetLocal;
+    for (let item in it) {
+      it[item].buyit = iTotBuyCheck ? it[item].buyit === 0 ? 1 : 0 : 1;
+    }
+    const newDataSetLocal = { ...dataSetLocal };
+    setdataSetLocal(newDataSetLocal);
   };
   const handleSpottryChange = (item, value) => {
     const { it } = dataSetLocal;
@@ -251,11 +259,16 @@ function ModalTNFT({ onClose, frmid, API_URL, dataSet, dataSetFarm, onReset, han
         //if ((parseFloat(costp2pt).toFixed(3) === parseFloat(costptry).toFixed(3)) && idsfl < 0) { idsfl = 0; }
         //const iharvestdmax = cobj ? cobj.harvestdmax : 0;
         //const iharvestdmaxtry = cobj ? cobj.harvestdmaxtry : 0;
-        const timechg = ((timmeto1(timetry) - timmeto1(time)) / timmeto1(time)) * 100;
-        const costpchg = ((costptry - costp) / costp) * 100;
-        const imyieldchg = ((imyieldtry - imyield) / imyield) * 100;
-        const iharvestchg = ((iharvesttry - iharvest) / iharvest) * 100;
-        const idsflchg = ((idsfltry - idsfl) / Math.abs(idsfl)) * 100;
+        const timechg = (((timmeto1(timetry) - timmeto1(time)) / timmeto1(time)) * 100) || 0;
+        const txtTimeChg = timechg ? parseFloat(timechg).toFixed(0) + "%" : "";
+        const costpchg = (((costptry - costp) / costp) * 100) || 0;
+        const txtCostpChg = costpchg ? parseFloat(costpchg).toFixed(0) + "%" : "";
+        const imyieldchg = (((imyieldtry - imyield) / imyield) * 100) || 0;
+        const txtMyieldChg = imyieldchg ? parseFloat(imyieldchg).toFixed(0) + "%" : "";
+        const iharvestchg = (((iharvesttry - iharvest) / iharvest) * 100) || 0;
+        const txtHarvestChg = iharvestchg ? parseFloat(iharvestchg).toFixed(0) + "%" : "";
+        const idsflchg = (((idsfltry - idsfl) / Math.abs(idsfl)) * 100) || 0;
+        const txtDsflChg = idsflchg ? parseFloat(idsflchg).toFixed(0) + "%" : "";
         const cellDSflStyle = {};
         cellDSflStyle.color = ColorValue(TryChecked ? idsfltry : idsfl, 0, 10);
         const xtime = TryChecked ? timetry : time;
@@ -271,26 +284,26 @@ function ModalTNFT({ onClose, frmid, API_URL, dataSet, dataSetFarm, onReset, han
             <td className="tdcenter"
               onClick={(e) => handleTooltip(item, "trynft", "timechg", e)}>{xtime}</td>
             <td className={parseFloat(timechg).toFixed(0) > 0 ? 'chgneg' : parseFloat(timechg).toFixed(0) < 0 ? 'chgpos' : 'chgeq'}
-              onClick={(e) => handleTooltip(item, "trynft", "timechg", e)}>{parseFloat(timechg).toFixed(0)}%</td>
+              onClick={(e) => handleTooltip(item, "trynft", "timechg", e)}>{txtTimeChg}</td>
             <td className="tdcenter"
               onClick={(e) => handleTooltip(item, "trynft", "costchg", e)}>{frmtNb(xcost)}</td>
             <td className={parseFloat(costpchg).toFixed(0) > 0 ? 'chgneg' : parseFloat(costpchg).toFixed(0) < 0 ? 'chgpos' : 'chgeq'}
-              onClick={(e) => handleTooltip(item, "trynft", "costchg", e)}>{parseFloat(costpchg).toFixed(0)}%</td>
+              onClick={(e) => handleTooltip(item, "trynft", "costchg", e)}>{txtCostpChg}</td>
             <td className="tdcenter"
               onClick={(e) => handleTooltip(item, "trynft", "yieldchg", e)}>{parseFloat(xmyield).toFixed(2)}</td>
             <td className={parseFloat(imyieldchg).toFixed(0) > 0 ? 'chgpos' : parseFloat(imyieldchg).toFixed(0) < 0 ? 'chgneg' : 'chgeq'}
-              onClick={(e) => handleTooltip(item, "trynft", "yieldchg", e)}>{parseFloat(imyieldchg).toFixed(0)}%</td>
+              onClick={(e) => handleTooltip(item, "trynft", "yieldchg", e)}>{txtMyieldChg}</td>
             <td className="tdcenter"
               onClick={(e) => handleTooltip(item, "trynft", "yieldchg", e)}>{parseFloat(xharvest).toFixed(2)}</td>
             <td className={parseFloat(iharvestchg).toFixed(0) > 0 ? 'chgpos' : parseFloat(iharvestchg).toFixed(0) < 0 ? 'chgneg' : 'chgeq'}
-              onClick={(e) => handleTooltip(item, "trynft", "yieldchg", e)}>{parseFloat(iharvestchg).toFixed(0)}%</td>
+              onClick={(e) => handleTooltip(item, "trynft", "yieldchg", e)}>{txtHarvestChg}</td>
             <td className="tdcenter">
               <input type="checkbox" checked={ibuyit} onChange={() => handleBuyitChange(item)} />
             </td>
             <td className="tdcenter"
               onClick={(e) => handleTooltip(item, "dailysfl", (TryChecked ? "trynft" : ""), e)} style={{ ...cellDSflStyle }}>{parseFloat(xdsfl).toFixed(2)}</td>
             <td className={parseFloat(idsflchg).toFixed(0) > 0 ? 'chgpos' : parseFloat(idsflchg).toFixed(0) < 0 ? 'chgneg' : 'chgeq'}
-              onClick={(e) => handleTooltip(item, "dailysfl", (TryChecked ? "trynft" : ""), e)}>{parseFloat(idsflchg).toFixed(0)}%</td>
+              onClick={(e) => handleTooltip(item, "dailysfl", (TryChecked ? "trynft" : ""), e)}>{txtDsflChg}</td>
             <td className="tdcenter">
               <CounterInput
                 value={xit[item][key("spot")]}
@@ -318,8 +331,10 @@ function ModalTNFT({ onClose, frmid, API_URL, dataSet, dataSetFarm, onReset, han
               <th>chg</th>
               <th>Harvest</th>
               <th>chg</th>
-              <th>Buy</th>
-              <th>Daily<div>SFL</div></th>
+              <th>Buy
+                {/* <div><input type="checkbox" checked={iTotBuyCheck} onChange={() => handleBuyitTotalChange(item)} /></div> */}
+              </th>
+              <th>Daily<div>{imgSFL}</div></th>
               <th>chg</th>
               <th>Nodes</th>
             </tr>
@@ -334,22 +349,23 @@ function ModalTNFT({ onClose, frmid, API_URL, dataSet, dataSetFarm, onReset, han
     }
   }
   function setNFT(xdataSetFarm) {
-    const { nft, nftw, build, skill, skilllgc, bud } = xdataSetFarm;
+    const { nft, nftw, buildng, skill, skilllgc, bud } = xdataSetFarm;
     let totalCost = 0;
     let totalCostM = 0;
     let totalCostactiv = 0;
     let totalCostactivM = 0;
     const nftEntries = nft && Object.entries(nft);
     const nftwEntries = nftw && Object.entries(nftw);
-    const buildEntries = build && Object.entries(build);
+    const buildEntries = buildng && Object.entries(buildng);
     const skillEntries = skill && Object.entries(skill);
     const skilllgcEntries = skilllgc && Object.entries(skilllgc);
     const budEntries = bud && Object.entries(bud);
     const imgOS = <img src='./icon/ui/openseaico.png' alt={''} className="nftico" />;
     const imgexchng = <img src='./icon/ui/exchange.png' alt={''} className="nftico" />;
+    const showTotal = (showNFTW || showNFT);
 
     var NFT = [];
-    settableNFT("");
+    //settableNFT("");
     if (nftEntries && showNFT) {
       for (const [item, value] of nftEntries) {
         if (value.tryit) {
@@ -421,7 +437,7 @@ function ModalTNFT({ onClose, frmid, API_URL, dataSet, dataSetFarm, onReset, han
             <td className="tditemright">{itemb}</td>
             <td className="tdcenter" id="iccolumn"><i><img src={valueb.img} alt={''} className="nftico" /></i></td>
             <td className="tdcenter">
-              <input type="checkbox" checked={build[itemb].tryit} onChange={() => handleTryitChange(itemb, build, "build")} />
+              <input type="checkbox" checked={buildng[itemb].tryit} onChange={() => handleTryitChange(itemb, buildng, "buildng")} />
             </td>
             <td className="tdcenter">
               <input type="checkbox" className={'checkbox-disabled'} checked={valueb.isactive} />
@@ -439,7 +455,7 @@ function ModalTNFT({ onClose, frmid, API_URL, dataSet, dataSetFarm, onReset, han
         Fruits: { 2: 2, 3: 5 },
         Trees: { 2: 2, 3: 5 },
         Fishing: { 2: 2, 3: 5 },
-        Animals: { 2: 3, 3: 7 },
+        Animals: { 2: 4, 3: 8 },
         Greenhouse: { 2: 2, 3: 5 },
         Mining: { 2: 3, 3: 7 },
         Cooking: { 2: 2, 3: 5 },
@@ -522,7 +538,7 @@ function ModalTNFT({ onClose, frmid, API_URL, dataSet, dataSetFarm, onReset, han
         if (valuebd.isactive) { totalCostactiv += Number(valuebd.price) };
         NFT.push(
           <tr key={itembd}>
-            <td className="tditemright" style={{ width: '40px' }}>{itembd}</td>
+            <td className="tditemright">{itembd}</td>
             <td className="tdcenter" id="iccolumn"><i><img src={valuebd.img} alt={''} className="nftico" /></i></td>
             <td className="tdcenter">
               <input type="checkbox" checked={bud[itembd].tryit} onChange={() => handleTryitChange(itembd, bud, "bud")} />
@@ -535,7 +551,6 @@ function ModalTNFT({ onClose, frmid, API_URL, dataSet, dataSetFarm, onReset, han
         );
       }
     }
-    const showTotal = (showNFTW || showNFT);
     const totalCostToDisplay = (TotalCostDisplay === "opensea" || showSkill) ? totalCost : totalCostM;
     /* NFT.unshift(
       <tr key="total">
@@ -543,33 +558,44 @@ function ModalTNFT({ onClose, frmid, API_URL, dataSet, dataSetFarm, onReset, han
         <td className="tdcenter">{frmtNb(totalCost)}</td>
       </tr>
     ); */
+    const txtTotal = (showSkill || showTotal) && "Total ";
+    const widthTotal = showTotal ? 150 : 140;
     const xtableNFT = (
       <>
         <thead>
           <tr>
-            <td style={{ display: 'none' }}>ID</td>
-            <th> </th>
-            <th>Item</th>
+            {/* <td style={{ display: 'none' }}>ID</td> */}
+            <th style={{ width: widthTotal }} colSpan={2}>Item</th>
+            {/* <th className="tdcenter"> </th> */}
             <th className="tdcenter">Try</th>
-            <th className="tdcenter">Active</th>
-            {(showNFT || showNFTW) ? (<th className="tdcenter">{imgOS}</th>) : ("")}
-            {(showNFT || showNFTW) ? (<th className="tdcenter">{imgexchng}</th>) : ("")}
-            {(showNFT || showNFTW || showCraft) ? (<th className="tdcenter">Supply</th>) : ("")}
+            <th className="tdcenter" style={{ fontSize: "10px" }}>Active</th>
+            {showTotal ? (<th className="tdcenter">{imgOS}</th>) : ("")}
+            {showTotal ? (<th className="tdcenter">{imgexchng}</th>) : ("")}
+            {(showTotal || showCraft) ? (<th className="tdcenter">Supply</th>) : ("")}
             <th style={{ width: `150px` }}>Boost</th>
           </tr>
           <tr key="total">
-            <td align="right">Total {showTotal && <FormControl variant="standard" id="formselecttotalcosttry" height="10px" size="small">
-              <Select value={TotalCostDisplay} onChange={handleChangeTotalCostDisplay}>
-                <MenuItem value="opensea">{imgOS}</MenuItem>
-                <MenuItem value="market">{imgexchng}</MenuItem>
-              </Select>
-            </FormControl>}</td>
-            <td className="tdcenter"></td>
-            <td className="tdcenter">{parseFloat(totalCostToDisplay).toFixed(0)}</td>
+            <td align="right" style={{ width: widthTotal }} colSpan={2}>{txtTotal}{showTotal &&
+              <FormControl
+                variant="standard"
+                id="formselecttotalcosttry"
+                height="10px"
+                size="small"
+                style={{ width: 40, minWidth: 40 }}>
+                <Select
+                  value={TotalCostDisplay}
+                  onChange={handleChangeTotalCostDisplay}
+                  style={{ width: "30px" }}>
+                  <MenuItem value="opensea">{imgOS}</MenuItem>
+                  <MenuItem value="market">{imgexchng}</MenuItem>
+                </Select>
+              </FormControl>}</td>
+            {/* <td className="tdcenter"></td> */}
+            <td className="tdcenter">{(showTotal || showSkill) && parseFloat(totalCostToDisplay).toFixed(0)}</td>
             <td className="tdcenter">{showSkill ? parseFloat(totalCostactiv).toFixed(0) : ""}</td>
-            {(showNFT || showNFTW) ? (<td className="tdcenter">{parseFloat(totalCostactiv).toFixed(0)}</td>) : ("")}
-            {(showNFT || showNFTW) ? (<td className="tdcenter">{parseFloat(totalCostactivM).toFixed(0)}</td>) : ("")}
-            {(showNFT || showNFTW || showCraft) ? (<td></td>) : ("")}
+            {showTotal ? (<td className="tdcenter">{parseFloat(totalCostactiv).toFixed(0)}</td>) : ("")}
+            {showTotal ? (<td className="tdcenter">{parseFloat(totalCostactivM).toFixed(0)}</td>) : ("")}
+            {(showTotal || showCraft) ? (<td></td>) : ("")}
             <td></td>
           </tr>
         </thead>
@@ -620,7 +646,33 @@ function ModalTNFT({ onClose, frmid, API_URL, dataSet, dataSetFarm, onReset, han
         }}>
           <div>
             <button onClick={closeModal} class="button"><img src="./icon/ui/cancel.png" alt="" className="resico" /></button>
-            <button onClick={Refresh} class="button"><img src="./icon/ui/refresh.png" alt="" className="resico" /></button>
+            <button
+              onPointerDown={(e) => {
+                const el = e.currentTarget;
+                if (el.dataset.locked === "1") {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  return;
+                }
+                el.dataset.locked = "1";
+              }}
+              onClick={(e) => {
+                const el = e.currentTarget;
+                if (el.disabled) return;
+                Refresh();
+                el.disabled = true;
+                el.classList.add("is-wait");
+                setTimeout(() => {
+                  el.disabled = false;
+                  el.classList.remove("is-wait");
+                  el.dataset.locked = "";
+                }, 2000);
+              }}
+              //onClick={Refresh}
+              class="button"
+              disabled={cdButton}>
+              <img src="./icon/ui/refresh.png" alt="" className="resico" />
+            </button>
             <button onClick={handleButtonHelpClick} title="Help" class="button"><img src="./icon/nft/na.png" alt="" className="itico" /></button>
             <button onClick={Reset}>Reset</button>
             <button onClick={SetZero}>No NFT/Skill</button>

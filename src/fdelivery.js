@@ -57,11 +57,14 @@ function ModalDlvr({ onClose, tableData, imgtkt, coinsRatio, handleTryCheckedCha
     const inventoryEntries = Object.entries(tableData.orders);
     let totCost = 0;
     let totCostp2p = 0;
+    let totCostR = 0;
+    let totCostp2pR = 0;
     let totCmp = 0;
     let totSkp = 0;
     let totSFL = 0;
     let totTKT = 0;
     let totCoins = 0;
+    let totCoinsR = 0;
     const inventoryItems = inventoryEntries.map(([item], index) => {
       //Object.values(tableData.orders).map((order, index) => (
       //const OrderItem = item[1];
@@ -91,6 +94,11 @@ function ModalDlvr({ onClose, tableData, imgtkt, coinsRatio, handleTryCheckedCha
           (<>{quantreward}{imgbsfl}</>) :
           (<>{quantreward}{imgbtkt}</>);
       const costp2p = selectedCost === "shop" ? frmtNb(OrderItem.costs) : selectedCost === "trader" ? frmtNb(OrderItem.costt) : selectedCost === "nifty" ? frmtNb(OrderItem.costn) : selectedCost === "opensea" ? frmtNb(OrderItem.costo) : 0;
+      const addRatio = iscoins && (OrderItem[key("cost")] / coinsRatio) > 0;
+      const ratioCoins = addRatio ? frmtNb(quantreward / (OrderItem[key("cost")] / coinsRatio)) : "";
+      totCostR += addRatio ? (OrderItem[key("cost")] / coinsRatio) : 0;
+      totCostp2pR += addRatio ? Number(costp2p) : 0;
+      totCoinsR += addRatio ? quantreward : 0;
       if (OrderItem.completed) {
         totCost += (OrderItem[key("cost")] / coinsRatio);
         totCostp2p += Number(costp2p);
@@ -100,6 +108,7 @@ function ModalDlvr({ onClose, tableData, imgtkt, coinsRatio, handleTryCheckedCha
       }
       if (OrderItem.nbcompleted > 0) { totCmp += OrderItem.nbcompleted }
       if (OrderItem.nbskipped > 0) { totSkp += OrderItem.nbskipped }
+      const costTkt = OrderItem[key("costtkt")] > 0 ? frmtNb(OrderItem[key("costtkt")] / coinsRatio) : "";
       return (
         <tr key={index}>
           <td id="iccolumn" className="tdcenter"><img src={xfrom} alt="" title={ofrom} style={{ width: '25px', height: '25px' }} /></td>
@@ -109,7 +118,8 @@ function ModalDlvr({ onClose, tableData, imgtkt, coinsRatio, handleTryCheckedCha
           <td className="tdcenter">{textReward}</td>
           <td className="tdcenter">{frmtNb(OrderItem[key("cost")] / coinsRatio)}</td>
           <td className="tdcenter">{costp2p}</td>
-          <td className="tdcenter">{frmtNb(OrderItem[key("costtkt")] / coinsRatio)}</td>
+          <td className="tdcenter">{ratioCoins}</td>
+          <td className="tdcenter">{costTkt}</td>
           <td className="tdcenter">{OrderItem.readyAt}</td>
           <td className="tdcenter">{OrderItem.nbcompleted}</td>
           <td className="tdcenter">{OrderItem.nbskipped}</td>
@@ -117,6 +127,7 @@ function ModalDlvr({ onClose, tableData, imgtkt, coinsRatio, handleTryCheckedCha
       )
       //))
     });
+    const ratioCoins = (totCostR > 0 && totCoinsR > 0) ? frmtNb(totCoinsR / totCostR) : "";
     const tableContent = (
       <>
         <table>
@@ -136,6 +147,7 @@ function ModalDlvr({ onClose, tableData, imgtkt, coinsRatio, handleTryCheckedCha
                     <MenuItem value="nifty">Niftyswap</MenuItem>
                     <MenuItem value="opensea">OpenSea</MenuItem>
                   </Select></FormControl></div></th>
+              <th className="thcenter">Ratio <div>{imgbcoins}/{imgbsfl}</div></th>
               <th>Cost/tkt</th>
               <th>Since</th>
               <th>Completed</th>
@@ -148,6 +160,7 @@ function ModalDlvr({ onClose, tableData, imgtkt, coinsRatio, handleTryCheckedCha
               <td className="tdcenter">{frmtNb(totSFL)}{imgbsfl} {totTKT}{imgbtkt} {frmtNb(totCoins)}{imgbcoins}</td>
               <td className="tdcenter">{frmtNb(totCost)}</td>
               <td className="tdcenter">{frmtNb(totCostp2p)}</td>
+              <td className="tdcenter">{frmtNb(ratioCoins)}</td>
               <td></td>
               <td></td>
               <td className="tdcenter">{totCmp}</td>
