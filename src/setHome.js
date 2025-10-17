@@ -16,14 +16,14 @@ export function setHome(dataSet, dataSetFarm, xListeColBounty, handleHomeClic, i
                 if (name === "isactive") return dataSet.forTry ? "tryit" : "isactive";
                 return dataSet.forTry ? name + "try" : name;
             }
-            const img = dataSet.bumpkinImg;
+            const img = dataSet?.bumpkinImg || "./logo512.png";
             //const bumpkin = dataSet.bumpkin;
+            const imgna = <img src="./icon/nft/na.png" alt={''} className="seasonico" title="N/A" />;
             const vipImg = <img src={"./icon/ui/vip.webp"} alt={''} className="itico" title={"VIP"} />;
             const imgDone = <img src={"./icon/ui/confirm.png"} alt={''} className="itico" title={"Done"} />;
             const imgCancel = <img src={"./icon/ui/cancel.png"} alt={''} className="itico" title={"Not done"} />;
             const imgDoneSmall = <img src={"./icon/ui/confirm.png"} alt={''} className="seasonico" title={"Done"} />;
             const imgCancelSmall = <img src={"./icon/ui/cancel.png"} alt={''} className="seasonico" title={"Not done"} />;
-            const imgna = <img src="./icon/nft/na.png" alt={''} className="seasonico" title="N/A" />;
             const imgTkt = <img src={dataSet.imgtkt || "./icon/nft/na.png"} alt={''} className="seasonico" title={dataSet.tktName || "Season tiquets"} />;
             const imgCoinsSmall = <img src={"./icon/res/coins.png"} alt={''} className="seasonico" title={"Coins"} />;
             const imgSflSmall = <img src={"./icon/res/flowertoken.webp"} alt={''} className="seasonico" title={"Flower"} />;
@@ -122,6 +122,7 @@ export function setHome(dataSet, dataSetFarm, xListeColBounty, handleHomeClic, i
                 let costTotal = 0;
                 let marketTotal = 0;
                 let profitTotal = 0;
+                let plantedFinal = [];
 
                 let Items = {};
                 if (bntName === corpsCatName) {
@@ -173,24 +174,37 @@ export function setHome(dataSet, dataSetFarm, xListeColBounty, handleHomeClic, i
 
                     if (bntName === "Henhouse" || bntName === "Barn") {
                         Object.keys(Items).map((item, itemIndex) => {
+                            plantedFinal[Items[item].name] = Items[item][plantedValue];
+                            const aniName = Items[item]?.animal;
                             //plantedTotal += Number(Items[item][plantedValue]);
                             let animalCost = 0;
-                            Object.keys(Animals[Items[item]?.animal]).map(animalItem => {
-                                animalCost += Animals[Items[item]?.animal][animalItem][key("costFood")] || 0;
+                            let animalProdQuant = 0;
+                            let ignoredAnimals = 0;
+                            Object.keys(Animals[aniName]).map(animalItem => {
+                                const ignoreAnimal = !dataSet.forTry && dataSet.options?.ignoreAniLvl && (Animals[aniName][animalItem].lvl > dataSet.options.animalLvl[aniName]);
+                                animalCost += (Animals[aniName][animalItem][key("costFood")] || 0) * !ignoreAnimal;
+                                const tryTxt = dataSet.forTry ? "try" : "";
+                                const prodName = Items[item]?.matcat === 1 ? "yield1" : "yield2";
+                                animalProdQuant += (Animals[aniName][animalItem]?.[key(prodName + tryTxt)] || 0) * !ignoreAnimal;
+                                ignoredAnimals += ignoreAnimal;
                                 //console.log(Items[item].animal + ": " + animalCost);
                             });
+                            let harvestFinal = Items[item][harvestValue]; //animalProdQuant;
+                            //plantedFinal[Items[item].name] -= (ignoredAnimals);
                             if (Items[item].name === "Feather") { animalCost = 0 };
                             if (Items[item].name === "Leather") { animalCost = 0 };
                             if (Items[item].name === "Merino Wool") { animalCost = 0 };
                             costTotal += Number((animalCost) / dataSet.options.coinsRatio);
-                            if (Items[item][plantedValue] <= 0) { costTotal = 0; }
-                            marketTotal += Number(Items[item]["costp2pt"] * Items[item][harvestValue]) * tradeTax;
+                            if (plantedFinal[Items[item].name] <= 0) { costTotal = 0; }
+                            marketTotal += Number(Items[item]["costp2pt"] * harvestFinal);
+                            //marketTotal += Number(Items[item]["costp2pt"] * Items[item][harvestValue]);
                         });
                     } else {
                         Object.keys(Items).map((item, itemIndex) => {
+                            plantedFinal[Items[item].name] = Items[item][plantedValue];
                             const nbHarvest = (Items[item][key("nbharvest")]) || 1;
                             costTotal += Number(((Items[item][key("nodecost")] * Items[item][plantedValue]) / nbHarvest) / dataSet.options.coinsRatio);
-                            marketTotal += Number(Items[item]["costp2pt"] * Items[item][harvestValue]) * tradeTax;
+                            marketTotal += Number(Items[item]["costp2pt"] * Items[item][harvestValue]);
                         });
                     }
 
@@ -210,23 +224,32 @@ export function setHome(dataSet, dataSetFarm, xListeColBounty, handleHomeClic, i
                                 let harvestCost = 0;
                                 let harvestCostp2pt = 0;
                                 let harvestProfit = 0;
+                                let harvestFinal = Items[item][harvestValue];
                                 if (Items[item].scat === "henhouse" || Items[item].scat === "barn") {
+                                    const aniName = Items[item]?.animal;
                                     let animalCost = 0;
+                                    let animalProdQuant = 0;
                                     Object.keys(Animals[Items[item]?.animal]).map(animalItem => {
-                                        animalCost += Animals[Items[item]?.animal][animalItem][key("costFood")] || 0;
+                                        const ignoreAnimal = (!dataSet.forTry && dataSet.options?.ignoreAniLvl) && (Animals[aniName][animalItem].lvl > dataSet.options.animalLvl[aniName]);
+                                        animalCost += (Animals[aniName][animalItem][key("costFood")] || 0) * !ignoreAnimal;
+                                        const tryTxt = dataSet.forTry ? "try" : "";
+                                        const prodName = Items[item]?.matcat === 1 ? "yield1" : "yield2";
+                                        animalProdQuant += (Animals[aniName][animalItem]?.[key(prodName + tryTxt)] || 0) * !ignoreAnimal;
                                         if (Items[item].name === "Feather") { animalCost = 0 };
                                         if (Items[item].name === "Leather") { animalCost = 0 };
                                         if (Items[item].name === "Merino Wool") { animalCost = 0 };
-                                        if (Items[item][plantedValue] <= 0) { animalCost = 0 }
                                         //console.log(Items[item].animal + ": " + dataSet.animals[Items[item]?.animal][animalItem].food + ": " + animalCost);
                                     });
+                                    //harvestFinal = Items[item][harvestValue]; //animalProdQuant;
+                                    if (plantedFinal[Items[item].name] <= 0) { animalCost = 0 }
                                     harvestCost = (animalCost) / dataSet.options.coinsRatio;
+                                    harvestCostp2pt = (Items[item]["costp2pt"] * harvestFinal);
                                 } else {
                                     nbHarvest = (Items[item][key("nbharvest")]) || 1;
-                                    harvestCost = ((Items[item][key("nodecost")] * Items[item][plantedValue]) / nbHarvest) / dataSet.options.coinsRatio;
+                                    harvestCost = ((Items[item][key("nodecost")] * plantedFinal[Items[item].name]) / nbHarvest) / dataSet.options.coinsRatio;
+                                    harvestCostp2pt = (Items[item]["costp2pt"] * harvestFinal);
                                 }
-                                harvestCostp2pt = (Items[item]["costp2pt"] * Items[item][harvestValue]) * tradeTax;
-                                harvestProfit = Number(frmtNb(harvestCostp2pt - harvestCost));
+                                harvestProfit = Number(frmtNb((harvestCostp2pt * tradeTax) - harvestCost));
                                 return (
                                     <tr key={itemIndex}>
                                         {xListeColBounty[1][1] === 1 && (
@@ -234,8 +257,8 @@ export function setHome(dataSet, dataSetFarm, xListeColBounty, handleHomeClic, i
                                                 <img src={Items[item].img} alt={Items[item].name} className="nodico" />
                                             </td>
                                         )}
-                                        {xListeColBounty[2][1] === 1 && <td className="tdcenter">{frmtNb(Items[item][plantedValue])}</td>}
-                                        {xListeColBounty[3][1] === 1 && <td className="tdcenter">{frmtNb(Items[item][harvestValue])}</td>}
+                                        {xListeColBounty[2][1] === 1 && <td className="tdcenter">{frmtNb(plantedFinal[Items[item].name])}</td>}
+                                        {xListeColBounty[3][1] === 1 && <td className="tdcenter">{frmtNb(harvestFinal)}</td>}
                                         {xListeColBounty[4][1] === 1 && <td className="tdcenter">{frmtNb(harvestCost)}</td>}
                                         {xListeColBounty[5][1] === 1 && <td className="tdcenter">{frmtNb(harvestCostp2pt)}</td>}
                                         {xListeColBounty[5][1] === 1 && <td className="tdcenter" style={{ color: ColorValue(harvestProfit, 0, 10) }}>{frmtNb(harvestProfit)}</td>}
@@ -252,7 +275,7 @@ export function setHome(dataSet, dataSetFarm, xListeColBounty, handleHomeClic, i
                         profitTotal += Number((Items[item].costp2pt * 0.9) - Items[item].cost);
                     });
                 } */
-                profitTotal = marketTotal - costTotal;
+                profitTotal = (marketTotal * tradeTax) - costTotal;
 
                 //const [isOpen, setIsOpen] = useState(false);
                 if (!isOpen[index]) { isOpen[index] = false };

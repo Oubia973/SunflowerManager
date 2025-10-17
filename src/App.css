@@ -437,9 +437,9 @@ input[type="checkbox"].checkbox-disabled:checked {
 }
 
 .progress-bar {
-  width: 60px;
+  width: 50px;
   height: 10px;
-  background-color: #f0f0f0;
+  background-color: #fcfcfc;
   border-radius: 5px;
   overflow: hidden;
   position: relative;
@@ -451,11 +451,11 @@ input[type="checkbox"].checkbox-disabled:checked {
 }
 
 .negative .progress {
-  background-color: #a18f8f;
+  background-color: #b4a9a9;
 }
 
 .progress-text {
-  font-size: 12px;
+  font-size: 11px;
   color: #202020;
   position: absolute;
   top: 50%;
@@ -717,11 +717,33 @@ input[type="checkbox"].checkbox-disabled:checked {
   max-height: 80vh;
   max-width: 95vw;
   overflow-y: auto;
+  width: max-content;
+}
+.tooltip.scrollable {
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior: contain;
+  user-select: text;
+  -webkit-user-select: text;
+  -webkit-touch-callout: default;
+  touch-action: auto;
 }
 
+.tooltip-wrapper.open {
+  opacity: 1;
+  pointer-events: auto;
+}
 .tooltip-wrapper.open .tooltip {
   transform: scale(1);
   opacity: 1;
+}
+
+.tooltip-wrapper.closing {
+  opacity: 0;
+  pointer-events: none;
+}
+.tooltip-wrapper.closing .tooltip {
+  transform: scale(0);
+  opacity: 0;
 }
 
 .tooltip::-webkit-scrollbar {
@@ -735,6 +757,12 @@ input[type="checkbox"].checkbox-disabled:checked {
 
 .tooltip::-webkit-scrollbar-track {
   background-color: #1d1d1d;
+}
+
+body.no-select, body.no-select * {
+  user-select: none;
+  -webkit-user-select: none;
+  -ms-user-select: none;
 }
 
 .itico {
@@ -834,7 +862,13 @@ th {
   position: sticky;
   left: 0;
   z-index: 2;
-  background-color: rgba(0, 0, 0, 0.5);
+  background-color: rgba(0, 0, 0, 0.8);
+}
+#ichcolumn {
+  position: sticky;
+  left: 0;
+  z-index: 4;
+  background-color: rgba(0, 0, 0, 0.8);
 }
 
 .tdcenter {
@@ -1272,7 +1306,7 @@ th {
   position: relative;
   font-size: 12px;
   text-align: center;
-  color: rgb(74, 255, 3);
+  color: rgb(164, 255, 128);
 }
 
 .chgneg {
@@ -1280,7 +1314,7 @@ th {
   position: relative;
   font-size: 12px;
   text-align: center;
-  color: rgb(255, 88, 37);
+  color: rgb(255, 105, 59);
 }
 
 .chgeq {

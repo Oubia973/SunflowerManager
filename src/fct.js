@@ -147,6 +147,8 @@ export function filterTryit(dataSet, toArray) {
   let bCook = {};
   let bTryBuy = {};
   let bTrySpot = {};
+  let bTrySpot2 = {};
+  let bTrySpot3 = {};
   if (!it) {
     if (toArray) {
       result.xtrynft = [];
@@ -159,6 +161,8 @@ export function filterTryit(dataSet, toArray) {
       result.xcookit = [];
       result.xbuyit = [];
       result.xspottry = [];
+      result.xspot2try = [];
+      result.xspot3try = [];
     }
     return result;
   }
@@ -173,6 +177,8 @@ export function filterTryit(dataSet, toArray) {
     Object.entries(food).forEach(([item]) => { bCook[item] = food[item].cookit; });
     Object.entries(it).forEach(([item]) => { bTryBuy[item] = it[item].buyit; });
     Object.entries(it).forEach(([item]) => { bTrySpot[item] = it[item].spottry; });
+    Object.entries(it).forEach(([item]) => { bTrySpot2[item] = it[item].spot2try; });
+    Object.entries(it).forEach(([item]) => { bTrySpot3[item] = it[item].spot3try; });
   }
   xfilterTryit();
   function ConvToArray(tableVar) {
@@ -191,6 +197,8 @@ export function filterTryit(dataSet, toArray) {
     result.xtrybud = ConvToArray(bTrybud);
     result.xbuyit = ConvToArray(bTryBuy);
     result.xspottry = ConvToArray(bTrySpot);
+    result.xspot2try = ConvToArray(bTrySpot2);
+    result.xspot3try = ConvToArray(bTrySpot3);
     result.xfarmit = ConvToArray(bFarm);
     result.xcookit = ConvToArray(bCook);
     return result;

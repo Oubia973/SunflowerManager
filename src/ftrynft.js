@@ -104,7 +104,18 @@ function ModalTNFT({ onClose, frmid, API_URL, dataSet, dataSetFarm, onReset, han
         skill: Object.fromEntries(Object.entries(dataSetLocal.skill).map(([key, value]) => [key, { ...value, tryit: value.isactive }])),
         skilllgc: Object.fromEntries(Object.entries(dataSetLocal.skilllgc).map(([key, value]) => [key, { ...value, tryit: value.isactive }])),
         bud: Object.fromEntries(Object.entries(dataSetLocal.bud).map(([key, value]) => [key, { ...value, tryit: value.isactive }])),
-        it: Object.fromEntries(Object.entries(dataSetLocal.it).map(([key, value]) => [key, { ...value, spottry: value.spot }])),
+        //it: Object.fromEntries(Object.entries(dataSetLocal.it).map(([key, value]) => [key, { ...value, spottry: value.spot }])),
+        it: Object.fromEntries(
+          Object.entries(dataSetLocal.it).map(([key, value]) => [
+            key,
+            {
+              ...value,
+              spottry: value.spot,
+              spot2try: value.spot2,
+              spot3try: value.spot3,
+            },
+          ])
+        ),
       };
       setdataSetLocal(newDataSet);
       onReset(dataSet, newDataSet);
@@ -226,9 +237,13 @@ function ModalTNFT({ onClose, frmid, API_URL, dataSet, dataSetFarm, onReset, han
     const newDataSetLocal = { ...dataSetLocal };
     setdataSetLocal(newDataSetLocal);
   };
-  const handleSpottryChange = (item, value) => {
+  const handleSpottryChange = (item, value, tier) => {
     const { it } = dataSetLocal;
-    const newbase = { ...it, [item]: { ...it[item], spottry: value } };
+    const keySpot = "spot" + (tier || "") + "try";
+    const xOtherTier = tier ? (tier === "3" ? "2" : "3") : "";
+    const keySpotOther = "spot" + xOtherTier + "try";
+    const xvalue = xOtherTier ? it[item].spottry >= value + it[item][keySpotOther] ? value : it[item].spottry - it[item][keySpotOther] : value;
+    const newbase = { ...it, [item]: { ...it[item], [keySpot]: xvalue } };
     const newDataSetLocal = { ...dataSetLocal, ["it"]: newbase };
     setdataSetLocal(newDataSetLocal);
     onReset(dataSet, newDataSetLocal);
@@ -260,15 +275,15 @@ function ModalTNFT({ onClose, frmid, API_URL, dataSet, dataSetFarm, onReset, han
         //const iharvestdmax = cobj ? cobj.harvestdmax : 0;
         //const iharvestdmaxtry = cobj ? cobj.harvestdmaxtry : 0;
         const timechg = (((timmeto1(timetry) - timmeto1(time)) / timmeto1(time)) * 100) || 0;
-        const txtTimeChg = timechg ? parseFloat(timechg).toFixed(0) + "%" : "";
+        const txtTimeChg = timechg ? timechg === Infinity ? "ꝏ" : parseFloat(timechg).toFixed(0) : "";
         const costpchg = (((costptry - costp) / costp) * 100) || 0;
-        const txtCostpChg = costpchg ? parseFloat(costpchg).toFixed(0) + "%" : "";
+        const txtCostpChg = costpchg ? costpchg === Infinity ? "ꝏ" : parseFloat(costpchg).toFixed(0) : "";
         const imyieldchg = (((imyieldtry - imyield) / imyield) * 100) || 0;
-        const txtMyieldChg = imyieldchg ? parseFloat(imyieldchg).toFixed(0) + "%" : "";
+        const txtMyieldChg = imyieldchg ? imyieldchg === Infinity ? "ꝏ" : parseFloat(imyieldchg).toFixed(0) : "";
         const iharvestchg = (((iharvesttry - iharvest) / iharvest) * 100) || 0;
-        const txtHarvestChg = iharvestchg ? parseFloat(iharvestchg).toFixed(0) + "%" : "";
+        const txtHarvestChg = iharvestchg ? iharvestchg === Infinity ? "ꝏ" : parseFloat(iharvestchg).toFixed(0) : "";
         const idsflchg = (((idsfltry - idsfl) / Math.abs(idsfl)) * 100) || 0;
-        const txtDsflChg = idsflchg ? parseFloat(idsflchg).toFixed(0) + "%" : "";
+        const txtDsflChg = idsflchg ? !isFinite(idsflchg) ? "ꝏ" : parseFloat(idsflchg).toFixed(0) : "";
         const cellDSflStyle = {};
         cellDSflStyle.color = ColorValue(TryChecked ? idsfltry : idsfl, 0, 10);
         const xtime = TryChecked ? timetry : time;
@@ -313,6 +328,24 @@ function ModalTNFT({ onClose, frmid, API_URL, dataSet, dataSetFarm, onReset, han
                 activate={TryChecked}
               />
             </td>
+            {xit[item][key("spot2")] !== null ? <td className="tdcenter">
+              <CounterInput
+                value={xit[item][key("spot2")]}
+                onChange={value => handleSpottryChange(item, value, "2")}
+                min={0}
+                max={99}
+                activate={TryChecked}
+              />
+            </td> : null}
+            {xit[item][key("spot3")] !== null ? <td className="tdcenter">
+              <CounterInput
+                value={xit[item][key("spot3")]}
+                onChange={value => handleSpottryChange(item, value, "3")}
+                min={0}
+                max={99}
+                activate={TryChecked}
+              />
+            </td> : null}
           </tr>
         );
       });
@@ -324,19 +357,21 @@ function ModalTNFT({ onClose, frmid, API_URL, dataSet, dataSetFarm, onReset, han
               <th className="th-icon">   </th>
               {/* <th>Item</th> */}
               <th>Time</th>
-              <th>chg</th>
+              <th>%</th>
               <th>Cost</th>
-              <th>chg</th>
+              <th>%</th>
               <th>Yield</th>
-              <th>chg</th>
+              <th>%</th>
               <th>Harvest</th>
-              <th>chg</th>
+              <th>%</th>
               <th>Buy
                 {/* <div><input type="checkbox" checked={iTotBuyCheck} onChange={() => handleBuyitTotalChange(item)} /></div> */}
               </th>
               <th>Daily<div>{imgSFL}</div></th>
-              <th>chg</th>
+              <th>%</th>
               <th>Nodes</th>
+              <th>Tier2</th>
+              <th>Tier3</th>
             </tr>
           </thead>
           <tbody>

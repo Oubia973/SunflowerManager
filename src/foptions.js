@@ -19,19 +19,21 @@ function ModalOptions({ onClose, dataSet, onOptionChange, API_URL }) {
     const [pos, setPos] = useState({ x: 200, y: 200 });
     const [dragging, setDragging] = useState(false);
     const offset = useRef({ x: 0, y: 0 });
+    const getClientPos = (e) => {
+        if (e.touches && e.touches.length > 0) {
+            return { x: e.touches[0].clientX, y: e.touches[0].clientY };
+        }
+        return { x: e.clientX, y: e.clientY };
+    };
     const handleMouseDown = (e) => {
+        const { x, y } = getClientPos(e);
         setDragging(true);
-        offset.current = {
-            x: e.clientX - pos.x,
-            y: e.clientY - pos.y,
-        };
+        offset.current = { x: x - pos.x, y: y - pos.y };
     };
     const handleMouseMove = (e) => {
         if (!dragging) return;
-        setPos({
-            x: e.clientX - offset.current.x,
-            y: e.clientY - offset.current.y,
-        });
+        const { x, y } = getClientPos(e);
+        setPos({ x: x - offset.current.x, y: y - offset.current.y });
     };
     const handleMouseUp = () => {
         setDragging(false);
@@ -115,7 +117,7 @@ function ModalOptions({ onClose, dataSet, onOptionChange, API_URL }) {
     const handleClickOutside = (event) => {
         if (justOpened) return;
         if (!event.target.closest(".tooltip")) {
-            closeModal();
+            //closeModal();
         }
     };
     useEffect(() => {
@@ -143,9 +145,12 @@ function ModalOptions({ onClose, dataSet, onOptionChange, API_URL }) {
         <div className={`tooltip-wrapper ${isOpen ? "open" : ""}`}
             onMouseMove={handleMouseMove}
             onMouseUp={handleMouseUp}
-            onMouseLeave={handleMouseUp}>
+            onMouseLeave={handleMouseUp}
+            onTouchMove={handleMouseMove}
+            onTouchEnd={handleMouseUp}>
             <div className="tooltip"
                 onMouseDown={handleMouseDown}
+                onTouchStart={handleMouseDown}
                 style={{
                     position: "fixed",
                     left: `${pos.x}px`,
@@ -168,6 +173,12 @@ function ModalOptions({ onClose, dataSet, onOptionChange, API_URL }) {
                     name={"FarmTime"} style={{ textAlign: "left", width: "45px" }} />Hours you can check your farm daily</div>
                 <div><input type="number" onChange={onOptionChange} value={dataSet.inputMaxBB || 0}
                     name={"MaxBB"} style={{ textAlign: "left", width: "45px" }} />Restock daily</div>
+                <div><input type="checkbox" onChange={onOptionChange} checked={!!dataSet.autoRefill || 0}
+                    name={"autoRefill"} style={{ width: "18px", height: "18px", marginRight: 12 }} />Auto restock by time
+                    <input type="checkbox" onChange={onOptionChange} checked={!!dataSet.showRestockCost || 0}
+                        name={"showRestock"} style={{ width: "18px", height: "18px", marginRight: 6 }} />show in tooltip</div>
+                <div><input type="checkbox" onChange={onOptionChange} checked={!!dataSet.restockCostDaily || 0}
+                    name={"restockCostDaily"} style={{ width: "18px", height: "18px", marginRight: 12 }} />Restock in daily numbers</div>
                 <div><input type="number" onChange={onOptionChange} value={dataSet.coinsRatio || 0}
                     name={"CoinsRatio"} style={{ textAlign: "left", width: "45px" }} />Coins{imgcoins}/{imgsfl}Flower</div>
                 <div style={{ display: 'flex', alignItems: 'center' }}><input type="text" disabled onChange={onOptionChange} value={dataSet.gemsRatio || 0}
@@ -262,6 +273,10 @@ function ModalOptions({ onClose, dataSet, onOptionChange, API_URL }) {
                     name={"toolsBurn"} style={{ width: "18px", height: "18px", marginRight: 12 }} />Ressources burned by tools in daily numbers</div>
                 <div><input type="checkbox" onChange={onOptionChange} checked={!!dataSet.usePriceFood}
                     name={"usePriceFood"} style={{ width: "18px", height: "18px", marginRight: 12 }} />Use cheaper food for animals</div>
+                <div><input type="checkbox" onChange={onOptionChange} checked={!!dataSet.mergeAniProd}
+                    name={"mergeAniProd"} style={{ width: "18px", height: "18px", marginRight: 12 }} />Set animals 2nd prod.cost to 0</div>
+                <div><input type="checkbox" onChange={onOptionChange} checked={!!dataSet.ignoreAniLvl}
+                    name={"ignoreAniLvl"} style={{ width: "18px", height: "18px", marginRight: 12 }} />Ignore animals above selected lvl</div>
                 {dataSet.isAbo ? (<>
                 </>) : null}
                 <div className="don">
