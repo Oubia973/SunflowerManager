@@ -10,6 +10,7 @@ let showNFTW = false;
 let showCraft = false;
 let showBud = false;
 let showSkill = false;
+let showShrine = false;
 
 let helpImage = "./image/helptrynft.jpg";
 
@@ -104,6 +105,7 @@ function ModalTNFT({ onClose, frmid, API_URL, dataSet, dataSetFarm, onReset, han
         skill: Object.fromEntries(Object.entries(dataSetLocal.skill).map(([key, value]) => [key, { ...value, tryit: value.isactive }])),
         skilllgc: Object.fromEntries(Object.entries(dataSetLocal.skilllgc).map(([key, value]) => [key, { ...value, tryit: value.isactive }])),
         bud: Object.fromEntries(Object.entries(dataSetLocal.bud).map(([key, value]) => [key, { ...value, tryit: value.isactive }])),
+        shrine: Object.fromEntries(Object.entries(dataSetLocal.shrine).map(([key, value]) => [key, { ...value, tryit: value.isactive }])),
         //it: Object.fromEntries(Object.entries(dataSetLocal.it).map(([key, value]) => [key, { ...value, spottry: value.spot }])),
         it: Object.fromEntries(
           Object.entries(dataSetLocal.it).map(([key, value]) => [
@@ -160,6 +162,7 @@ function ModalTNFT({ onClose, frmid, API_URL, dataSet, dataSetFarm, onReset, han
       showCraft = false;
       showBud = false;
       showSkill = false;
+      showShrine = false;
       setNFT(dataSetLocal);
     } catch (error) {
       console.log(`Error : ${error}`);
@@ -172,6 +175,7 @@ function ModalTNFT({ onClose, frmid, API_URL, dataSet, dataSetFarm, onReset, han
       showCraft = false;
       showBud = false;
       showSkill = false;
+      showShrine = false;
       setNFT(dataSetLocal);
     } catch (error) {
       console.log(`Error : ${error}`);
@@ -184,6 +188,7 @@ function ModalTNFT({ onClose, frmid, API_URL, dataSet, dataSetFarm, onReset, han
       showCraft = true;
       showBud = false;
       showSkill = false;
+      showShrine = false;
       setNFT(dataSetLocal);
     } catch (error) {
       console.log(`Error : ${error}`);
@@ -196,6 +201,7 @@ function ModalTNFT({ onClose, frmid, API_URL, dataSet, dataSetFarm, onReset, han
       showCraft = false;
       showBud = true;
       showSkill = false;
+      showShrine = false;
       setNFT(dataSetLocal);
     } catch (error) {
       console.log(`Error : ${error}`);
@@ -208,6 +214,20 @@ function ModalTNFT({ onClose, frmid, API_URL, dataSet, dataSetFarm, onReset, han
       showCraft = false;
       showBud = false;
       showSkill = true;
+      showShrine = false;
+      setNFT(dataSetLocal);
+    } catch (error) {
+      console.log(`Error : ${error}`);
+    }
+  };
+  const setShrine = () => {
+    try {
+      showNFT = false;
+      showNFTW = false;
+      showCraft = false;
+      showBud = false;
+      showSkill = false;
+      showShrine = true;
       setNFT(dataSetLocal);
     } catch (error) {
       console.log(`Error : ${error}`);
@@ -384,7 +404,7 @@ function ModalTNFT({ onClose, frmid, API_URL, dataSet, dataSetFarm, onReset, han
     }
   }
   function setNFT(xdataSetFarm) {
-    const { nft, nftw, buildng, skill, skilllgc, bud } = xdataSetFarm;
+    const { nft, nftw, buildng, skill, skilllgc, bud, shrine } = xdataSetFarm;
     let totalCost = 0;
     let totalCostM = 0;
     let totalCostactiv = 0;
@@ -394,6 +414,7 @@ function ModalTNFT({ onClose, frmid, API_URL, dataSet, dataSetFarm, onReset, han
     const buildEntries = buildng && Object.entries(buildng);
     const skillEntries = skill && Object.entries(skill);
     const skilllgcEntries = skilllgc && Object.entries(skilllgc);
+    const shrineEntries = shrine && Object.entries(shrine);
     const budEntries = bud && Object.entries(bud);
     const imgOS = <img src='./icon/ui/openseaico.png' alt={''} className="nftico" />;
     const imgexchng = <img src='./icon/ui/exchange.png' alt={''} className="nftico" />;
@@ -586,6 +607,27 @@ function ModalTNFT({ onClose, frmid, API_URL, dataSet, dataSetFarm, onReset, han
         );
       }
     }
+    if (shrineEntries && showShrine) {
+      for (const [itemb, valueb] of shrineEntries) {
+        if (valueb.tryit) { totalCost += Number(valueb.price) || 0 };
+        if (valueb.isactive) { totalCostactiv += Number(valueb.price) || 0 };
+        let isupplyb = 0;
+        if (valueb.supply) { isupplyb = valueb.supply || 0};
+        NFT.push(
+          <tr key={itemb}>
+            <td className="tditemright">{itemb}</td>
+            <td className="tdcenter" id="iccolumn"><i><img src={valueb.img} alt={''} className="nftico" /></i></td>
+            <td className="tdcenter">
+              <input type="checkbox" checked={shrine[itemb].tryit} onChange={() => handleTryitChange(itemb, shrine, "shrine")} />
+            </td>
+            <td className="tdcenter">
+              <input type="checkbox" className={'checkbox-disabled'} checked={valueb.isactive} />
+            </td>
+            <td className="tditemnft" width="500px" style={{ color: `rgb(190, 190, 190)` }}>{valueb.boost}</td>
+          </tr>
+        );
+      }
+    }
     const totalCostToDisplay = (TotalCostDisplay === "opensea" || showSkill) ? totalCost : totalCostM;
     /* NFT.unshift(
       <tr key="total">
@@ -760,6 +802,7 @@ function ModalTNFT({ onClose, frmid, API_URL, dataSet, dataSetFarm, onReset, han
             <button onClick={setCraft}>Craft</button>
             <button onClick={setBuds}>Buds</button>
             <button onClick={setSkills}>Skills</button>
+            <button onClick={setShrine}>Shrines</button>
           </div>
         </div>
         <div style={tableStyle}>

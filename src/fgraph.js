@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import Graph from './graph.js';
 import { FormControl, InputLabel, Select, MenuItem } from '@mui/material';
 
-function ModalGraph({ onClose, graphtype, frmid, it, API_URL, username }) {
+function ModalGraph({ onClose, graphtype, frmid, it, petit, API_URL, username }) {
   const [chartData, setChartData] = useState([]);
   const [Graphstartdate, setGraphstartdate] = useState('31d');
   const closeModal = () => {
@@ -97,7 +97,7 @@ function ModalGraph({ onClose, graphtype, frmid, it, API_URL, username }) {
         </div>
       </div>
       <div className="modalgraph-content" style={{ width: '100%', height: '100%' }}>
-        <Graph data={chartData} vals={vals} it={it} />
+        <Graph data={chartData} vals={vals} it={it} petit={petit} />
       </div>
     </div>
   );

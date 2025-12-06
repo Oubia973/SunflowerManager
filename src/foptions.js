@@ -16,7 +16,15 @@ function ModalOptions({ onClose, dataSet, onOptionChange, API_URL }) {
     //const [pos, setPos] = useState({ x: clickPosition.x, y: clickPosition.y });
     //const [inputFarmTime, setInputFarmTime] = useState(dataSet.inputFarmTime);
     //const [inputMaxBB, setInputMaxBB] = useState(dataSet.inputFarmTime);
-    const [pos, setPos] = useState({ x: 200, y: 200 });
+    const windowRef = useRef(null);
+    /* let centerX, centerY = 0
+    if (windowRef.current) {
+        const rect = windowRef.current.getBoundingClientRect();
+        centerX = (window.innerWidth - rect.width) / 2;
+        centerY = (window.innerHeight - rect.height) / 2;
+        //setPos({ x: centerX, y: centerY });
+    } */
+    const [pos, setPos] = useState({ x: 100, y: 100 });
     const [dragging, setDragging] = useState(false);
     const offset = useRef({ x: 0, y: 0 });
     const getClientPos = (e) => {
@@ -169,6 +177,8 @@ function ModalOptions({ onClose, dataSet, onOptionChange, API_URL }) {
                 }} */>
                 <button onClick={closeModal} class="button" align="right" position='absolute'><img src="./icon/ui/cancel.png" alt="" className="resico" /></button>
                 <span style={{ fontWeight: "bold", fontSize: "16px" }}>Preferences</span>
+                <div><input type="checkbox" onChange={onOptionChange} checked={!!dataSet.checkPlacedEquiped || 0}
+                    name={"checkPlacedEquiped"} style={{ width: "18px", height: "18px", marginRight: 12 }} />Check boosts placed/equipped</div>
                 <div><input type="number" onChange={onOptionChange} value={dataSet.inputFarmTime || 0}
                     name={"FarmTime"} style={{ textAlign: "left", width: "45px" }} />Hours you can check your farm daily</div>
                 <div><input type="number" onChange={onOptionChange} value={dataSet.inputMaxBB || 0}
@@ -228,6 +238,8 @@ function ModalOptions({ onClose, dataSet, onOptionChange, API_URL }) {
                         position='absolute'><img src="./icon/ui/refresh.png" alt="" className="resico" />
                     </button>
                     Trade Tax
+                    <input type="checkbox" onChange={onOptionChange} checked={!!dataSet.autoTradeTax}
+                        name={"autoTradeTax"} style={{ width: "18px", height: "18px", marginRight: 6 }} />Auto refresh
                 </div>
                 {dataSet.animalLvl && Object.entries(dataSet.animalLvl).map(([animal, lvl]) => (
                     <div key={animal}>
@@ -269,6 +281,8 @@ function ModalOptions({ onClose, dataSet, onOptionChange, API_URL }) {
                         listIcon={"./options.png"}
                     />
                 </div>
+                <div><input type="checkbox" onChange={onOptionChange} checked={!!dataSet.oilFood}
+                    name={"oilFood"} style={{ width: "18px", height: "18px", marginRight: 12 }} />use Oil for foods</div>
                 <div><input type="checkbox" onChange={onOptionChange} checked={!!dataSet.toolsBurn}
                     name={"toolsBurn"} style={{ width: "18px", height: "18px", marginRight: 12 }} />Ressources burned by tools in daily numbers</div>
                 <div><input type="checkbox" onChange={onOptionChange} checked={!!dataSet.usePriceFood}
@@ -279,10 +293,14 @@ function ModalOptions({ onClose, dataSet, onOptionChange, API_URL }) {
                     name={"ignoreAniLvl"} style={{ width: "18px", height: "18px", marginRight: 12 }} />Ignore animals above selected lvl</div>
                 {dataSet.isAbo ? (<>
                 </>) : null}
-                <div className="don">
-                    <a id="copy-link" href="#" onClick={(event) => handleDonClick("0xAc3c7f9f1f8492Cc10A4fdb8C738DD82013d61dA", event.target)} title="Clic to copy">
-                        0xAc3c7f9f1f8492Cc10A4fdb8C738DD82013d61dA</a>
-                    <p>if you want to give me a coffee : </p>
+                <div>
+                    <p></p>
+                    <div>if you liked this tool you can give me a coffee here : </div>
+                    <div><a id="copy-link" href="#" onClick={(event) => handleDonClick("0xAc3c7f9f1f8492Cc10A4fdb8C738DD82013d61dA", event.target)} title="Clic to copy">
+                        0xAc3c7f9f1f8492Cc10A4fdb8C738DD82013d61dA</a></div>
+                    <div>and you can help my farm here 
+                        <a id="visit-link" href="https://sunflower-land.com/play/#/visit/1972" title="Clic to visit my farm" target="_blank" rel="noopener noreferrer">
+                            : 1972</a></div>
                 </div>
             </div>
         </div>

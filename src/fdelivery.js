@@ -8,6 +8,7 @@ const imgheart = './icon/ui/expression_love.png';
 const imgsfl = './icon/res/flowertoken.webp';
 const imgcoins = './icon/res/coins.png';
 const imggems = './icon/res/gem.webp';
+const imgexchng = './icon/ui/exchange.png';
 const imgna = './icon/nft/na.png';
 //const imgtkt = './icon/res/' + imgtktname;
 
@@ -139,14 +140,16 @@ function ModalDlvr({ onClose, tableData, imgtkt, coinsRatio, handleTryCheckedCha
               <th className="thcenter">Reward</th>
               <th>Cost</th>
               <th>
-                <div className="selectquantback" style={{ top: `1px` }}><FormControl variant="standard" id="formselectquant" className="selectquant" size="small">
+                {/* <div className="selectquantback" style={{ top: `1px` }}><FormControl variant="standard" id="formselectquant" className="selectquant" size="small">
                   <InputLabel>Cost</InputLabel>
                   <Select value={selectedCost} onChange={handleChangeCost}>
                     <MenuItem value="shop">Shop</MenuItem>
                     <MenuItem value="trader">Market</MenuItem>
                     <MenuItem value="nifty">Niftyswap</MenuItem>
                     <MenuItem value="opensea">OpenSea</MenuItem>
-                  </Select></FormControl></div></th>
+                  </Select></FormControl></div> */}
+                <img src={imgexchng} alt={''} title="Marketplace" style={{ width: '25px', height: '25px' }} />
+              </th>
               <th className="thcenter">Ratio <div>{imgbcoins}/{imgbsfl}</div></th>
               <th>Cost/tkt</th>
               <th>Since</th>
@@ -180,6 +183,7 @@ function ModalDlvr({ onClose, tableData, imgtkt, coinsRatio, handleTryCheckedCha
       //const costp2p = selectedCost === "shop" ? frmtNb(item[1].costs) : selectedCost === "trader" ? frmtNb(item[1].costt) : selectedCost === "nifty" ? frmtNb(item[1].costn) : selectedCost === "opensea" ? frmtNb(item[1].costo) : 0;
       const imgRew = <img src={item[1].rewardimg} alt="" title={item[1].rewarditem} style={{ width: '15px', height: '15px' }} />;
       const itemImg = <img src={item[1].itemimg} alt="" title={item[1].item} style={{ width: '20px', height: '20px' }} />;
+      const totTime = TryChecked ? item[1].totaltimetry : item[1].totaltime;
       return (
         <tr key={index}>
           <td className="tdleft">{item[1].description}</td>
@@ -187,6 +191,7 @@ function ModalDlvr({ onClose, tableData, imgtkt, coinsRatio, handleTryCheckedCha
           <td className="tdcenter">{PBar(item[1].progress, item[1].progressstart, item[1].requirement)}</td>
           <td className="tdcenter">{item[1].completed ? item[1].completedAt === undefined ? ximgrdy : ximgyes : ximgno}</td>
           <td className="tdcenter">{item[1].reward}{imgRew}</td>
+          <td className="tdcenter">{totTime}</td>
           <td className="tdcenter">{item[1].createdAt}</td>
         </tr>
       )
@@ -201,6 +206,7 @@ function ModalDlvr({ onClose, tableData, imgtkt, coinsRatio, handleTryCheckedCha
               <th> </th>
               <th> </th>
               <th>Reward</th>
+              <th>Total time</th>
               <th>Since</th>
             </tr>
           </thead>

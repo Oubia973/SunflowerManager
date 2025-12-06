@@ -68,7 +68,7 @@ export async function setMarket(dataSet, dataSetFarm, API_URL, xListeColBounty) 
 function setListings(elements, dataSet, dataSetFarm, xListeColBounty, listOrOffers = "listing") {
     if (!elements) { return null; }
     if (Object.keys(elements).length === 0) { return null; }
-    const { it, fish, flower, bounty, craft, mutant, bud, nft, nftw } = dataSetFarm;
+    const { it, fish, flower, bounty, craft, mutant, bud, petit, nft, nftw } = dataSetFarm;
     const Key = Object.keys(elements);
     const tableBody = Key.map(element => {
         const cobj = elements[element];
@@ -82,6 +82,7 @@ function setListings(elements, dataSet, dataSetFarm, xListeColBounty, listOrOffe
         if (bounty[itemName]) { itemObj = bounty[itemName]; }
         if (craft[itemName]) { itemObj = craft[itemName]; }
         if (mutant[itemName]) { itemObj = mutant[itemName]; }
+        if (petit[itemName]) { itemObj = petit[itemName]; }
         //if (bud[itemName]) { itemObj = bud[itemName]; }
         if (nft[itemName]) { itemObj = nft[itemName]; }
         if (nftw[itemName]) { itemObj = nftw[itemName]; }
@@ -135,7 +136,7 @@ function setListings(elements, dataSet, dataSetFarm, xListeColBounty, listOrOffe
 }
 function setTrades(elements, dataSet, dataSetFarm, xListeColBounty) {
     if (!elements) { return null; }
-    const { it, fish, flower, bounty, craft, bud, mutant, nft, nftw } = dataSetFarm;
+    const { it, fish, flower, bounty, craft, bud, petit, mutant, nft, nftw } = dataSetFarm;
     const Key = Object.keys(elements);
     let totSell = 0;
     let totBuy = 0;
@@ -164,6 +165,7 @@ function setTrades(elements, dataSet, dataSetFarm, xListeColBounty) {
             if (keyInTable(craft, itemId) !== null) { itemName = keyInTable(craft, itemId); }
             if (keyInTable(mutant, itemId) !== null) { itemName = keyInTable(mutant, itemId); }
             if (keyInTable(nft, itemId) !== null) { itemName = keyInTable(nft, itemId); }
+            if (keyInTable(petit, itemId) !== null) { itemName = keyInTable(petit, itemId); }
         }
         if (cobj.collection === "wearables") {
             itemName = "Wearable ID: " + itemId;
@@ -182,6 +184,7 @@ function setTrades(elements, dataSet, dataSetFarm, xListeColBounty) {
         if (mutant[itemName]) { itemObj = mutant[itemName]; }
         if (nft[itemName]) { itemObj = nft[itemName]; }
         if (nftw[itemName]) { itemObj = nftw[itemName]; }
+        if (petit[itemName]) { itemObj = petit[itemName]; }
         const ico = <img src={itemObj.img} alt={''} className="nodico" title={itemName} />;
         const iFrom = cobj.fulfilledBy?.username || "?";
         const txtFrom = cobj.fulfilledBy?.username === dataSetFarm.username ? <b>{iFrom}</b> : iFrom;
@@ -231,7 +234,7 @@ function setTrades(elements, dataSet, dataSetFarm, xListeColBounty) {
     const table = (
         <>
             <h2 style={{ margin: 0 }}>Traded</h2>
-            <div>Total sold : {frmtNb(totSell)}{imgsfl} - Total buyed : {frmtNb(totBuy)}{imgsfl}</div>
+            <div>Total sold : {frmtNb(totSell)}{imgsfl} - Total bought : {frmtNb(totBuy)}{imgsfl}</div>
             <table className="table">
                 {tableHeader}
                 <tbody>

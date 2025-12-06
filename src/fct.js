@@ -135,7 +135,7 @@ export function Timer({ timestamp, index, onTimerFinish }) {
 }
 
 export function filterTryit(dataSet, toArray) {
-  const { it, food, nft, nftw, skill, skilllgc, buildng, bud } = dataSet;
+  const { it, food, nft, nftw, skill, skilllgc, buildng, bud, shrine } = dataSet;
   const result = {};
   let bTrynft = {};
   let bTrynftw = {};
@@ -143,6 +143,7 @@ export function filterTryit(dataSet, toArray) {
   let bTryskill = {};
   let bTryskilllgc = {};
   let bTrybud = {};
+  let bTryshrine = {};
   let bFarm = {};
   let bCook = {};
   let bTryBuy = {};
@@ -157,6 +158,7 @@ export function filterTryit(dataSet, toArray) {
       result.xtryskill = [];
       result.xtryskilllgc = [];
       result.xtrybud = [];
+      result.xtryshrine = [];
       result.xfarmit = [];
       result.xcookit = [];
       result.xbuyit = [];
@@ -173,6 +175,7 @@ export function filterTryit(dataSet, toArray) {
     Object.entries(skilllgc).forEach(([item]) => { bTryskilllgc[item] = skilllgc[item].tryit; });
     Object.entries(buildng).forEach(([item]) => { bTrybuild[item] = buildng[item].tryit; });
     Object.entries(bud).forEach(([item]) => { bTrybud[item] = bud[item].tryit; });
+    Object.entries(shrine).forEach(([item]) => { bTryshrine[item] = shrine[item].tryit; });
     Object.entries(it).forEach(([item]) => { bFarm[item] = it[item].farmit; });
     Object.entries(food).forEach(([item]) => { bCook[item] = food[item].cookit; });
     Object.entries(it).forEach(([item]) => { bTryBuy[item] = it[item].buyit; });
@@ -195,6 +198,7 @@ export function filterTryit(dataSet, toArray) {
     result.xtryskill = ConvToArray(bTryskill);
     result.xtryskilllgc = ConvToArray(bTryskilllgc);
     result.xtrybud = ConvToArray(bTrybud);
+    result.xtryshrine = ConvToArray(bTryshrine);
     result.xbuyit = ConvToArray(bTryBuy);
     result.xspottry = ConvToArray(bTrySpot);
     result.xspot2try = ConvToArray(bTrySpot2);
@@ -209,6 +213,7 @@ export function filterTryit(dataSet, toArray) {
     result.bTryskill = bTryskill;
     result.bTryskilllgc = bTryskilllgc;
     result.bTrybud = bTrybud;
+    result.bTryshrine = bTryshrine;
     return result;
   }
 }

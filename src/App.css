@@ -408,6 +408,18 @@ input[type="checkbox"].checkbox-disabled:checked {
   background-repeat: no-repeat;
 }
 
+.selectpetback {
+  width: 106px;
+  height: 20px;
+  top: 0px;
+  right: 0px;
+  position: relative;
+  background-image: url('./button.png');
+  background-size: 100% 100%;
+  background-position: center;
+  background-repeat: no-repeat;
+}
+
 .selectgraphdate {
   height: 30px;
   width: 74px;
@@ -495,6 +507,7 @@ input[type="checkbox"].checkbox-disabled:checked {
 
 .collapsible-container {
   flex: 1;
+  max-width: 600px;
 }
 
 .collapsible-block {

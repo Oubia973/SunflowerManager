@@ -2,7 +2,7 @@ import React, { useEffect, useLayoutEffect, useMemo, useState, useRef } from 're
 import { frmtNb, convtimenbr, convTime, ColorValue, Timer } from './fct.js';
 
 const Tooltip = ({ onClose, item, context, value, clickPosition, dataSet, dataSetFarm, bdrag = true }) => {
-    const { it, flower, fish, buildng, craft, tool, nft, nftw, skill, skilllgc, bud, bounty, Animals, spot } = dataSetFarm || {};
+    const { it, food, flower, fish, buildng, craft, tool, nft, nftw, skill, skilllgc, bud, shrine, bounty, Animals, spot } = dataSetFarm || {};
     const ForTry = (value === "trynft") || dataSet.forTry;
     let activeortry = ForTry ? "tryit" : "isactive";
     let costortry = ForTry ? "costtry" : "cost";
@@ -36,7 +36,7 @@ const Tooltip = ({ onClose, item, context, value, clickPosition, dataSet, dataSe
     const imgspring = <img src="./icon/ui/spring.webp" alt={''} className="resico" title="Spring" />;
     const imgsummer = <img src="./icon/ui/summer.webp" alt={''} className="resico" title="Summer" />;
     const imgautumn = <img src="./icon/ui/autumn.webp" alt={''} className="resico" title="Autumn" />;
-    const Item = it[item] || {};
+    const Item = it?.[item] || {};
     const tradeTax = (100 - dataSet.options.tradeTax) / 100;
     let txt = "";
     const [isOpen, setIsOpen] = useState(false);
@@ -210,7 +210,7 @@ const Tooltip = ({ onClose, item, context, value, clickPosition, dataSet, dataSe
     }
 
     try {
-        if (it[item]) {
+        if (it?.[item]) {
             function getNodeImg(item) {
                 const retObj = {};
                 switch (true) {
@@ -933,7 +933,7 @@ const Tooltip = ({ onClose, item, context, value, clickPosition, dataSet, dataSe
             }
         }
         if (context === "trynft") {
-            const booststable = { ...skilllgc, ...skill, ...buildng, ...nft, ...nftw, ...bud };
+            const booststable = { ...skilllgc, ...skill, ...buildng, ...nft, ...nftw, ...bud, ...shrine };
             const imtemimg = <img src={Item?.img ?? imgna} alt={item} style={{ width: "22px", height: "22px" }} />;
             let filteredBoosts = [];
             let txtItem = "";
@@ -1161,6 +1161,12 @@ const Tooltip = ({ onClose, item, context, value, clickPosition, dataSet, dataSe
                 </>
             );
         }
+        if (context === "cookcost") {
+            if (food[item]) {
+                const { table, totalCost, totalCostM } = setCompoTable(item, value);
+                txt = table;
+            }
+        }
         if (context === "market") {
             const itemImg = <img src={Item?.img ?? imgna} alt={item ?? "?"} style={{ width: "22px", height: "22px" }} />;
             let prodCost = (Item[costortry] * value.itemQuant) / dataSet.options.coinsRatio;
@@ -1243,6 +1249,12 @@ const Tooltip = ({ onClose, item, context, value, clickPosition, dataSet, dataSe
                 </>
             }
         }
+        if (context === "username") {
+            const username = dataSet?.options?.username || "No Name";
+            const farmId = dataSet?.options?.farmId || "Unknown";
+            txt = <><div>{`User: ${username}`}</div>
+                <div>{`farm ID: ${farmId}`}</div></>;
+        }
     } catch (error) {
         console.log("tooltip: ", error);
     }
@@ -1288,6 +1300,7 @@ const Tooltip = ({ onClose, item, context, value, clickPosition, dataSet, dataSe
     function setCompoTable(item, quant) {
         let itemTable = {};
         let itemImgName = imgna;
+        let itemQuant = quant || 1;
         if (craft[item]?.compo) {
             itemTable = craft[item]?.compo;
             itemImgName = craft[item]?.img;
@@ -1295,6 +1308,10 @@ const Tooltip = ({ onClose, item, context, value, clickPosition, dataSet, dataSe
         if (tool?.[item]) {
             itemTable = tool?.[item];
             itemImgName = tool?.[item]?.img;
+        }
+        if (food[item]?.compo) {
+            itemTable = food[item]?.compoit;
+            itemImgName = food[item]?.img;
         }
         if (item === "Obsidian") {
             itemTable = ForTry ? Item.compotry : Item.compo;
@@ -1306,6 +1323,7 @@ const Tooltip = ({ onClose, item, context, value, clickPosition, dataSet, dataSe
                 Barley: quant,
                 Wheat: quant
             };
+            itemQuant = 1;
             itemImgName = imgmix;
         }
         const isTool = tool?.[item];
@@ -1314,8 +1332,9 @@ const Tooltip = ({ onClose, item, context, value, clickPosition, dataSet, dataSe
         let totalCostM = 0;
         const compoList = itemTable;
         const itemName = item;
+        const itemQuantTxt = itemQuant > 1 ? (" x" + itemQuant) : "";
         const tableContent = Object.keys(compoList).map((key) => {
-            const compoQuant = compoList[key];
+            const compoQuant = compoList[key] * itemQuant;
             const cleanName = ForTry ? key.replace(/try$/, "") : key;
             let hasQuant = compoQuant > 0;
             if (isTool && key !== "sfl") {
@@ -1329,7 +1348,7 @@ const Tooltip = ({ onClose, item, context, value, clickPosition, dataSet, dataSe
             if (flower[key]) { itemBase = flower; }
             if (craft[key]) { itemBase = craft; }
             if (!itemBase?.[key]) { return null; } */
-            const itemBase = [it, bounty, flower, craft].find(src => src?.[cleanName]);
+            const itemBase = [it, fish, bounty, flower, craft].find(src => src?.[cleanName]);
             if ((!itemBase && (key !== "sfl"))) return null;
             const icompoToAdd = (key === "sfl") ? "./icon/res/coins.png" : (itemBase[cleanName]?.img || imgna);
             const titleImg = (key === "sfl") ? "Coins" : key;
@@ -1350,7 +1369,7 @@ const Tooltip = ({ onClose, item, context, value, clickPosition, dataSet, dataSe
         const tableHeader = (
             <thead>
                 <tr>
-                    <th className="tdcenterbrd">{itemImg}{itemName}</th>
+                    <th className="tdcenterbrd">{itemImg}{itemName}{itemQuantTxt}</th>
                     <td className="tdcenterbrd">Prod cost</td>
                     <td className="tdcenterbrd">{imgmp} cost</td>
                 </tr>

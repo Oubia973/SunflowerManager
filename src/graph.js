@@ -9,7 +9,7 @@ var logarithmicScale = true;
 //var lastIndexClicked = 0;
 var clickedIndex = [];
 
-function Graph({ data, vals, it }) {
+function Graph({ data, vals, it, petit }) {
   const chartRef = useRef(null);
   const [selectedCategory, setSelectedCategory] = useState('all');
 
@@ -21,6 +21,14 @@ function Graph({ data, vals, it }) {
           idName[it[item].id].name = item;
           idName[it[item].id].color = it[item].color;
           idName[it[item].id].cat = it[item].cat;
+        }
+      }
+      for (let item in petit) {
+        if (!idName[petit[item].id]) { idName[petit[item].id] = {} }
+        if (petit[item].color) {
+          idName[petit[item].id].name = item;
+          idName[petit[item].id].color = petit[item].color;
+          idName[petit[item].id].cat = petit[item].cat;
         }
       }
       const datasets = {};
@@ -158,7 +166,8 @@ function Graph({ data, vals, it }) {
     "crops": ["crop"],
     "wood minerals": ["wood", "mineral", "gem"],
     "fruits honey": ["fruit", "honey", "mushroom"],
-    "animals": ["animal"]
+    "animals": ["animal"],
+    "pets": ["pet"]
   };
   return (
     <div style={{ width: '100%', height: '100%' }}>
