@@ -135,8 +135,43 @@ export function Timer({ timestamp, index, onTimerFinish }) {
 }
 
 export function filterTryit(dataSet, toArray) {
-  const { it, food, nft, nftw, skill, skilllgc, buildng, bud, shrine } = dataSet;
+  const { it = {}, food = {} } = dataSet?.itables || {};
+  const { nft = {}, nftw = {}, skill = {}, skilllgc = {}, buildng = {}, bud = {}, shrine = {} } = dataSet?.boostables || {};
   const result = {};
+
+  const boostables = dataSet?.boostables;
+  if (boostables) {
+    for (const boostableName in boostables) {
+      let bTable = [];
+      const boostable = boostables[boostableName];
+      Object.entries(boostable).forEach(([item]) => { bTable[item] = boostable[item].tryit; });
+      const tableToArray = Object.entries(bTable)
+        .filter(([key, value]) => value !== 0)
+        .map(([key, value]) => ({ name: key, value }))
+        .reduce((acc, item) => { acc[item.name] = item.value; return acc; }, {});
+      result[boostableName] = tableToArray;
+    }
+    let bFarm = {};
+    let bCook = {};
+    let bTryBuy = {};
+    let bTrySpot = {};
+    let bTrySpot2 = {};
+    let bTrySpot3 = {};
+    Object.entries(it).forEach(([item]) => { bFarm[item] = it[item].farmit; });
+    Object.entries(food).forEach(([item]) => { bCook[item] = food[item].cookit; });
+    Object.entries(it).forEach(([item]) => { bTryBuy[item] = it[item].buyit; });
+    Object.entries(it).forEach(([item]) => { bTrySpot[item] = it[item].spottry; });
+    Object.entries(it).forEach(([item]) => { bTrySpot2[item] = it[item].spot2try; });
+    Object.entries(it).forEach(([item]) => { bTrySpot3[item] = it[item].spot3try; });
+    result.xbuyit = ConvToArray(bTryBuy);
+    result.xspottry = ConvToArray(bTrySpot);
+    result.xspot2try = ConvToArray(bTrySpot2);
+    result.xspot3try = ConvToArray(bTrySpot3);
+    result.xfarmit = ConvToArray(bFarm);
+    result.xcookit = ConvToArray(bCook);
+  }
+  return result;
+
   let bTrynft = {};
   let bTrynftw = {};
   let bTrybuild = {};

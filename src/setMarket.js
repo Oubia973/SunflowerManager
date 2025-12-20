@@ -9,9 +9,9 @@ const imgsfl = <img src='./icon/res/flowertoken.webp' alt={''} className="itico"
 const imgcoins = <img src='./icon/res/coins.png' alt={''} className="itico" title="Coins" />;
 const imgna = <img src='./icon/nft/na.png' alt={''} className="itico" title="" />;
 
-async function getMarket(dataSetMarket, API_URL) {
-    const farmId = dataSetMarket.options.farmId;
-    const userName = dataSetMarket.options.username;
+async function getMarket(dataSet, API_URL) {
+    const farmId = dataSet.frmid;
+    const userName = dataSet.username;
     if (farmId) {
         const responseActivity = await fetch(API_URL + "/getmarket", {
             method: 'POST',
@@ -39,12 +39,12 @@ export async function setMarket(dataSet, dataSetFarm, API_URL, xListeColBounty) 
     function key(name) {
         return dataSet.forTry ? name + "try" : name;
     }
-    const dataMarket = await getMarket(dataSet, API_URL) || {};
+    const dataMarket = await getMarket(dataSetFarm, API_URL) || {};
     const { friends, listings, offers, trades, totalTrades, weeklyFlowerEarned, weeklyFlowerSpent } = dataMarket;
     if (!friends) { return null; }
     try {
         //const tableListings = setListings(listings, dataSet, dataSetFarm, xListeColBounty);
-        const tableOffers = setListings(offers, dataSet, dataSetFarm, xListeColBounty, "offer");
+        const tableOffers = setOffers(offers, dataSet, dataSetFarm, xListeColBounty, "offer");
         const tableTrades = setTrades(trades, dataSet, dataSetFarm, xListeColBounty);
         const result = (
             <>
@@ -65,10 +65,11 @@ export async function setMarket(dataSet, dataSetFarm, API_URL, xListeColBounty) 
         return null;
     }
 }
-function setListings(elements, dataSet, dataSetFarm, xListeColBounty, listOrOffers = "listing") {
+function setOffers(elements, dataSet, dataSetFarm, xListeColBounty, listOrOffers = "listing") {
     if (!elements) { return null; }
     if (Object.keys(elements).length === 0) { return null; }
-    const { it, fish, flower, bounty, craft, mutant, bud, petit, nft, nftw } = dataSetFarm;
+    const { it, fish, flower, bounty, craft, mutant, petit } = dataSetFarm.itables;
+    const { bud, nft, nftw } = dataSetFarm.boostables;
     const Key = Object.keys(elements);
     const tableBody = Key.map(element => {
         const cobj = elements[element];
@@ -88,7 +89,9 @@ function setListings(elements, dataSet, dataSetFarm, xListeColBounty, listOrOffe
         if (nftw[itemName]) { itemObj = nftw[itemName]; }
         const ico = <img src={itemObj.img} alt={''} className="nodico" title={itemName} />;
         const icost = (((itemObj.cost * itemQuant) / dataSet.options.coinsRatio) || 0);
-        const icostm = (itemObj.costp2pt > 0 ? frmtNb(itemObj.costp2pt * itemQuant) : parseFloat(itemObj.pricemsfl * itemQuant).toFixed(0)) || "";
+        const icostp2pt = itemObj.costp2pt || 0;
+        const ipricemsfl = itemObj.pricemsfl || 0;
+        const icostm = (icostp2pt > 0 ? frmtNb(icostp2pt * itemQuant) : ipricemsfl > 0 ? parseFloat(ipricemsfl * itemQuant).toFixed(0) : "") || "";
         const isfl = cobj.sfl || 0;
         const ts = Number(cobj.createdAt);
         const createdDate = isFinite(ts) ? new Date(ts < 1e12 ? ts * 1000 : ts) : null;
@@ -136,7 +139,8 @@ function setListings(elements, dataSet, dataSetFarm, xListeColBounty, listOrOffe
 }
 function setTrades(elements, dataSet, dataSetFarm, xListeColBounty) {
     if (!elements) { return null; }
-    const { it, fish, flower, bounty, craft, bud, petit, mutant, nft, nftw } = dataSetFarm;
+    const { it, fish, flower, bounty, craft, mutant, petit } = dataSetFarm.itables;
+    const { bud, nft, nftw } = dataSetFarm.boostables;
     const Key = Object.keys(elements);
     let totSell = 0;
     let totBuy = 0;
@@ -150,9 +154,9 @@ function setTrades(elements, dataSet, dataSetFarm, xListeColBounty) {
         function keyInTable(table, id) {
             const keyFound = Object.keys(table).find(key => {
                 const match = Number(table[key].id) === Number(id);
-                if (match) {
+                /* if (match) {
                     //console.log("keyInTable: trouvé", key, table[key].id, id);
-                }
+                } */
                 return match;
             });
             return keyFound || null;
@@ -177,6 +181,7 @@ function setTrades(elements, dataSet, dataSetFarm, xListeColBounty) {
         }
         //console.log("ID:", itemId, " itemName:", itemName);
         if (it[itemName]) { itemObj = it[itemName]; }
+        if (fish[itemName]) { itemObj = fish[itemName]; }
         if (flower[itemName]) { itemObj = flower[itemName]; }
         if (bounty[itemName]) { itemObj = bounty[itemName]; }
         if (craft[itemName]) { itemObj = craft[itemName]; }

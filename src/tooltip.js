@@ -2,7 +2,9 @@ import React, { useEffect, useLayoutEffect, useMemo, useState, useRef } from 're
 import { frmtNb, convtimenbr, convTime, ColorValue, Timer } from './fct.js';
 
 const Tooltip = ({ onClose, item, context, value, clickPosition, dataSet, dataSetFarm, bdrag = true }) => {
-    const { it, food, flower, fish, buildng, craft, tool, nft, nftw, skill, skilllgc, bud, shrine, bounty, Animals, spot } = dataSetFarm || {};
+    const { Animals, spot } = dataSetFarm || {};
+    const { it, food, flower, fish, buildng, craft, tool, bounty } = dataSetFarm.itables || {};
+    const { nft, nftw, skill, skilllgc, bud, shrine } = dataSetFarm.boostables || {};
     const ForTry = (value === "trynft") || dataSet.forTry;
     let activeortry = ForTry ? "tryit" : "isactive";
     let costortry = ForTry ? "costtry" : "cost";
@@ -276,7 +278,7 @@ const Tooltip = ({ onClose, item, context, value, clickPosition, dataSet, dataSe
                 }
                 return retObj;
             }
-            const Spot1 = it[item][key("spot")] - ((it[item]?.[key("spot2")] || 0) + (it[item]?.[key("spot3")] || 0));
+            const Spot1 = (it[item][key("spot")] || 0) - ((it[item]?.[key("spot2")] || 0) + (it[item]?.[key("spot3")] || 0));
             const nodeImg = getNodeImg(item);
             const imgNode = <img src={nodeImg.nodeImg1} style={{ width: "20px", height: "20px" }} />
             let imgNode2 = null;
@@ -286,7 +288,7 @@ const Tooltip = ({ onClose, item, context, value, clickPosition, dataSet, dataSe
             const noNode1 = (nodeImg?.nodeImg2 || nodeImg?.nodeImg3) && (((it[item]?.[key("spot2")] || 0) + (it[item]?.[key("spot3")] || 0)) === it[item][key("spot")]);
             const txtNodeImg2 = it[item]?.[key("spot2")] ? <>{it[item][key("spot2")]}{imgNode2}</> : null;
             const txtNodeImg3 = it[item]?.[key("spot3")] ? <>{it[item][key("spot3")]}{imgNode3}</> : null;
-            const txtNodeImg = <>{"with "}{Spot1 || null}{!noNode1 && imgNode} {txtNodeImg2} {txtNodeImg3}</>;
+            const txtNodeImg = <>{"with "}{!noNode1 ? Spot1 : null}{!noNode1 && imgNode} {txtNodeImg2} {txtNodeImg3}</>;
             if (context === "costp") {
                 const itemImg = <img src={Item?.img ?? imgna} alt={item ?? "?"} style={{ width: "22px", height: "22px" }} />;
                 const itemTool = tool[Item?.tool];
@@ -861,7 +863,7 @@ const Tooltip = ({ onClose, item, context, value, clickPosition, dataSet, dataSe
                         const itemRdyAt = itemsObject ? item.readyAt : item.craft[crafting].readyAt;
                         return (
                             <div key={index}>
-                                <img src={dataSetFarm[itemType][itemName].img} className="resicon" alt={itemName} />
+                                <img src={dataSetFarm.itables[itemType][itemName].img} className="resicon" alt={itemName} />
                                 {itemAmount > 1 && "x" + itemAmount} {" "}
                                 ready in <Timer timestamp={itemRdyAt} />
                             </div>

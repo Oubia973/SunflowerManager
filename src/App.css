@@ -420,6 +420,25 @@ input[type="checkbox"].checkbox-disabled:checked {
   background-repeat: no-repeat;
 }
 
+.selectseason {
+  width: 37px;
+  top: -15px;
+  left: 0px;
+  height: 10px;
+  padding: 0px;
+}
+.selectseasonback {
+  width: 36px;
+  height: 25px;
+  top: 4px;
+  right: 0px;
+  position: relative;
+  background-image: url('./button.png');
+  background-size: 100% 100%;
+  background-position: center;
+  background-repeat: no-repeat;
+}
+
 .selectgraphdate {
   height: 30px;
   width: 74px;

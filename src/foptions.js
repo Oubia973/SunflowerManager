@@ -182,20 +182,22 @@ function ModalOptions({ onClose, dataSet, onOptionChange, API_URL }) {
                 <div><input type="number" onChange={onOptionChange} value={dataSet.inputFarmTime || 0}
                     name={"FarmTime"} style={{ textAlign: "left", width: "45px" }} />Hours you can check your farm daily</div>
                 <div><input type="number" onChange={onOptionChange} value={dataSet.inputMaxBB || 0}
-                    name={"MaxBB"} style={{ textAlign: "left", width: "45px" }} />Restock daily</div>
+                    name={"inputMaxBB"} style={{ textAlign: "left", width: "45px" }} />Restock daily</div>
                 <div><input type="checkbox" onChange={onOptionChange} checked={!!dataSet.autoRefill || 0}
                     name={"autoRefill"} style={{ width: "18px", height: "18px", marginRight: 12 }} />Auto restock by time
                     <input type="checkbox" onChange={onOptionChange} checked={!!dataSet.showRestockCost || 0}
-                        name={"showRestock"} style={{ width: "18px", height: "18px", marginRight: 6 }} />show in tooltip</div>
+                        name={"showRestockCost"} style={{ width: "18px", height: "18px", marginRight: 6 }} />show in tooltip</div>
                 <div><input type="checkbox" onChange={onOptionChange} checked={!!dataSet.restockCostDaily || 0}
                     name={"restockCostDaily"} style={{ width: "18px", height: "18px", marginRight: 12 }} />Restock in daily numbers</div>
                 <div><input type="number" onChange={onOptionChange} value={dataSet.coinsRatio || 0}
-                    name={"CoinsRatio"} style={{ textAlign: "left", width: "45px" }} />Coins{imgcoins}/{imgsfl}Flower</div>
+                    name={"CoinsRatio"} style={{ textAlign: "left", width: "45px" }} />Coins{imgcoins}/{imgsfl}Flower
+                    <input type="checkbox" onChange={onOptionChange} checked={!!dataSet.autoCoinRatio || 0}
+                        name={"autoCoinRatio"} style={{ width: "18px", height: "18px", marginRight: 6 }} />Auto</div>
                 <div style={{ display: 'flex', alignItems: 'center' }}><input type="text" disabled onChange={onOptionChange} value={dataSet.gemsRatio || 0}
                     name={"GemsRatio"} style={{ textAlign: "left", width: "45px" }} />Flower{imgsfl}/{imggems}Gems
                     <div className="selectinvback" style={{ display: 'flex', alignItems: 'left', height: '20px', width: '80px', margin: "0", padding: "0" }}>
                         <FormControl variant="standard" id="formselectinv" className="selectinv" size="small">
-                            <InputLabel>Pack</InputLabel>
+                            <InputLabel></InputLabel>
                             <Select value={dataSet.gemsPack} onChange={handleChangeGemRatio}>
                                 <MenuItem value="100">100{imggems}</MenuItem>
                                 <MenuItem value="650">650{imggems}</MenuItem>

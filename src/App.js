@@ -24,7 +24,7 @@ const isNativeApp = Capacitor.isNativePlatform();
 const runLocal = true;
 const API_URL = runLocal ? "" : process.env.REACT_APP_API_URL;
 
-var vversion = 0.06;
+var vversion = 0.07;
 let dataSet = {};
 dataSet.options = {};
 
@@ -51,8 +51,13 @@ const imgshrine = './icon/shrine/boar.webp';
 const imgacorn = './icon/pet/acorn.webp';
 const imgexchng = './icon/ui/exchange.png';
 const imgExchng = <img src={imgexchng} alt={''} title="Marketplace" style={{ width: '25px', height: '25px' }} />;
+const imgbuyit = <img src={imgexchng} alt={''} title="Marketplace" style={{ width: '15px', height: '15px' }} />;
 const imgna = './icon/nft/na.png';
 const imgrod = './icon/tools/fishing_rod.png';
+const imgwinter = <img src="./icon/ui/winter.webp" alt={''} className="seasonico" title="Winter" />;
+const imgspring = <img src="./icon/ui/spring.webp" alt={''} className="seasonico" title="Spring" />;
+const imgsummer = <img src="./icon/ui/summer.webp" alt={''} className="seasonico" title="Summer" />;
+const imgautumn = <img src="./icon/ui/autumn.webp" alt={''} className="seasonico" title="Autumn" />;
 
 var xdxp = 0;
 
@@ -149,6 +154,7 @@ function App() {
   const [activityDisplay, setActivityDisplay] = useState("item");
   const [selectedInv, setSelectedInv] = useState('home');
   const [selectedDigCur, setSelectedDigCur] = useState('sfl');
+  const [selectedSeason, setSelectedSeason] = useState('all');
   const [activeTimers, setActiveTimers] = useState([]);
   const [GraphType, setGraphType] = useState('');
   const [mutData, setmutData] = useState([]);
@@ -390,6 +396,10 @@ function App() {
   const handleChangeCostCook = (event) => {
     const selectedValue = event.target.value;
     setselectedCostCook(selectedValue);
+  }
+  const handleChangeSeason = (event) => {
+    const selectedValue = event.target.value;
+    setSelectedSeason(selectedValue);
   }
   const handleChangeInv = (event) => {
     const selectedValue = event.target.value;
@@ -647,26 +657,6 @@ function App() {
       return;
     }
     switch (name) {
-      case "checkPlacedEquiped":
-        dataSet.options.checkPlacedEquiped = xvalue;
-        setOptions({ ...dataSet.options });
-        break;
-      case "MaxBB":
-        dataSet.options.inputMaxBB = xvalue;
-        setInputMaxBB(xvalue);
-        break;
-      case "autoRefill":
-        dataSet.options.autoRefill = xvalue;
-        setOptions({ ...dataSet.options });
-        break;
-      case "showRestock":
-        dataSet.options.showRestockCost = xvalue;
-        setOptions({ ...dataSet.options });
-        break;
-      case "restockCostDaily":
-        dataSet.options.restockCostDaily = xvalue;
-        setOptions({ ...dataSet.options });
-        break;
       case "FarmTime":
         if (xvalue > 24) xvalue = 24;
         dataSet.options.inputFarmTime = xvalue;
@@ -681,40 +671,14 @@ function App() {
         setOptions({ ...dataSet.options });
         //setInputGemsRatio(xvalue);
         break;
-      case "tradeTax":
-        dataSet.options.tradeTax = xvalue;
-        setOptions({ ...dataSet.options });
-        break;
-      case "autoTradeTax":
-        dataSet.options.autoTradeTax = xvalue;
-        setOptions({ ...dataSet.options });
-        break;
-      case "usePriceFood":
-        dataSet.options.usePriceFood = xvalue;
-        setOptions({ ...dataSet.options });
-        break;
-      case "mergeAniProd":
-        dataSet.options.mergeAniProd = xvalue;
-        setOptions({ ...dataSet.options });
-        break;
-      case "ignoreAniLvl":
-        dataSet.options.ignoreAniLvl = xvalue;
-        setOptions({ ...dataSet.options });
-        break;
-      case "toolsBurn":
-        dataSet.options.toolsBurn = xvalue;
-        setOptions({ ...dataSet.options });
-        break;
-      case "useNotifications":
-        dataSet.options.useNotifications = xvalue;
-        setuseNotif(xvalue);
-        break;
-      case "oilFood":
-        dataSet.options.oilFood = xvalue;
-        setOptions({ ...dataSet.options });
-        break;
       default:
-        console.warn("Champ inconnu :", name);
+        try {
+          dataSet.options[name] = xvalue;
+          setOptions({ ...dataSet.options });
+        } catch (error) {
+          console.error("Error updating option:" + name + ": ", error);
+        }
+      //console.warn("Champ inconnu :", name);
     }
   };
   const handleFromLvlChange = (event) => {
@@ -771,22 +735,23 @@ function App() {
             const responseData = await response.json();
             buttonClicked = true;
             dataSet.options.username = responseData.username;
-            dataSet.options.farmId = responseData.farmid;
-            dataSet.isBanned = responseData.isbanned ?
+            dataSet.options.farmId = responseData.farmId;
+            dataSet.isBanned = responseData.frmData.isbanned ?
               <div style={{ color: "red", margin: "0", padding: "0" }}><img src={"./icon/ui/suspicious.png"} />
-                <span>BANNED {responseData.isbannedstatus}</span></div>
+                <span>BANNED {responseData.frmData.isbannedstatus}</span></div>
               : "";
             dataSet.options.isAbo = responseData.isabo;
-            dataSet.isVip = responseData.vip;
-            dataSet.dateVip = responseData.datevip;
-            dataSet.dailychest = responseData.dailychest;
-            dataSet.taxFreeSFL = frmtNb(responseData.taxFreeSFL);
+            dataSet.isVip = responseData.frmData.vip;
+            dataSet.dateVip = responseData.frmData.datevip;
+            dataSet.dailychest = responseData.frmData.dailychest;
+            dataSet.taxFreeSFL = frmtNb(responseData.frmData.taxFreeSFL);
             dataSet.bumpkin = responseData.Bumpkin[0];
             dateSeason = new Date(responseData.constants.dateSeason);
             dataSet.tktName = responseData.constants.tktName;
             dataSet.imgtkt = responseData.constants.imgtkt;
             //dataSet.options.tradeTax = responseData.tradeTax;
-            if (!dataSet?.options?.tradeTax || dataSet?.options?.autoTradeTax) { dataSet.options.tradeTax = responseData.tradeTax; }
+            if (!dataSet?.options?.tradeTax || dataSet?.options?.autoTradeTax) { dataSet.options.tradeTax = responseData.frmData.tradeTax; }
+            if (dataSet?.options?.autoCoinRatio) { dataSet.options.coinsRatio = responseData.bestCoinRatio?.ratio || 0; }
             if ((lastID !== curID || !dataSet.bumpkinImg)) {
               const response = await fetch(API_URL + "/getbumpkin", {
                 method: 'GET',
@@ -794,8 +759,8 @@ function App() {
                   //tokenuri: bumpkinData[0].tkuri,
                   //bknid: 1, //bumpkinData[0].id,
                   frmid: curID,
-                  username: responseData.username,
-                  tknuri: responseData.Bumpkin[0].tkuri,
+                  username: dataSet.options.username,
+                  tknuri: dataSet.bumpkin.tkuri,
                 }
               });
               if (response.ok) {
@@ -813,7 +778,7 @@ function App() {
             setReqState('');
             setFarmData(responseData.frmData);
             setBumpkinData(responseData.Bumpkin);
-            setSelectedExpandType(responseData.expandData.type);
+            setSelectedExpandType(responseData.frmData.expandData.type);
             //setfromtoexpand(responseData.expandData);
             //getFromToExpand(fromexpand, toexpand);
             //setanimalData(responseData.Animals);
@@ -1060,7 +1025,8 @@ function App() {
 
   function setInv() {
     if (farmData.inventory) {
-      const { it, spot, buildngf, mutantchickens, sTickets } = dataSetFarm;
+      const { spot, buildngf } = dataSetFarm.frmData;
+      const { it } = dataSetFarm.itables;
       const inventoryEntries = Object.entries(farmData.inventory);
       var pinventoryEntries = "";
       if (farmData.previousInventory) { pinventoryEntries = Object.entries(farmData.previousInventory) }
@@ -1342,7 +1308,15 @@ function App() {
               <tr>
                 {xListeCol[0][1] === 1 ? (<th className="thcenter" onClick={(e) => handleTooltip("hoard", "th", "", e)}>Hoard</th>) : ("")}
                 <th className="th-icon">   </th>
-                <th></th>
+                <th className="thcenter"><div className="selectseasonback"><FormControl variant="standard" id="formselectquant" className="selectseason" size="small">
+                  <InputLabel style={{ fontSize: `12px` }}>Season</InputLabel>
+                  <Select value={selectedSeason} onChange={handleChangeSeason} onClick={(e) => e.stopPropagation()}>
+                    <MenuItem value="all">All</MenuItem>
+                    <MenuItem value="spring"><img src="./icon/ui/spring.webp" alt={''} className="seasonico" title="Spring" style={{ width: '18px', height: '18px' }} /></MenuItem>
+                    <MenuItem value="summer"><img src="./icon/ui/summer.webp" alt={''} className="seasonico" title="Summer" style={{ width: '18px', height: '18px' }} /></MenuItem>
+                    <MenuItem value="autumn"><img src="./icon/ui/autumn.webp" alt={''} className="seasonico" title="Autumn" style={{ width: '18px', height: '18px' }} /></MenuItem>
+                    <MenuItem value="winter"><img src="./icon/ui/winter.webp" alt={''} className="seasonico" title="Winter" style={{ width: '18px', height: '18px' }} /></MenuItem>
+                  </Select></FormControl></div></th>
                 <td style={{ display: 'none' }}>ID</td>
                 {xListeCol[1][1] === 1 ? (<th className="thcenter">Item</th>) : ("")}
                 {selectedQuantity === "daily" ? (<th className="thcenter"> </th>) : ("")}
@@ -1472,9 +1446,11 @@ function App() {
     }
   }
   function setInvContent(pinventoryEntries, sortedInventoryItems, totCost, totShop, totTrader, totNifty, totOS, totTimeCrp, totTimeRs, invIndex, ItCat1, ItCat2, ItCat3, ItCat4) {
-    const { it, nft, spot, buildng } = dataSetFarm;
+    const { spot } = dataSetFarm.frmData;
+    const { it } = dataSetFarm.itables;
+    const { nft, buildng } = dataSetFarm.boostables;
     const farmTime = dataSet.options.inputFarmTime / 24;
-    const MaxBB = dataSet.options.inputMaxBB;
+    //const MaxBB = dataSet.options.inputMaxBB;
     const burnortry = !TryChecked ? "burn" : "burntry";
     var totcCost = 0;
     var totcShop = 0;
@@ -1490,10 +1466,6 @@ function App() {
     const imgbee = <img src="./icon/ui/bee.webp" alt={''} className="nodico" title="Bee swarm" style={{ width: '15px', height: '15px' }} />;
     const imglove = <img src="./icon/ui/expression_love.png" alt={''} className="nodico" title="Needs love" style={{ width: '15px', height: '15px' }} />;
     const imgsick = <img src="./icon/ui/happiness_03.png" alt={''} className="nodico" title="Sick" style={{ width: '15px', height: '15px' }} />;
-    const imgwinter = <img src="./icon/ui/winter.webp" alt={''} className="seasonico" title="Winter" />;
-    const imgspring = <img src="./icon/ui/spring.webp" alt={''} className="seasonico" title="Spring" />;
-    const imgsummer = <img src="./icon/ui/summer.webp" alt={''} className="seasonico" title="Summer" />;
-    const imgautumn = <img src="./icon/ui/autumn.webp" alt={''} className="seasonico" title="Autumn" />;
     const imgfullmoon = <img src="./icon/ui/full_moon.png" alt={''} className="seasonico" title="Full Moon" />;
     let maxCoinRatio = 0;
     let indexCoinRatio = 0;
@@ -1520,18 +1492,31 @@ function App() {
         const ico = cobj ? cobj.img : '';
         const icoseason = cobj ? (cobj.imgseason || '') : '';
         const xSeasonImg = icoseason.split("*");
+        let isOnSeason = false;
+        if ((icat !== "crop" && icat !== "fruit") || it[item].greenhouse) { isOnSeason = true; }
         for (let i = 0; i < xSeasonImg.length; i++) {
           if (xSeasonImg[i] === "Winter") {
             xSeasonImg[i] = imgwinter;
-          } else if (xSeasonImg[i] === "Summer") {
+            if (selectedSeason === "winter") { isOnSeason = true; }
+          }
+          if (xSeasonImg[i] === "Summer") {
             xSeasonImg[i] = imgsummer;
-          } else if (xSeasonImg[i] === "Autumn") {
+            if (selectedSeason === "summer") { isOnSeason = true; }
+          }
+          if (xSeasonImg[i] === "Autumn") {
             xSeasonImg[i] = imgautumn;
-          } else if (xSeasonImg[i] === "Spring") {
+            if (selectedSeason === "autumn") { isOnSeason = true; }
+          }
+          if (xSeasonImg[i] === "Spring") {
             xSeasonImg[i] = imgspring;
-          } else if (xSeasonImg[i] === "FullMoon") {
+            if (selectedSeason === "spring") { isOnSeason = true; }
+          }
+          if (xSeasonImg[i] === "FullMoon") {
             xSeasonImg[i] = imgfullmoon;
           }
+        }
+        if (selectedSeason !== "all" && !isOnSeason) {
+          return null;
         }
         const ido = cobj ? cobj.id : 0;
         //const frmido = cobj ? cobj.farmid : 0;
@@ -1562,6 +1547,7 @@ function App() {
         const itradmax = cobj ? cobj.tradmax : 0;
         const istock = cobj ? cobj.stock : 0;
         const ifrmit = cobj ? cobj.farmit : 0;
+        const ibuyit = cobj ? cobj.buyit : 0;
         const previousQuantity = parseFloat(pinventoryEntries.find(([pItem]) => pItem === item)?.[1] || 0);
         const pquant = previousQuantity;
         const itemQuantity = item === "Flower" ? it["Flower"].quant : quantity;
@@ -1800,7 +1786,7 @@ function App() {
         marketDataTooltip.itemQuant = selectedQuant !== "unit" ? iQuant : 1;
         marketDataTooltip.itemPrice = selectedQuant !== "unit" ? puTrad * iQuant : puTrad;
         marketDataTooltip.CostChecked = CostChecked;
-        const xcoinsRatio = TryChecked ? cobj.coinratiotry : cobj.coinratio;//1 / pTrad * (pShop * dataSet.options.coinsRatio); //(pShop * dataSet.options.coinsRatio) / pTrad;
+        const xcoinsRatio = TryChecked ? cobj.coinratiotry : cobj.coinratio; //1 / pTrad * (pShop * dataSet.options.coinsRatio); //(pShop * dataSet.options.coinsRatio) / pTrad;
         const cellCoinRatioStyle = {};
         if (indexCoinRatio === xIndex) {
           cellCoinRatioStyle.backgroundColor = 'rgba(13, 63, 21, 0.71)';
@@ -1850,7 +1836,7 @@ function App() {
                   onBlur={(event) => handleInputcstPricesChange(event, xIndex)}>{cstPrices[xIndex]}</div></td>) :
                 (<td className="tdcenter" style={{ ...cellStyle, color: `rgb(160, 160, 160)` }}>{parseFloat(iQuant).toFixed(2)}</td>) : ("")}
               {xListeCol[3][1] === 1 ? (<td className="tdcenter" style={{ ...cellStyle, color: `rgb(200, 200, 200)` }}>{time}</td>) : ("")}
-              {xListeCol[4][1] === 1 ? (<td className="tdcenter" style={cellStyle} onClick={(e) => handleTooltip(item, "costp", costp, e)}>{frmtNb(costp)}</td>) : ("")}
+              {xListeCol[4][1] === 1 ? (<td className="tdcenter" style={cellStyle} onClick={(e) => handleTooltip(item, "costp", costp, e)}>{ibuyit ? imgbuyit : frmtNb(costp)}</td>) : ("")}
               {xListeCol[5][1] === 1 ? (<td className="tdcenter" style={cellStyle}>{pShop > 0 ? frmtNb(pShop) : ""}</td>) : ("")}
               {xListeCol[6][1] === 1 ? (<td className="tdcenterbrd" style={cellCoinRatioStyle}>{xcoinsRatio > 0 ? frmtNb(xcoinsRatio) : ""}</td>) : ("")}
               {xListeCol[7][1] === 1 ? (<td className={parseFloat(pTrad).toFixed(20) === getMaxValue(pTrad, pNifty, pOS) ? 'tdcentergreen' : 'tdcenterbrd'}
@@ -1909,7 +1895,7 @@ function App() {
 
   function setCook() {
     if (farmData.inventory) {
-      const { it, food, fish, bounty, mutantchickens, sTickets } = dataSetFarm;
+      const { it, food, fish, bounty } = dataSetFarm.itables;
       const inventoryEntries = selectedQuantityCook === "farm" || "daily" || "dailymax" ? Object.entries(farmData.inventory) : Object.entries(farmData.inventory);
       const foodNames = Object.keys(food);
       const Compo = [];
@@ -2178,7 +2164,7 @@ function App() {
 
   function setFish() {
     if (farmData.inventory) {
-      const { fish, mutantchickens, sTickets } = dataSetFarm;
+      const { fish } = dataSetFarm.itables;
       var totXPfsh = 0;
       var totCaught = 0;
       var totCost = 0;
@@ -2357,7 +2343,8 @@ function App() {
 
   function setExpand() {
     if (farmData.inventory) {
-      const { it, expandData, mutantchickens, sTickets } = dataSetFarm;
+      const { expandData } = dataSetFarm.frmData;
+      const { it } = dataSetFarm.itables;
       //const expEntries = Object.entries(expand);
       //const expKeys = Object.keys(expand);
       const expKeys = Object.keys(fromtoexpand.expandData);
@@ -2559,7 +2546,7 @@ function App() {
 
   function setFlower() {
     if (farmData.inventory) {
-      const { it, flower, mutantchickens, sTickets } = dataSetFarm;
+      const { it, flower } = dataSetFarm.itables;
       const flwrKeys = Object.keys(flower);
       const tableContent = flwrKeys.map(element => {
         const cobj = flower[element];
@@ -2635,7 +2622,7 @@ function App() {
 
   function setBounty() {
     if (farmData.inventory) {
-      const { it, bounty, mutantchickens, sTickets } = dataSetFarm;
+      const { it, bounty } = dataSetFarm.itables;
       const bountyKeys = Object.keys(bounty);
       let valueTotal = 0;
       let vTodayTotal = 0;
@@ -2770,7 +2757,7 @@ function App() {
 
   function setCraftBox() {
     if (farmData.inventory) {
-      const { it, flower, bounty, craft, mutantchickens, sTickets } = dataSetFarm;
+      const { it, flower, bounty, craft } = dataSetFarm.itables;
       const Keys = Object.keys(craft);
       const imgCoins = <img src={imgcoins} alt={''} className="itico" title="Coins" />;
       const tableContent = Keys.map(element => {
@@ -2840,7 +2827,7 @@ function App() {
 
   function setCropMachine() {
     if (farmData.inventory) {
-      const { it, mutantchickens, sTickets } = dataSetFarm;
+      const { it } = dataSetFarm.itables;
       const Keys = Object.keys(it);
       const imgCoins = <img src={imgcoins} alt={''} className="itico" title="Coins" />;
       const imgSfl = <img src={imgsfl} alt={''} className="itico" title="Flower" />;
@@ -2984,7 +2971,9 @@ function App() {
 
   function setAnimals() {
     if (dataSetFarm.Animals) {
-      const { it, nft, mutant, Animals, animalsAllLvl } = dataSetFarm;
+      const { Animals, animalsAllLvl } = dataSetFarm;
+      const { it, mutant } = dataSetFarm.itables;
+      const { nft } = dataSetFarm.boostables;
       let table = [];
       const imgmix = "./icon/res/mixed_grain_v2.webp";
       const ximgmix = <img src={imgmix} alt={''} className="itico" title={"Food"} />;
@@ -3031,7 +3020,7 @@ function App() {
           const cobj = element;
           const xpprogress = cobj.xpProgress || 0;
           const xptolvl = cobj.xpToLvl || 0;
-          const xlvl = cobj.lvl > 0 ? (xpprogress === xptolvl) ? cobj.lvl - 1 : cobj.lvl : '';
+          const xlvl = cobj.lvl > 0 ? (xpprogress === xptolvl) ? cobj.lvl - 1 : cobj.lvl : 0;
           const ignoreAnimal = dataSet.options?.ignoreAniLvl && (xlvl > dataSet.options.animalLvl[itemName]);
           const food = Number(parseFloat(!TryChecked ? cobj.quantfood : cobj.quantfoodtry).toFixed(2));
           const foodname = !TryChecked ? cobj.food : cobj.foodtry;
@@ -3231,10 +3220,9 @@ function App() {
   }
 
   function setPets() {
-    const petit = dataSetFarm?.petit || {};
-    const shrine = dataSetFarm?.shrine || {};
-    const it = dataSetFarm?.it || {};
-    const Pets = dataSetFarm?.Pets || {};
+    const { Pets } = dataSetFarm;
+    const { it, petit } = dataSetFarm.itables;
+    const { shrine } = dataSetFarm.boostables;
     //const food = dataSetFarm?.food || {};
     const CATEGORY_IMG = {
       Dog: "./icon/pet/dog.webp",
@@ -3278,7 +3266,7 @@ function App() {
       });
     });
     if (petView === "pets") {
-      const petit = dataSetFarm?.petit || {};
+      //const petit = dataSetFarm?.petit || {};
       const categories = Object.keys(CATEGORY_ITEMS);
       const rows = categories.map(cat => {
         let foodCostTotal = 0;
@@ -3436,8 +3424,8 @@ function App() {
       return;
     }
     if (petView === "components") {
-      const petit = dataSetFarm?.petit || {};
-      const shrine = dataSetFarm?.shrine || {};
+      //const petit = dataSetFarm?.petit || {};
+      //const shrine = dataSetFarm?.shrine || {};
       const compToCats = {};
       Object.entries(CATEGORY_ITEMS).forEach(([cat, items]) => {
         items.forEach(it => {
@@ -3546,7 +3534,8 @@ function App() {
 
   function setMap() {
     if (dataSetFarm.isleMap) {
-      const { nftw, isleMap } = dataSetFarm;
+      const { isleMap } = dataSetFarm;
+      const { nftw } = dataSetFarm.boostables;
       let minYield = 500;
       let minYieldGH = 500;
       let cropMachineDone = false;
@@ -3673,6 +3662,7 @@ function App() {
           const typeOrName = item.name ? item.name : item.type;
           const isSwarm = item.swarm && imgbee;
           const toReset = item.reset && item.reset;
+          const gaProc = item?.gaproc ? "X" : "";
           cropMachineDone = (x === lastCropMachineX && y === lastCropMachineY);
           greenhouseDone = (x === lastGreenhouseX && y === lastGreenhouseY);
           //const ximgcropmachine = (item.type === "crop machine" && cropMachineDone === true) ? <img src={imgcropmachine} className="image-overflow" /> : "";
@@ -3707,7 +3697,7 @@ function App() {
                 borderRadius: '0px',
                 fontSize: '11px'
               }}>
-                {toReset}
+                {toReset}{gaProc}
                 {(item.type === "crop" && isGA === 1 && (Greenproc || isLastCrop)) && cropIndex}
               </span>
               {/* <span style={{
@@ -3751,8 +3741,11 @@ function App() {
   }
 
   function setfTrades() {
-    const { it, fish, flower, nft, nftw, ftrades } = dataSetFarm;
+    const { ftrades } = dataSetFarm;
     if (ftrades) {
+      if (dataSetFarm.itables === undefined) return;
+      const { it, fish, flower } = dataSetFarm.itables;
+      const { nft, nftw } = dataSetFarm.boostables;
       const data = Object.values(ftrades);
       const vegetableNames = data.map((entry) => Object.keys(entry.items)[0]);
       //const vegetablePrices = data.map((entry) => Object.values(entry.items)[0]);
@@ -3804,7 +3797,7 @@ function App() {
   }
 
   function setActivityDay() {
-    const { it, fish, flower, nft, nftw, ftrades } = dataSetFarm;
+    //const { it, fish, flower, nft, nftw, ftrades } = dataSetFarm;
     if (activityData[0]) {
       const actKeys = Object.keys(activityData);
       var totXP = 0;
@@ -3966,7 +3959,8 @@ function App() {
   }
   function setActivityItem() {
     if (activityData[0]) {
-      const { it, food, fish, flower, nft, nftw } = dataSetFarm;
+      const { it, food, fish, flower } = dataSetFarm.itables;
+      const { nft, nftw } = dataSetFarm.boostables;
       const ActTot = setActivityTot(activityData, "items");
       const allSortedItems = ActTot.allSortedItems;
       const compoHarvested = ActTot.compoHarvested;
@@ -4092,7 +4086,7 @@ function App() {
   }
   function setActivityQuest() {
     if (activityData[0]) {
-      const { it, food, fish, flower, nft, nftw } = dataSetFarm;
+      //const { it, food, fish, flower, nft, nftw } = dataSetFarm;
       const tot = setActivityTotQuest(activityData);
       const Quest = tot.Quest;
       const questKeys = Object.keys(Quest);
@@ -4180,7 +4174,8 @@ function App() {
     }
   }
   function setActivityTot(activityData, xContext) {
-    const { it, food, fish, flower, nft, nftw } = dataSetFarm;
+    const { it, food, fish, flower } = dataSetFarm.itables;
+    const { nft, nftw } = dataSetFarm.boostables;
     let compoHarvested = [];
     compoHarvested["XP"] = 0;
     compoHarvested["TKT"] = 0;
@@ -4648,10 +4643,10 @@ function App() {
         //setdataSetFarm(respData);
         setFarmData(respData.frmData);
         dataSet.options.isAbo = respData.isabo;
-        dataSet.isVip = respData.vip;
-        dataSet.dateVip = respData.datevip;
-        dataSet.dailychest = respData.dailychest;
-        dataSet.taxFreeSFL = frmtNb(respData.taxFreeSFL);
+        dataSet.isVip = respData.frmData.vip;
+        dataSet.dateVip = respData.frmData.datevip;
+        dataSet.dailychest = respData.frmData.dailychest;
+        dataSet.taxFreeSFL = frmtNb(respData.frmData.taxFreeSFL);
         dataSet.bumpkin = respData.Bumpkin[0];
         setBumpkinData(respData.Bumpkin);
         const { frmData, expandData, fishingDetails, taxFreeSFL } = respData;
@@ -4659,19 +4654,25 @@ function App() {
         dataSet.coins = frmData.coins;
         const balance = frmData.balance;
         dataSet.updated = formatUpdated(frmData?.updated);
-        if (dataSet?.options?.tradeTax !== respData?.tradeTax && dataSet?.options?.tradeTax > 0 && dataSet.options.autoTradeTax) {
-          dataSet.options.tradeTax = respData.tradeTax;
-          const newOptions = { ...dataSet.options };
-          dataSet.options = newOptions;
-          setOptions(newOptions);
+        let refreshOptions = false;
+        if (dataSet?.options?.tradeTax !== frmData?.tradeTax && dataSet?.options?.tradeTax > 0 && dataSet.options.autoTradeTax) {
+          dataSet.options.tradeTax = frmData?.tradeTax;
+          refreshOptions = true;
           //console.log("reset Tax");
         }
+        if (dataSet?.options?.autoCoinRatio) {
+          dataSet.options.coinsRatio = responseData?.bestCoinRatio?.ratio || dataSet.options.coinsRatio;
+          refreshOptions = true;
+        }
         if (respData?.gemsRatio > 0) {
-          dataSet.options.gemsRatio = respData.gemsRatio;
+          dataSet.options.gemsRatio = frmData.gemsRatio;
+          refreshOptions = true;
+          //console.log("update gemsRatio");
+        }
+        if (refreshOptions) {
           const newOptions = { ...dataSet.options };
           dataSet.options = newOptions;
           setOptions(newOptions);
-          //console.log("update gemsRatio");
         }
         const withdrawreduc = (expandData?.type === "desert" || expandData?.type === "spring" || expandData?.type === "volcano") ? 2.5 : 0;
         const withdrawtax = (balance < 10 ? 30 : balance < 100 ? 25 : balance < 1000 ? 20 : balance < 5000 ? 15 : 10) - withdrawreduc;
@@ -4699,7 +4700,7 @@ function App() {
       setReqState('');
       if (respData.mutantchickens) {
         setMutants(respData);
-        setsTickets(respData.sTickets);
+        //setsTickets(respData.sTickets);
       }
     } else {
       console.log(`Error : ${response.status}`);
@@ -4727,11 +4728,11 @@ function App() {
     setmutData(txtMutants);
   }
   function setsTickets(tabletk) {
-    if (tabletk.length > 1) {
+    /* if (tabletk.length > 1) {
       //setticketsData(<div><img src={dataSet.imgtkt} alt={''} className="itico" />{tabletk[1].amount}</div>);
     } else {
       //setticketsData("");
-    }
+    } */
   }
 
   useEffect(() => {
@@ -4766,7 +4767,7 @@ function App() {
     };
     const fetchData = async () => {
       try {
-        await getPrices();
+      await getPrices();
       } catch (error) {
         console.log(`Error: ${error}`);
         //setReqState(`Error`);
@@ -4971,7 +4972,7 @@ function App() {
     selectedReady, selectedDsfl, selectedInv, selectedAnimalLvl, selectedDigCur, selectedSeedsCM, selectedQuantFetch, inputMaxBB, inputKeep, inputFarmTime, inputCoinsRatio, deliveriesData, HarvestD,
     xListeCol, xListeColCook, xListeColFish, xListeColFlower, xListeColExpand, xListeColAnimals, xListeColActivity,
     xListeColActivityItem, CostChecked, TryChecked, BurnChecked, cstPrices, customSeedCM, customQuantFetch, toCM, fromtolvltime, inputFromLvl, inputToLvl, fromtoexpand, activityData,
-    activityDisplay, options, isOpen, petView]);
+    activityDisplay, options, isOpen, petView, selectedSeason]);
   /* useEffect(() => {
     console.log("InputValue a changé :", inputValue);
   }, [inputValue]); */
@@ -5285,8 +5286,7 @@ function App() {
             graphtype={GraphType}
             frmid={dataSet.options.farmid}
             username={dataSet.options.username}
-            it={dataSetFarm.it}
-            petit={dataSetFarm.petit}
+            dataSetFarm={dataSetFarm}
             API_URL={API_URL} />
         )}
         {showfTNFT && (
@@ -5348,13 +5348,6 @@ function App() {
         cstPrices: cstPrices,
         customSeedCM: customSeedCM,
         customQuantFetch: customQuantFetch,
-        //inputKeep: inputKeep,
-        //bBuyit: bBuyitArray,
-        //bSpottry: bSpottryArray,
-        //inputMaxBB: dataSet.inputMaxBB,
-        //inputFarmTime: dataSet.inputFarmTime,
-        //inputAnimalLvl: dataSet.inputAnimalLvl,
-        //coinsRatio: dataSet.options.coinsRatio,
         /* inputFromLvl: inputFromLvl,
         inputToLvl: inputToLvl,
         selectedInv: selectedInv,
@@ -5382,11 +5375,6 @@ function App() {
         bTryskilllgc: bTryskilllgcArray,
         bTrybud: bTrybudArray,
         fruitPlanted: fruitPlantedArray, */
-        /* xHrvst: xHrvst,
-        xHrvsttry: xHrvsttry,
-        xBurning: xBurning,
-        dProd: dProd,
-        dProdtry: dProdtry, */
       };
       var dataToStoreString = JSON.stringify(dataToStore);
       //document.cookie = "sflman=" + dataToStoreString + ";expires=31 Dec 2024 23:59:59 UTC;";
@@ -5409,7 +5397,9 @@ function App() {
       if (cookieValue) {
         var loadedData = JSON.parse(cookieValue);
         //console.log("loadC: " + loadedData);
-        if (loadedData.vversion !== vversion) {
+        let validCookie = true;
+        //if (!loadedData.dataSetFarm?.itables) { validCookie = false; }
+        if ((loadedData.vversion !== vversion) || !validCookie) {
           DefaultOptions();
           localStorage.removeItem("SFLManData");
           console.log("Cleared local data to fit newer version");
@@ -5464,33 +5454,7 @@ function App() {
         setXListeColExpand(loadedData.xListeColExpand && loadedData.xListeColExpand);
         setXListeColActivity(loadedData.xListeColActivity && loadedData.xListeColActivity);
         setXListeColActivityItem(loadedData.xListeColActivityItem && loadedData.xListeColActivityItem);
-        setTryChecked(loadedData.TryChecked);
-        setCostChecked(loadedData.CostChecked);
-        bFarmit = loadedData.bFarmit.reduce((acc, item) => { acc[item.name] = item.value; return acc; }, {});
-        bCookit = loadedData.bCookit.reduce((acc, item) => { acc[item.name] = item.value; return acc; }, {});
-  
-        let bTrynft = loadedData.bTrynft.reduce((acc, item) => { acc[item.name] = item.value; return acc; }, {});
-        let bTrynftw = loadedData.bTrynftw.reduce((acc, item) => { acc[item.name] = item.value; return acc; }, {});
-        let bTrybuildng = loadedData.bTrybuild.reduce((acc, item) => { acc[item.name] = item.value; return acc; }, {});
-        let bTryskill = loadedData.bTryskill.reduce((acc, item) => { acc[item.name] = item.value; return acc; }, {});
-        let bTryskilllgc = loadedData.bTryskilllgc.reduce((acc, item) => { acc[item.name] = item.value; return acc; }, {});
-        let bTrybud = loadedData.bTrybud.reduce((acc, item) => { acc[item.name] = item.value; return acc; }, {});
-  
-        Object.entries(nft).forEach(([item]) => { nft[item].tryit = bTrynft[item]; });
-        Object.entries(nftw).forEach(([item]) => { nftw[item].tryit = bTrynftw[item]; });
-        Object.entries(skill).forEach(([item]) => { skill[item].tryit = bTryskill[item]; });
-        Object.entries(skilllgc).forEach(([item]) => { skilllgc[item].tryit = bTryskilllgc[item]; });
-        Object.entries(buildng).forEach(([item]) => { buildng[item].tryit = bTrybuildng[item]; });
-        Object.entries(bud).forEach(([item]) => { bud[item].tryit = bTrybud[item]; });
-  
-        //Object.entries(it).forEach(([item]) => { it[item].buyit = bBuyit[item].buyit; });
-  
-        fruitPlanted = loadedData.fruitPlanted.reduce((acc, item) => { acc[item.name] = item.value; return acc; }, {}); */
-        /* xHrvst = loadedData.xHrvst;
-        xHrvsttry = loadedData.xHrvsttry;
-        dProd = loadedData.dProd;
-        dProdtry = loadedData.dProdtry;
-        xBurning = loadedData.xBurning; */
+        */
       } else {
         DefaultOptions();
       }
@@ -5581,16 +5545,16 @@ function App() {
     }
   }
   function refreshDataSet(dataSetRefresh) {
-    if (dataSetRefresh.it) {
+    if (dataSetRefresh.itables.it) {
       if (!dataSet.options?.animalLvl) {
         dataSet.options.animalLvl = Object.fromEntries(
           Object.keys(dataSetRefresh.Animals).map(animal => [animal, 5])
         );
       }
       if (!dataSet.options?.notifList) {
-        dataSet.options.notifList = Object.keys(dataSetRefresh.it)
+        dataSet.options.notifList = Object.keys(dataSetRefresh.itables.it)
           .filter(key =>
-            !(dataSetRefresh.it[key]?.matcat === 2) &&
+            !(dataSetRefresh.itables.it[key]?.matcat === 2) &&
             !(key === "Wild Mushroom") &&
             !(key === "Magic Mushroom")
           )

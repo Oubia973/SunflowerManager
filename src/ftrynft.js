@@ -99,25 +99,31 @@ function ModalTNFT({ onClose, frmid, API_URL, dataSet, dataSetFarm, onReset, han
     try {
       const newDataSet = {
         ...dataSetLocal,
-        nft: Object.fromEntries(Object.entries(dataSetLocal.nft).map(([key, value]) => [key, { ...value, tryit: value.isactive }])),
-        nftw: Object.fromEntries(Object.entries(dataSetLocal.nftw).map(([key, value]) => [key, { ...value, tryit: value.isactive }])),
-        buildng: Object.fromEntries(Object.entries(dataSetLocal.buildng).map(([key, value]) => [key, { ...value, tryit: value.isactive }])),
-        skill: Object.fromEntries(Object.entries(dataSetLocal.skill).map(([key, value]) => [key, { ...value, tryit: value.isactive }])),
-        skilllgc: Object.fromEntries(Object.entries(dataSetLocal.skilllgc).map(([key, value]) => [key, { ...value, tryit: value.isactive }])),
-        bud: Object.fromEntries(Object.entries(dataSetLocal.bud).map(([key, value]) => [key, { ...value, tryit: value.isactive }])),
-        shrine: Object.fromEntries(Object.entries(dataSetLocal.shrine).map(([key, value]) => [key, { ...value, tryit: value.isactive }])),
-        //it: Object.fromEntries(Object.entries(dataSetLocal.it).map(([key, value]) => [key, { ...value, spottry: value.spot }])),
-        it: Object.fromEntries(
-          Object.entries(dataSetLocal.it).map(([key, value]) => [
-            key,
-            {
-              ...value,
-              spottry: value.spot,
-              spot2try: value.spot2,
-              spot3try: value.spot3,
-            },
-          ])
-        ),
+        boostables: {
+          ...dataSetLocal.boostables,
+          nft: Object.fromEntries(Object.entries(dataSetLocal.boostables.nft).map(([key, value]) => [key, { ...value, tryit: value.isactive }])),
+          nftw: Object.fromEntries(Object.entries(dataSetLocal.boostables.nftw).map(([key, value]) => [key, { ...value, tryit: value.isactive }])),
+          buildng: Object.fromEntries(Object.entries(dataSetLocal.boostables.buildng).map(([key, value]) => [key, { ...value, tryit: value.isactive }])),
+          skill: Object.fromEntries(Object.entries(dataSetLocal.boostables.skill).map(([key, value]) => [key, { ...value, tryit: value.isactive }])),
+          skilllgc: Object.fromEntries(Object.entries(dataSetLocal.boostables.skilllgc).map(([key, value]) => [key, { ...value, tryit: value.isactive }])),
+          bud: Object.fromEntries(Object.entries(dataSetLocal.boostables.bud).map(([key, value]) => [key, { ...value, tryit: value.isactive }])),
+          shrine: Object.fromEntries(Object.entries(dataSetLocal.boostables.shrine).map(([key, value]) => [key, { ...value, tryit: value.isactive }])),
+        },
+        itables: {
+          ...dataSetLocal.itables,
+          //it: Object.fromEntries(Object.entries(dataSetLocal.it).map(([key, value]) => [key, { ...value, spottry: value.spot }])),
+          it: Object.fromEntries(
+            Object.entries(dataSetLocal.itables.it).map(([key, value]) => [
+              key,
+              {
+                ...value,
+                spottry: value.spot,
+                spot2try: value.spot2,
+                spot3try: value.spot3,
+              },
+            ])
+          ),
+        }
       };
       setdataSetLocal(newDataSet);
       onReset(dataSet, newDataSet);
@@ -129,24 +135,27 @@ function ModalTNFT({ onClose, frmid, API_URL, dataSet, dataSetFarm, onReset, han
     try {
       const newDataSet = {
         ...dataSetLocal,
-        nft: Object.fromEntries(
-          Object.entries(dataSetLocal.nft).map(([key, value]) => [key, { ...value, tryit: 0 }])
-        ),
-        nftw: Object.fromEntries(
-          Object.entries(dataSetLocal.nftw).map(([key, value]) => [key, { ...value, tryit: 0 }])
-        ),
-        buildng: Object.fromEntries(
-          Object.entries(dataSetLocal.buildng).map(([key, value]) => [key, { ...value, tryit: 0 }])
-        ),
-        skill: Object.fromEntries(
-          Object.entries(dataSetLocal.skill).map(([key, value]) => [key, { ...value, tryit: 0 }])
-        ),
-        skilllgc: Object.fromEntries(
-          Object.entries(dataSetLocal.skilllgc).map(([key, value]) => [key, { ...value, tryit: 0 }])
-        ),
-        bud: Object.fromEntries(
-          Object.entries(dataSetLocal.bud).map(([key, value]) => [key, { ...value, tryit: 0 }])
-        ),
+        boostables: {
+          ...dataSetLocal.boostables,
+          nft: Object.fromEntries(
+            Object.entries(dataSetLocal.boostables.nft).map(([key, value]) => [key, { ...value, tryit: 0 }])
+          ),
+          nftw: Object.fromEntries(
+            Object.entries(dataSetLocal.boostables.nftw).map(([key, value]) => [key, { ...value, tryit: 0 }])
+          ),
+          buildng: Object.fromEntries(
+            Object.entries(dataSetLocal.boostables.buildng).map(([key, value]) => [key, { ...value, tryit: 0 }])
+          ),
+          skill: Object.fromEntries(
+            Object.entries(dataSetLocal.boostables.skill).map(([key, value]) => [key, { ...value, tryit: 0 }])
+          ),
+          skilllgc: Object.fromEntries(
+            Object.entries(dataSetLocal.boostables.skilllgc).map(([key, value]) => [key, { ...value, tryit: 0 }])
+          ),
+          bud: Object.fromEntries(
+            Object.entries(dataSetLocal.boostables.bud).map(([key, value]) => [key, { ...value, tryit: 0 }])
+          ),
+        }
       };
       setdataSetLocal(newDataSet);
       onReset(dataSet, newDataSet);
@@ -234,23 +243,53 @@ function ModalTNFT({ onClose, frmid, API_URL, dataSet, dataSetFarm, onReset, han
     }
   };
   const handleTryitChange = (item, base, baseName) => {
-    if (base.hasOwnProperty(item)) {
+    const boostables = dataSetLocal?.boostables ?? {};
+    const currentBase = boostables?.[baseName] ?? base ?? {};
+    if (Object.prototype.hasOwnProperty.call(currentBase, item)) {
+      const newBase = {
+        ...currentBase,
+        [item]: {
+          ...currentBase[item],
+          tryit: currentBase[item]?.tryit === 1 ? 0 : 1,
+        },
+      };
+      const newDataSetLocal = {
+        ...dataSetLocal,
+        boostables: {
+          ...boostables,
+          [baseName]: newBase,
+        },
+      };
+      setdataSetLocal(newDataSetLocal);
+      onReset(dataSet, newDataSetLocal);
+      setTotBuyCheck(true);
+    }
+
+    /* if (base.hasOwnProperty(item)) {
       const newbase = { ...base, [item]: { ...base[item], tryit: base[item].tryit === 1 ? 0 : 1 } };
       const newDataSetLocal = { ...dataSetLocal, [baseName]: newbase };
       setdataSetLocal(newDataSetLocal);
       onReset(dataSet, newDataSetLocal);
       setTotBuyCheck(true);
-    }
+    } */
   };
   const handleBuyitChange = (item) => {
-    const it = { ...dataSetLocal.it };
+    const itables = dataSetLocal?.itables ?? {};
+    const it = itables?.it ?? {};
+    if (!Object.prototype.hasOwnProperty.call(it, item)) return;
+    const newIt = { ...it, [item]: { ...it[item], buyit: it[item]?.buyit === 1 ? 0 : 1, }, };
+    const newDataSetLocal = { ...dataSetLocal, itables: { ...itables, it: newIt, }, };
+    setdataSetLocal(newDataSetLocal);
+    onReset(dataSet, newDataSetLocal);
+
+    /* const it = { ...dataSetLocal.itables.it };
     const newbase = { ...it, [item]: { ...it[item], buyit: it[item].buyit === 1 ? 0 : 1 } };
     const newDataSetLocal = { ...dataSetLocal, ["it"]: newbase };
     setdataSetLocal(newDataSetLocal);
-    onReset(dataSet, newDataSetLocal);
+    onReset(dataSet, newDataSetLocal); */
   };
   const handleBuyitTotalChange = () => {
-    const { it } = dataSetLocal;
+    const { it } = dataSetLocal.itables;
     for (let item in it) {
       it[item].buyit = iTotBuyCheck ? it[item].buyit === 0 ? 1 : 0 : 1;
     }
@@ -258,13 +297,15 @@ function ModalTNFT({ onClose, frmid, API_URL, dataSet, dataSetFarm, onReset, han
     setdataSetLocal(newDataSetLocal);
   };
   const handleSpottryChange = (item, value, tier) => {
-    const { it } = dataSetLocal;
+    const { it } = dataSetLocal.itables;
     const keySpot = "spot" + (tier || "") + "try";
     const xOtherTier = tier ? (tier === "3" ? "2" : "3") : "";
     const keySpotOther = "spot" + xOtherTier + "try";
     const xvalue = xOtherTier ? it[item].spottry >= value + it[item][keySpotOther] ? value : it[item].spottry - it[item][keySpotOther] : value;
-    const newbase = { ...it, [item]: { ...it[item], [keySpot]: xvalue } };
-    const newDataSetLocal = { ...dataSetLocal, ["it"]: newbase };
+    const newIt = { ...it, [item]: { ...it[item], [keySpot]: xvalue }, };
+    const newDataSetLocal = { ...dataSetLocal, itables: { ...dataSetLocal.itables, it: newIt, }, };
+    //const newbase = { ...it, [item]: { ...it[item], [keySpot]: xvalue } };
+    //const newDataSetLocal = { ...dataSetLocal, ["it"]: newbase };
     setdataSetLocal(newDataSetLocal);
     onReset(dataSet, newDataSetLocal);
   };
@@ -348,7 +389,7 @@ function ModalTNFT({ onClose, frmid, API_URL, dataSet, dataSetFarm, onReset, han
                 activate={TryChecked}
               />
             </td>
-            {xit[item][key("spot2")] !== null ? <td className="tdcenter">
+            {xit[item][key("spot2")] !== undefined ? <td className="tdcenter">
               <CounterInput
                 value={xit[item][key("spot2")]}
                 onChange={value => handleSpottryChange(item, value, "2")}
@@ -357,7 +398,7 @@ function ModalTNFT({ onClose, frmid, API_URL, dataSet, dataSetFarm, onReset, han
                 activate={TryChecked}
               />
             </td> : null}
-            {xit[item][key("spot3")] !== null ? <td className="tdcenter">
+            {xit[item][key("spot3")] !== undefined ? <td className="tdcenter">
               <CounterInput
                 value={xit[item][key("spot3")]}
                 onChange={value => handleSpottryChange(item, value, "3")}
@@ -404,7 +445,7 @@ function ModalTNFT({ onClose, frmid, API_URL, dataSet, dataSetFarm, onReset, han
     }
   }
   function setNFT(xdataSetFarm) {
-    const { nft, nftw, buildng, skill, skilllgc, bud, shrine } = xdataSetFarm;
+    const { nft, nftw, buildng, skill, skilllgc, bud, shrine } = xdataSetFarm.boostables;
     let totalCost = 0;
     let totalCostM = 0;
     let totalCostactiv = 0;
@@ -612,7 +653,7 @@ function ModalTNFT({ onClose, frmid, API_URL, dataSet, dataSetFarm, onReset, han
         if (valueb.tryit) { totalCost += Number(valueb.price) || 0 };
         if (valueb.isactive) { totalCostactiv += Number(valueb.price) || 0 };
         let isupplyb = 0;
-        if (valueb.supply) { isupplyb = valueb.supply || 0};
+        if (valueb.supply) { isupplyb = valueb.supply || 0 };
         NFT.push(
           <tr key={itemb}>
             <td className="tditemright">{itemb}</td>
@@ -689,7 +730,7 @@ function ModalTNFT({ onClose, frmid, API_URL, dataSet, dataSetFarm, onReset, han
   }, []);
   useEffect(() => {
     setNFT(dataSetLocal);
-    setContent(dataSetLocal.it);
+    setContent(dataSetLocal.itables.it);
   }, [dataSetLocal, TotalCostDisplay, TryChecked]);
 
   const tableStyle = {

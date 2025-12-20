@@ -9,7 +9,9 @@ export function setHome(dataSet, dataSetFarm, xListeColBounty, handleHomeClic, i
     const handleClic = (index) => {
         isOpen[index] ? isOpen[index] = false : isOpen[index] = true
     }; */
-    const { it, fish, Animals, orderstable } = dataSetFarm;
+    if (!dataSetFarm?.itables) return null;
+    const { Animals, orderstable } = dataSetFarm;
+    const { it, fish } = dataSetFarm.itables;
     if (it) {
         try {
             function key(name) {
@@ -152,12 +154,12 @@ export function setHome(dataSet, dataSetFarm, xListeColBounty, handleHomeClic, i
                 }
                 if (bntName === "Henhouse") {
                     Items = Object.entries(it)
-                        .filter(([key, item]) => item.scat === "henhouse" && item.rdyat > 0)
+                        .filter(([key, item]) => item.scat === "henhouse" && item.rdyat >= 0)
                         .map(([key, item]) => ({ ...item, name: key }));
                 }
                 if (bntName === "Barn") {
                     Items = Object.entries(it)
-                        .filter(([key, item]) => item.scat === "barn" && item.rdyat > 0)
+                        .filter(([key, item]) => item.scat === "barn" && item.rdyat >= 0)
                         .map(([key, item]) => ({ ...item, name: key }));
                 }
                 /* if (bntName === "Cooking") {
@@ -176,6 +178,7 @@ export function setHome(dataSet, dataSetFarm, xListeColBounty, handleHomeClic, i
                         Object.keys(Items).map((item, itemIndex) => {
                             plantedFinal[Items[item].name] = Items[item][plantedValue];
                             const aniName = Items[item]?.animal;
+                            if (!Animals[aniName]) return null;
                             //plantedTotal += Number(Items[item][plantedValue]);
                             let animalCost = 0;
                             let animalProdQuant = 0;
@@ -227,6 +230,7 @@ export function setHome(dataSet, dataSetFarm, xListeColBounty, handleHomeClic, i
                                 let harvestFinal = Items[item][harvestValue];
                                 if (Items[item].scat === "henhouse" || Items[item].scat === "barn") {
                                     const aniName = Items[item]?.animal;
+                                    if (!Animals[aniName]) return null;
                                     let animalCost = 0;
                                     let animalProdQuant = 0;
                                     Object.keys(Animals[Items[item]?.animal]).map(animalItem => {

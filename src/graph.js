@@ -9,7 +9,8 @@ var logarithmicScale = true;
 //var lastIndexClicked = 0;
 var clickedIndex = [];
 
-function Graph({ data, vals, it, petit }) {
+function Graph({ data, vals, dataSetFarm }) {
+  const { it, petit } = dataSetFarm.itables;
   const chartRef = useRef(null);
   const [selectedCategory, setSelectedCategory] = useState('all');
 
