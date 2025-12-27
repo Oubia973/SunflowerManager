@@ -1,19 +1,26 @@
-import React, { useEffect, useState, useRef } from 'react';
-import { frmtNb, ColorValue, Timer } from './fct.js';
+import { useAppCtx } from "../context/AppCtx";
+import { frmtNb, ColorValue } from '../fct.js';
 
-export function setHome(dataSet, dataSetFarm, xListeColBounty, handleHomeClic, isOpen) {
-    /* if (!dataSet.farmData.inventory) {
-        return null;
-    } */
-    /* const isOpen = [];
-    const handleClic = (index) => {
-        isOpen[index] ? isOpen[index] = false : isOpen[index] = true
-    }; */
+export default function HomeTable() {
+    const {
+        data: { dataSet, dataSetFarm },
+        ui: {
+            selectedInv,
+            xListeColBounty,
+            TryChecked,
+            isOpen
+        },
+        actions: {
+            handleHomeClic,
+        },
+    } = useAppCtx();
     if (!dataSetFarm?.itables) return null;
     const { Animals, orderstable } = dataSetFarm;
-    const { it, fish } = dataSetFarm.itables;
+    const { it } = dataSetFarm.itables;
+    if (selectedInv !== "home") return;
     if (it) {
         try {
+            dataSet.forTry = TryChecked;
             function key(name) {
                 if (name === "isactive") return dataSet.forTry ? "tryit" : "isactive";
                 return dataSet.forTry ? name + "try" : name;

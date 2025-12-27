@@ -1,11 +1,11 @@
 import React, { useEffect, useLayoutEffect, useMemo, useState, useRef } from 'react';
 import { frmtNb, convtimenbr, convTime, ColorValue, Timer } from './fct.js';
 
-const Tooltip = ({ onClose, item, context, value, clickPosition, dataSet, dataSetFarm, bdrag = true }) => {
+const Tooltip = ({ onClose, item, context, value, clickPosition, dataSet, dataSetFarm, bdrag = true, forTry }) => {
     const { Animals, spot } = dataSetFarm || {};
     const { it, food, flower, fish, buildng, craft, tool, bounty } = dataSetFarm.itables || {};
     const { nft, nftw, skill, skilllgc, bud, shrine } = dataSetFarm.boostables || {};
-    const ForTry = (value === "trynft") || dataSet.forTry;
+    const ForTry = forTry;
     let activeortry = ForTry ? "tryit" : "isactive";
     let costortry = ForTry ? "costtry" : "cost";
     let harvestortry = ForTry ? "harvesttry" : "harvest";
@@ -1164,10 +1164,14 @@ const Tooltip = ({ onClose, item, context, value, clickPosition, dataSet, dataSe
             );
         }
         if (context === "cookcost") {
-            if (food[item]) {
-                const { table, totalCost, totalCostM } = setCompoTable(item, value);
-                txt = table;
-            }
+            const items = Array.isArray(item) ? item : [item];
+            const tables = items
+                .filter((cookItem) => !!food?.[cookItem])
+                .map((cookItem, idx) => {
+                    const { table } = setCompoTable(cookItem, value);
+                    return <React.Fragment key={`${cookItem}-${idx}`}>{table}</React.Fragment>;
+                });
+            txt = <>{tables}</>;
         }
         if (context === "market") {
             const itemImg = <img src={Item?.img ?? imgna} alt={item ?? "?"} style={{ width: "22px", height: "22px" }} />;

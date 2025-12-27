@@ -1,4 +1,6 @@
 import React, { useEffect, useState } from 'react';
+import { useAppCtx } from "./context/AppCtx";
+import { frmtNb, convtimenbr, convTime, ColorValue, Timer, filterTryit } from './fct.js';
 import { FormControl, InputLabel, Select, MenuItem, Switch, FormControlLabel } from '@mui/material';
 import Tooltip from "./tooltip.js";
 const imgno = './icon/ui/cancel.png';
@@ -12,10 +14,145 @@ const imgexchng = './icon/ui/exchange.png';
 const imgna = './icon/nft/na.png';
 //const imgtkt = './icon/res/' + imgtktname;
 
-function ModalDlvr({ onClose, tableData, imgtkt, coinsRatio, handleTryCheckedChange, TryChecked }) {
+function ModalDlvr({ onClose, tableData, imgtkt, coinsRatio }) {
   const closeModal = () => {
     onClose();
   };
+  const {
+          data: { dataSet, dataSetFarm, farmData, priceData },
+          ui: {
+              useNotif,
+              inputValue,
+              inputMaxBB,
+              inputFarmTime,
+              inputCoinsRatio,
+              inputFromLvl,
+              inputToLvl,
+              inputKeep,
+              fromtolvltime,
+              fromtolvlxp,
+              dailyxp,
+              cstPrices,
+              customSeedCM,
+              customQuantFetch,
+              toCM,
+              fromexpand,
+              toexpand,
+              fromtoexpand,
+              selectedCurr,
+              selectedQuant,
+              selectedQuantCook,
+              selectedQuantFish,
+              selectedCostCook,
+              selectedQuantity,
+              selectedQuantityCook,
+              selectedAnimalLvl,
+              selectedReady,
+              selectedDsfl,
+              selectedFromActivity,
+              selectedFromActivityDay,
+              selectedExpandType,
+              selectedSeedsCM,
+              selectedQuantFetch,
+              activityDisplay,
+              selectedInv,
+              selectedDigCur,
+              selectedSeason,
+              GraphType,
+              petView,
+              xListeCol,
+              xListeColCook,
+              xListeColFish,
+              xListeColFlower,
+              xListeColBounty,
+              xListeColAnimals,
+              xListeColExpand,
+              xListeColActivity,
+              xListeColActivityItem,
+              xListeColActivityQuest,
+              CostChecked,
+              TryChecked,
+              BurnChecked,
+              Refresh,
+          },
+          actions: {
+              handleUIChange,
+              setCstPrices,
+              setSelectedInv,
+              setPetView,
+              setInputValue,
+              setInputMaxBB,
+              setInputFarmTime,
+              setInputCoinsRatio,
+              setInputFromLvl,
+              setInputToLvl,
+              setInputKeep,
+              setSelectedQuantFetch,
+              setcustomQuantFetch,
+              setfromexpand,
+              settoexpand,
+              setfromtoexpand,
+              setuseNotif,
+              handleTooltip,
+              handleChangeQuant,
+              handleChangeQuantCook,
+              handleChangeQuantFish,
+              handleChangeFromActivity,
+              handleChangeFromActivityDay,
+              handleChangeActivityDisplay,
+              handleChangepetView,
+              handleChangeExpandType,
+              handleChangeQuantity,
+              handleChangeQuantityCook,
+              handleChangeAnimalLvl,
+              handleChangeSeason,
+              handleChangeReady,
+              handleChangeDsfl,
+              handleChangeDigCur,
+              handleChangeSeedsCM,
+              handleChangeQuantFetch,
+              handleChangeCurr,
+              handleInputKeepChange,
+              handleInputcstPricesChange,
+              handleInputcustomSeedCMChange,
+              handleInputcustomQuantFetchChange,
+              handleInputtoCMChange,
+              handleFromLvlChange,
+              handleToLvlChange,
+              handleCostCheckedChange,
+              handleTryCheckedChange,
+              handleBurnCheckedChange,
+              handleFarmitChange,
+              handleCookitChange,
+              handleIncrement,
+              handleDecrement,
+              handleFromExpandChange,
+              handleToExpandChange,
+              handleSetHrvMax,
+              handleTraderClick
+          },
+          img: {
+              imgwinter,
+              imgspring,
+              imgsummer,
+              imgautumn,
+              imgcrop,
+              imgwood,
+              imgstone,
+              imgbeehive,
+              imgcow,
+              imgsheep,
+              imgflowerbed,
+              imgchkn,
+              imgrdy,
+              imgpet,
+              imgexchng,
+              imgExchng,
+              imgbuyit,
+              imgna,
+              imgrod,
+          }
+      } = useAppCtx();
   const [Delivery, setDelivery] = useState(tableData);
   const [selectedCost, setSelectedCost] = useState('trader');
   const [tableDeliveries, settableDeliveries] = useState([]);
@@ -39,7 +176,7 @@ function ModalDlvr({ onClose, tableData, imgtkt, coinsRatio, handleTryCheckedCha
     const selectedValue = event.target.value;
     setSelectedCost(selectedValue);
   }
-  const handleTooltip = async (item, context, value, event) => {
+  /* const handleTooltip = async (item, context, value, event) => {
     try {
       const { clientX, clientY } = event;
       setTooltipData({
@@ -53,7 +190,7 @@ function ModalDlvr({ onClose, tableData, imgtkt, coinsRatio, handleTryCheckedCha
     } catch (error) {
       console.log(error)
     }
-  }
+  } */
   function setDeliveries() {
     const inventoryEntries = Object.entries(tableData.orders);
     let totCost = 0;
@@ -329,8 +466,9 @@ function ModalDlvr({ onClose, tableData, imgtkt, coinsRatio, handleTryCheckedCha
         <FormControlLabel
           control={
             <Switch
+              name="TryChecked"
               checked={TryChecked}
-              onChange={handleTryCheckedChange}
+              onChange={handleUIChange}
               color="primary"
               size="small"
               sx={{
@@ -371,40 +509,6 @@ function ModalDlvr({ onClose, tableData, imgtkt, coinsRatio, handleTryCheckedCha
       )}
     </div>
   );
-}
-function frmtNb(nombre) {
-  const nombreNumerique = parseFloat(nombre);
-  var nombreStr = nombreNumerique.toString();
-  const positionE = nombreStr.indexOf("e");
-  if (positionE !== -1) {
-    const nombreNumeriqueCorr = Number(nombreStr).toFixed(20);
-    nombreStr = nombreNumeriqueCorr.toString();
-  }
-  if (isNaN(nombreNumerique)) {
-    return "0";
-  }
-  const positionVirgule = nombreStr.indexOf(".");
-  if (positionVirgule !== -1) {
-    let chiffreSupZero = null;
-    for (let i = positionVirgule + 1; i < nombreStr.length; i++) {
-      if (nombreStr[i] !== '0') {
-        chiffreSupZero = i;
-        break;
-      }
-    }
-    if (chiffreSupZero === null) { return nombreNumerique.toFixed(2) }
-    if (Math.abs(Math.floor(nombre)) > 0) {
-      if (Math.abs(Math.floor(nombre)) < 5) {
-        return nombreNumerique.toFixed(3);
-      } else {
-        return nombreNumerique.toFixed(2);
-      }
-    } else {
-      return nombreStr.slice(0, chiffreSupZero + 3);
-    }
-  } else {
-    return nombreStr;
-  }
 }
 function PBar(val, pval, max) {
   const maxh = max;

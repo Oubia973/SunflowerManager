@@ -80,6 +80,30 @@ export function convtimenbr(tempsFormat) {
   }
 }
 
+export function formatUpdated(unixTime) {
+  const tsNum = Number(unixTime);
+  if (!Number.isFinite(tsNum) || tsNum <= 0) return "never updated";
+  const ts = tsNum < 1e12 ? tsNum * 1000 : tsNum;
+  const diffMs = Date.now() - ts;
+  if (diffMs < 0) return "in the future";
+  const seconds = Math.floor(diffMs / 1000);
+  if (seconds < 60) return `${seconds} sec ago`;
+  const minutes = Math.floor(seconds / 60);
+  if (minutes < 60) return `${minutes} min ago`;
+  const hours = Math.floor(minutes / 60);
+  if (hours < 24) {
+    const remMinutes = minutes % 60;
+    return `${hours} hour${hours !== 1 ? "s" : ""}${remMinutes ? ` ${remMinutes} min` : ""} ago`;
+  }
+  const days = Math.floor(hours / 24);
+  const remHours = hours % 24;
+  const remMinutes = minutes % 60;
+  return `${days} day${days !== 1 ? "s" : ""}` +
+    (remHours ? ` ${remHours} hour${remHours !== 1 ? "s" : ""}` : "") +
+    (remMinutes ? ` ${remMinutes} min` : "") +
+    " ago";
+}
+
 export function ColorValue(value, minValue = 1, maxValue = 10) {
   if (value <= minValue) {
     return "red";
@@ -136,9 +160,7 @@ export function Timer({ timestamp, index, onTimerFinish }) {
 
 export function filterTryit(dataSet, toArray) {
   const { it = {}, food = {} } = dataSet?.itables || {};
-  const { nft = {}, nftw = {}, skill = {}, skilllgc = {}, buildng = {}, bud = {}, shrine = {} } = dataSet?.boostables || {};
   const result = {};
-
   const boostables = dataSet?.boostables;
   if (boostables) {
     for (const boostableName in boostables) {
@@ -171,54 +193,6 @@ export function filterTryit(dataSet, toArray) {
     result.xcookit = ConvToArray(bCook);
   }
   return result;
-
-  let bTrynft = {};
-  let bTrynftw = {};
-  let bTrybuild = {};
-  let bTryskill = {};
-  let bTryskilllgc = {};
-  let bTrybud = {};
-  let bTryshrine = {};
-  let bFarm = {};
-  let bCook = {};
-  let bTryBuy = {};
-  let bTrySpot = {};
-  let bTrySpot2 = {};
-  let bTrySpot3 = {};
-  if (!it) {
-    if (toArray) {
-      result.xtrynft = [];
-      result.xtrynftw = [];
-      result.xtrybuild = [];
-      result.xtryskill = [];
-      result.xtryskilllgc = [];
-      result.xtrybud = [];
-      result.xtryshrine = [];
-      result.xfarmit = [];
-      result.xcookit = [];
-      result.xbuyit = [];
-      result.xspottry = [];
-      result.xspot2try = [];
-      result.xspot3try = [];
-    }
-    return result;
-  }
-  function xfilterTryit() {
-    Object.entries(nft).forEach(([item]) => { bTrynft[item] = nft[item].tryit; });
-    Object.entries(nftw).forEach(([item]) => { bTrynftw[item] = nftw[item].tryit; });
-    Object.entries(skill).forEach(([item]) => { bTryskill[item] = skill[item].tryit; });
-    Object.entries(skilllgc).forEach(([item]) => { bTryskilllgc[item] = skilllgc[item].tryit; });
-    Object.entries(buildng).forEach(([item]) => { bTrybuild[item] = buildng[item].tryit; });
-    Object.entries(bud).forEach(([item]) => { bTrybud[item] = bud[item].tryit; });
-    Object.entries(shrine).forEach(([item]) => { bTryshrine[item] = shrine[item].tryit; });
-    Object.entries(it).forEach(([item]) => { bFarm[item] = it[item].farmit; });
-    Object.entries(food).forEach(([item]) => { bCook[item] = food[item].cookit; });
-    Object.entries(it).forEach(([item]) => { bTryBuy[item] = it[item].buyit; });
-    Object.entries(it).forEach(([item]) => { bTrySpot[item] = it[item].spottry; });
-    Object.entries(it).forEach(([item]) => { bTrySpot2[item] = it[item].spot2try; });
-    Object.entries(it).forEach(([item]) => { bTrySpot3[item] = it[item].spot3try; });
-  }
-  xfilterTryit();
   function ConvToArray(tableVar) {
     const table = Object.entries(tableVar)
       .filter(([key, value]) => value !== 0)
@@ -226,29 +200,9 @@ export function filterTryit(dataSet, toArray) {
       .reduce((acc, item) => { acc[item.name] = item.value; return acc; }, {});
     return table;
   }
-  if (toArray) {
-    result.xtrynft = ConvToArray(bTrynft);
-    result.xtrynftw = ConvToArray(bTrynftw);
-    result.xtrybuild = ConvToArray(bTrybuild);
-    result.xtryskill = ConvToArray(bTryskill);
-    result.xtryskilllgc = ConvToArray(bTryskilllgc);
-    result.xtrybud = ConvToArray(bTrybud);
-    result.xtryshrine = ConvToArray(bTryshrine);
-    result.xbuyit = ConvToArray(bTryBuy);
-    result.xspottry = ConvToArray(bTrySpot);
-    result.xspot2try = ConvToArray(bTrySpot2);
-    result.xspot3try = ConvToArray(bTrySpot3);
-    result.xfarmit = ConvToArray(bFarm);
-    result.xcookit = ConvToArray(bCook);
-    return result;
-  } else {
-    result.bTrynft = bTrynft;
-    result.bTrynftw = bTrynftw;
-    result.bTrybuild = bTrybuild;
-    result.bTryskill = bTryskill;
-    result.bTryskilllgc = bTryskilllgc;
-    result.bTrybud = bTrybud;
-    result.bTryshrine = bTryshrine;
-    return result;
-  }
 }
+
+export function getMaxValue (value1, value2, value3) {
+  const positiveValues = [parseFloat(value1).toFixed(20), parseFloat(value2).toFixed(20), parseFloat(value3).toFixed(20)].filter(value => value > 0);
+  return positiveValues.length > 0 ? parseFloat(Math.max(...positiveValues)).toFixed(20).toString() : null;
+};

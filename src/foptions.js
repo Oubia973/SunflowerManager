@@ -179,9 +179,9 @@ function ModalOptions({ onClose, dataSet, onOptionChange, API_URL }) {
                 <span style={{ fontWeight: "bold", fontSize: "16px" }}>Preferences</span>
                 <div><input type="checkbox" onChange={onOptionChange} checked={!!dataSet.checkPlacedEquiped || 0}
                     name={"checkPlacedEquiped"} style={{ width: "18px", height: "18px", marginRight: 12 }} />Check boosts placed/equipped</div>
-                <div><input type="number" onChange={onOptionChange} value={dataSet.inputFarmTime || 0}
+                <div><input type="number" onChange={onOptionChange} value={dataSet.inputFarmTime || 15}
                     name={"FarmTime"} style={{ textAlign: "left", width: "45px" }} />Hours you can check your farm daily</div>
-                <div><input type="number" onChange={onOptionChange} value={dataSet.inputMaxBB || 0}
+                <div><input type="number" onChange={onOptionChange} value={dataSet.inputMaxBB || 1}
                     name={"inputMaxBB"} style={{ textAlign: "left", width: "45px" }} />Restock daily</div>
                 <div><input type="checkbox" onChange={onOptionChange} checked={!!dataSet.autoRefill || 0}
                     name={"autoRefill"} style={{ width: "18px", height: "18px", marginRight: 12 }} />Auto restock by time
@@ -189,11 +189,11 @@ function ModalOptions({ onClose, dataSet, onOptionChange, API_URL }) {
                         name={"showRestockCost"} style={{ width: "18px", height: "18px", marginRight: 6 }} />show in tooltip</div>
                 <div><input type="checkbox" onChange={onOptionChange} checked={!!dataSet.restockCostDaily || 0}
                     name={"restockCostDaily"} style={{ width: "18px", height: "18px", marginRight: 12 }} />Restock in daily numbers</div>
-                <div><input type="number" onChange={onOptionChange} value={dataSet.coinsRatio || 0}
+                <div><input type="number" onChange={onOptionChange} value={dataSet.coinsRatio || 1000}
                     name={"CoinsRatio"} style={{ textAlign: "left", width: "45px" }} />Coins{imgcoins}/{imgsfl}Flower
                     <input type="checkbox" onChange={onOptionChange} checked={!!dataSet.autoCoinRatio || 0}
                         name={"autoCoinRatio"} style={{ width: "18px", height: "18px", marginRight: 6 }} />Auto</div>
-                <div style={{ display: 'flex', alignItems: 'center' }}><input type="text" disabled onChange={onOptionChange} value={dataSet.gemsRatio || 0}
+                <div style={{ display: 'flex', alignItems: 'center' }}><input type="text" disabled onChange={onOptionChange} value={dataSet.gemsRatio || 0.07}
                     name={"GemsRatio"} style={{ textAlign: "left", width: "45px" }} />Flower{imgsfl}/{imggems}Gems
                     <div className="selectinvback" style={{ display: 'flex', alignItems: 'left', height: '20px', width: '80px', margin: "0", padding: "0" }}>
                         <FormControl variant="standard" id="formselectinv" className="selectinv" size="small">
@@ -253,7 +253,7 @@ function ModalOptions({ onClose, dataSet, onOptionChange, API_URL }) {
                             value={lvl}
                             onChange={e => {
                                 let xvalue = e.target.value;
-                                if (isNaN(xvalue)) xvalue = 1;
+                                if (isNaN(xvalue)) xvalue = 7;
                                 if (xvalue < 1) xvalue = 1;
                                 if (xvalue > 15) xvalue = 15;
                                 onOptionChange({

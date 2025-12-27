@@ -26,11 +26,11 @@ function CounterInput({ value, onChange, min = 0, max = 99, activate = true }) {
   };
 
   const decrement = () => {
-    if (value > min & activate) onChange(value - 1);
+    if (value > min && activate) onChange(value - 1);
   };
 
   const increment = () => {
-    if (value < max & activate) onChange(value + 1);
+    if (value < max && activate) onChange(value + 1);
   };
 
   return (

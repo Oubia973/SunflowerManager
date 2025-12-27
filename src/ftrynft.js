@@ -1,8 +1,8 @@
 import React, { useEffect, useState } from 'react';
-import { FormControl, InputLabel, Select, MenuItem, Switch, FormControlLabel } from '@mui/material';
-import Tooltip from "./tooltip.js";
+import { useAppCtx } from "./context/AppCtx";
+import { FormControl, Select, MenuItem, Switch, FormControlLabel } from '@mui/material';
 import CounterInput from "./counterinput.js";
-import { frmtNb, ColorValue, Timer, filterTryit } from './fct.js';
+import { frmtNb, ColorValue, filterTryit } from './fct.js';
 import Help from './fhelp.js';
 
 let showNFT = true;
@@ -17,12 +17,25 @@ let helpImage = "./image/helptrynft.jpg";
 const imgsfl = './icon/res/flowertoken.webp';
 const imgSFL = <img src={imgsfl} alt={''} className="itico" title="Flower" />;
 
-function ModalTNFT({ onClose, frmid, API_URL, dataSet, dataSetFarm, onReset, handleTryCheckedChange, TryChecked }) {
+function ModalTNFT({ onClose }) {
+  const {
+    data: { dataSet, dataSetFarm },
+    ui: {
+      TryChecked,
+    },
+    actions: {
+      handleUIChange,
+      handleTooltip,
+      handleRefreshfTNFT,
+    },
+    config: { API_URL },
+  } = useAppCtx();
+  const frmid = dataSet.options.farmId;
   const [dataSetLocal, setdataSetLocal] = useState(dataSetFarm);
   const [tableNFT, settableNFT] = useState([]);
   const [tableContent, settableContent] = useState([]);
   const [TotalCostDisplay, setTotalCostDisplay] = useState("market");
-  const [tooltipData, setTooltipData] = useState(null);
+  //const [tooltipData, setTooltipData] = useState(null);
   const [tableFlexDirection, setTableFlexDirection] = useState('row');
   const [tableView, setTableView] = useState('both');
   const [showHelp, setShowHelp] = useState(false);
@@ -39,7 +52,7 @@ function ModalTNFT({ onClose, frmid, API_URL, dataSet, dataSetFarm, onReset, han
     const selectedValue = event.target.value;
     setTotalCostDisplay(selectedValue);
   }
-  const handleTooltip = async (item, context, value, event) => {
+  /* const handleTooltip = async (item, context, value, event) => {
     try {
       const { clientX, clientY } = event;
       setTooltipData({
@@ -53,7 +66,7 @@ function ModalTNFT({ onClose, frmid, API_URL, dataSet, dataSetFarm, onReset, han
     } catch (error) {
       console.log(error)
     }
-  }
+  } */
   const handleButtonHelpClick = () => {
     setShowHelp(true);
   };
@@ -79,6 +92,7 @@ function ModalTNFT({ onClose, frmid, API_URL, dataSet, dataSetFarm, onReset, han
       if (response.ok) {
         const responseData = await response.json();
         setdataSetLocal(responseData);
+        handleRefreshfTNFT(dataSet, responseData);
       } else {
         if (response.status === 429) {
           console.log('Too many requests, wait a few seconds');
@@ -86,7 +100,6 @@ function ModalTNFT({ onClose, frmid, API_URL, dataSet, dataSetFarm, onReset, han
           console.log(`Error : ${response.status}`);
         }
       }
-      onReset(dataSet, dataSetLocal);
       setcdButton(true);
       setTimeout(() => {
         setcdButton(false);
@@ -126,7 +139,7 @@ function ModalTNFT({ onClose, frmid, API_URL, dataSet, dataSetFarm, onReset, han
         }
       };
       setdataSetLocal(newDataSet);
-      onReset(dataSet, newDataSet);
+      handleRefreshfTNFT(dataSet, newDataSet);
     } catch (error) {
       console.log(`Error : ${error}`);
     }
@@ -158,7 +171,7 @@ function ModalTNFT({ onClose, frmid, API_URL, dataSet, dataSetFarm, onReset, han
         }
       };
       setdataSetLocal(newDataSet);
-      onReset(dataSet, newDataSet);
+      handleRefreshfTNFT(dataSet, newDataSet);
       //setNFT(dataSetLocal);
     } catch (error) {
       console.log(`Error : ${error}`);
@@ -261,7 +274,7 @@ function ModalTNFT({ onClose, frmid, API_URL, dataSet, dataSetFarm, onReset, han
         },
       };
       setdataSetLocal(newDataSetLocal);
-      onReset(dataSet, newDataSetLocal);
+      handleRefreshfTNFT(dataSet, newDataSetLocal);
       setTotBuyCheck(true);
     }
 
@@ -280,7 +293,7 @@ function ModalTNFT({ onClose, frmid, API_URL, dataSet, dataSetFarm, onReset, han
     const newIt = { ...it, [item]: { ...it[item], buyit: it[item]?.buyit === 1 ? 0 : 1, }, };
     const newDataSetLocal = { ...dataSetLocal, itables: { ...itables, it: newIt, }, };
     setdataSetLocal(newDataSetLocal);
-    onReset(dataSet, newDataSetLocal);
+    handleRefreshfTNFT(dataSet, newDataSetLocal);
 
     /* const it = { ...dataSetLocal.itables.it };
     const newbase = { ...it, [item]: { ...it[item], buyit: it[item].buyit === 1 ? 0 : 1 } };
@@ -307,7 +320,7 @@ function ModalTNFT({ onClose, frmid, API_URL, dataSet, dataSetFarm, onReset, han
     //const newbase = { ...it, [item]: { ...it[item], [keySpot]: xvalue } };
     //const newDataSetLocal = { ...dataSetLocal, ["it"]: newbase };
     setdataSetLocal(newDataSetLocal);
-    onReset(dataSet, newDataSetLocal);
+    handleRefreshfTNFT(dataSet, newDataSetLocal);
   };
   function setContent(xit) {
     if (xit) {
@@ -374,6 +387,12 @@ function ModalTNFT({ onClose, frmid, API_URL, dataSet, dataSetFarm, onReset, han
             <td className={parseFloat(iharvestchg).toFixed(0) > 0 ? 'chgpos' : parseFloat(iharvestchg).toFixed(0) < 0 ? 'chgneg' : 'chgeq'}
               onClick={(e) => handleTooltip(item, "trynft", "yieldchg", e)}>{txtHarvestChg}</td>
             <td className="tdcenter">
+              {/* <input
+                type="checkbox"
+                name={`buyit:${item}`}
+                checked={ibuyit === 1}
+                onChange={handleUIChange}
+              /> */}
               <input type="checkbox" checked={ibuyit} onChange={() => handleBuyitChange(item)} />
             </td>
             <td className="tdcenter"
@@ -383,7 +402,7 @@ function ModalTNFT({ onClose, frmid, API_URL, dataSet, dataSetFarm, onReset, han
             <td className="tdcenter">
               <CounterInput
                 value={xit[item][key("spot")]}
-                onChange={value => handleSpottryChange(item, value)}
+                onChange={value => handleSpottryChange(item, value, "")}
                 min={0}
                 max={99}
                 activate={TryChecked}
@@ -725,9 +744,9 @@ function ModalTNFT({ onClose, frmid, API_URL, dataSet, dataSetFarm, onReset, han
     settableNFT(xtableNFT);
     //tableNFT = xtableNFT;
   }
-  useEffect(() => {
+  /* useEffect(() => {
     Refresh();
-  }, []);
+  }, []); */
   useEffect(() => {
     setNFT(dataSetLocal);
     setContent(dataSetLocal.itables.it);
@@ -740,7 +759,6 @@ function ModalTNFT({ onClose, frmid, API_URL, dataSet, dataSetFarm, onReset, han
     minHeight: 0,
     overflow: 'visible'
   };
-
   return (
     <div style={{
       position: 'fixed',
@@ -797,8 +815,9 @@ function ModalTNFT({ onClose, frmid, API_URL, dataSet, dataSetFarm, onReset, han
             <FormControlLabel
               control={
                 <Switch
+                  name="TryChecked"
                   checked={TryChecked}
-                  onChange={handleTryCheckedChange}
+                  onChange={handleUIChange}
                   color="primary"
                   size="small"
                   sx={{
@@ -869,7 +888,7 @@ function ModalTNFT({ onClose, frmid, API_URL, dataSet, dataSetFarm, onReset, han
           )}
         </div>
       </div>
-      {tooltipData && (
+      {/* {tooltipData && (
         <Tooltip
           onClose={() => setTooltipData(null)}
           clickPosition={tooltipData}
@@ -878,8 +897,9 @@ function ModalTNFT({ onClose, frmid, API_URL, dataSet, dataSetFarm, onReset, han
           value={tooltipData.value}
           dataSet={dataSet}
           dataSetFarm={dataSetLocal}
+          ForTry={TryChecked}
         />
-      )}
+      )} */}
       {showHelp && (
         <Help onClose={handleCloseHelp} image={helpImage} />
       )}
