@@ -10,9 +10,13 @@ function ModalGraph({ onClose, graphtype, frmid, dataSetFarm, API_URL, username 
   };
   const [vals, setVals] = useState("price");
   const handlePriceClick = () => {
+    //graphtype = "Marketplace";
+    //ReqGraph();
     setVals("price");
   };
   const handleSupplyClick = () => {
+    //graphtype = "OpenSea";
+    //ReqGraph();
     setVals("supply");
   };
   const handleTradesClick = () => {
@@ -81,6 +85,8 @@ function ModalGraph({ onClose, graphtype, frmid, dataSetFarm, API_URL, username 
       <div className="modalgraph-buttons">
         <h2>{graphtype}</h2>
         <button onClick={closeModal} class="button"><img src="./icon/ui/cancel.png" alt="" className="resico" /></button>
+        <button onClick={handlePriceClick}>Prices</button>
+        <button onClick={handleSupplyClick}>Supply</button>
         {/* <button onClick={handlePriceClick}>Prices</button>
         {(graphtype === "OpenSea") && <button onClick={handleSupplyClick}>Supply</button>}
         {(graphtype === "Trader" || graphtype === "OpenSea") && <button onClick={handleTradesClick}>Trades number</button>} */}

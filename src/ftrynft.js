@@ -52,21 +52,6 @@ function ModalTNFT({ onClose }) {
     const selectedValue = event.target.value;
     setTotalCostDisplay(selectedValue);
   }
-  /* const handleTooltip = async (item, context, value, event) => {
-    try {
-      const { clientX, clientY } = event;
-      setTooltipData({
-        x: clientX,
-        y: clientY,
-        item,
-        context,
-        value
-      });
-      //console.log(responseData);
-    } catch (error) {
-      console.log(error)
-    }
-  } */
   const handleButtonHelpClick = () => {
     setShowHelp(true);
   };
@@ -370,21 +355,21 @@ function ModalTNFT({ onClose }) {
             <td style={{ display: 'none' }}>{ido}</td>
             <td id="iccolumn"><i><img src={ico} alt={''} className="itico" title={item} /></i></td>
             {/* <td className="tditem">{item}</td> */}
-            <td className="tdcenter"
+            <td className="tdcenter tooltipcell"
               onClick={(e) => handleTooltip(item, "trynft", "timechg", e)}>{xtime}</td>
-            <td className={parseFloat(timechg).toFixed(0) > 0 ? 'chgneg' : parseFloat(timechg).toFixed(0) < 0 ? 'chgpos' : 'chgeq'}
+            <td className={parseFloat(timechg).toFixed(0) > 0 ? 'chgneg tooltipcell' : parseFloat(timechg).toFixed(0) < 0 ? 'chgpos tooltipcell' : 'chgeq tooltipcell'}
               onClick={(e) => handleTooltip(item, "trynft", "timechg", e)}>{txtTimeChg}</td>
-            <td className="tdcenter"
+            <td className="tdcenter tooltipcell"
               onClick={(e) => handleTooltip(item, "trynft", "costchg", e)}>{frmtNb(xcost)}</td>
-            <td className={parseFloat(costpchg).toFixed(0) > 0 ? 'chgneg' : parseFloat(costpchg).toFixed(0) < 0 ? 'chgpos' : 'chgeq'}
+            <td className={parseFloat(costpchg).toFixed(0) > 0 ? 'chgneg tooltipcell' : parseFloat(costpchg).toFixed(0) < 0 ? 'chgpos tooltipcell' : 'chgeq tooltipcell'}
               onClick={(e) => handleTooltip(item, "trynft", "costchg", e)}>{txtCostpChg}</td>
-            <td className="tdcenter"
+            <td className="tdcenter tooltipcell"
               onClick={(e) => handleTooltip(item, "trynft", "yieldchg", e)}>{parseFloat(xmyield).toFixed(2)}</td>
-            <td className={parseFloat(imyieldchg).toFixed(0) > 0 ? 'chgpos' : parseFloat(imyieldchg).toFixed(0) < 0 ? 'chgneg' : 'chgeq'}
+            <td className={parseFloat(imyieldchg).toFixed(0) > 0 ? 'chgpos tooltipcell' : parseFloat(imyieldchg).toFixed(0) < 0 ? 'chgneg tooltipcell' : 'chgeq tooltipcell'}
               onClick={(e) => handleTooltip(item, "trynft", "yieldchg", e)}>{txtMyieldChg}</td>
-            <td className="tdcenter"
+            <td className="tdcenter tooltipcell"
               onClick={(e) => handleTooltip(item, "trynft", "yieldchg", e)}>{parseFloat(xharvest).toFixed(2)}</td>
-            <td className={parseFloat(iharvestchg).toFixed(0) > 0 ? 'chgpos' : parseFloat(iharvestchg).toFixed(0) < 0 ? 'chgneg' : 'chgeq'}
+            <td className={parseFloat(iharvestchg).toFixed(0) > 0 ? 'chgpos tooltipcell' : parseFloat(iharvestchg).toFixed(0) < 0 ? 'chgneg tooltipcell' : 'chgeq tooltipcell'}
               onClick={(e) => handleTooltip(item, "trynft", "yieldchg", e)}>{txtHarvestChg}</td>
             <td className="tdcenter">
               {/* <input
@@ -395,9 +380,9 @@ function ModalTNFT({ onClose }) {
               /> */}
               <input type="checkbox" checked={ibuyit} onChange={() => handleBuyitChange(item)} />
             </td>
-            <td className="tdcenter"
+            <td className="tdcenter tooltipcell"
               onClick={(e) => handleTooltip(item, "dailysfl", (TryChecked ? "trynft" : ""), e)} style={{ ...cellDSflStyle }}>{parseFloat(xdsfl).toFixed(2)}</td>
-            <td className={parseFloat(idsflchg).toFixed(0) > 0 ? 'chgpos' : parseFloat(idsflchg).toFixed(0) < 0 ? 'chgneg' : 'chgeq'}
+            <td className={parseFloat(idsflchg).toFixed(0) > 0 ? 'chgpos tooltipcell' : parseFloat(idsflchg).toFixed(0) < 0 ? 'chgneg tooltipcell' : 'chgeq tooltipcell'}
               onClick={(e) => handleTooltip(item, "dailysfl", (TryChecked ? "trynft" : ""), e)}>{txtDsflChg}</td>
             <td className="tdcenter">
               <CounterInput
@@ -506,7 +491,7 @@ function ModalTNFT({ onClose }) {
             </td>
             <td className="tdcenter">{value.price}</td>
             <td className="tdcenter">{value.pricem || 0}</td>
-            <td className="tdcenter" onClick={(e) => handleTooltip(item, "trynftsupply", "nft", e)}>{isupply}</td>
+            <td className="tdcenter tooltipcell" onClick={(e) => handleTooltip(item, "trynftsupply", "nft", e)}>{isupply}</td>
             <td className="tditemnft" style={{ color: `rgb(190, 190, 190)` }}>{value.boost}</td>
           </tr>
         );
@@ -536,7 +521,7 @@ function ModalTNFT({ onClose }) {
             </td>
             <td className="tdcenter">{valuew.price}</td>
             <td className="tdcenter">{valuew.pricem || 0}</td>
-            <td className="tdcenter" onClick={(e) => handleTooltip(itemw, "trynftsupply", "nftw", e)}>{isupplyw}</td>
+            <td className="tdcenter tooltipcell" onClick={(e) => handleTooltip(itemw, "trynftsupply", "nftw", e)}>{isupplyw}</td>
             <td className="tditemnft" style={{ color: `rgb(190, 190, 190)` }}>{valuew.boost}</td>
           </tr>
         );

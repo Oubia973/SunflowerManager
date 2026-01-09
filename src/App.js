@@ -93,7 +93,6 @@ function App() {
     inputKeep: 3,
     inputFromLvl: 1,
     inputToLvl: 30,
-    useNotif: false,
     TryChecked: false,
     CostChecked: true,
     BurnChecked: true,
@@ -223,7 +222,7 @@ function App() {
   useEffect(() => {
     localStorage.setItem("ui", JSON.stringify(ui));
   }, [ui]);
-  const { inputValue, TryChecked, selectedInv, useNotif, fromexpand, toexpand, selectedExpandType } = ui;
+  const { inputValue, TryChecked, selectedInv, fromexpand, toexpand, selectedExpandType } = ui;
 
   const [farmData, setFarmData] = useState([]);
   const [dataSetFarm, setdataSetFarm] = useState({});
@@ -307,6 +306,9 @@ function App() {
     setShowCadre(false);
   };
   async function subscribeToPush() {
+    /* if (!dataSet.options.useNotifications) {
+      return;
+    } */
     if (isNativeApp) {
       const permStatus = await PushNotifications.requestPermissions();
       if (permStatus.receive === 'granted') {
@@ -478,7 +480,6 @@ function App() {
 
     setUI(prev => ({ ...(prev ?? {}), [name]: value }));
   };
-
   const setUIField = (name, valueOrUpdater) => {
     setUI((prev) => {
       const prevValue = prev?.[name];
@@ -711,7 +712,7 @@ function App() {
             }
             //setRefresh(new Date().getMilliseconds());
             setdeliveriesData(responseData.orderstable);
-            setfTrades();
+            setfTrades(responseData);
             setCookie();
           } else {
             setReqState(`Error : ${response.status}`);
@@ -921,12 +922,12 @@ function App() {
   ]);
   const ctx = useMemo(() => ({ data, config, ui, actions, img }), [data, config, ui, actions, img]);
 
-  function setfTrades() {
-    const { ftrades } = dataSetFarm;
+  function setfTrades(dataSetTrades) {
+    const { ftrades } = dataSetTrades;
     if (ftrades) {
-      if (dataSetFarm.itables === undefined) return;
-      const { it, fish, flower } = dataSetFarm.itables;
-      const { nft, nftw } = dataSetFarm.boostables;
+      if (dataSetTrades.itables === undefined) return;
+      const { it, fish, flower } = dataSetTrades.itables;
+      const { nft, nftw } = dataSetTrades.boostables;
       const data = Object.values(ftrades);
       const vegetableNames = data.map((entry) => Object.keys(entry.items)[0]);
       //const vegetablePrices = data.map((entry) => Object.values(entry.items)[0]);
@@ -1072,7 +1073,7 @@ function App() {
         dataSet.fishcosts = fishingDetails && (parseFloat(fishingDetails.casts * xfishcost).toFixed(3) + "/" + parseFloat(xfishcastmax * xfishcost).toFixed(3));
         setdataSetFarm({ ...respData });
         setdeliveriesData(respData.orderstable);
-        setfTrades();
+        setfTrades(respData);
       }
       const priceData = responseData.priceData;
       const balanceUSD = frmtNb(Number(dataSet?.balance || 0) * Number(priceData[2]));
@@ -1103,8 +1104,8 @@ function App() {
       const itemName = tableMutant[index][0].name;
       //const cobj = nft[itemName];
       let itemImg = imgna;
-      if (dataSetMutant?.nft?.[itemName]) { itemImg = dataSetMutant?.nft?.[itemName]?.img; }
-      if (dataSetMutant?.mutant?.[itemName]) { itemImg = dataSetMutant?.mutant?.[itemName]?.img; }
+      if (dataSetMutant?.boostables?.nft?.[itemName]) { itemImg = dataSetMutant?.boostables?.nft?.[itemName]?.img; }
+      if (dataSetMutant?.itables?.mutant?.[itemName]) { itemImg = dataSetMutant?.itables?.mutant?.[itemName]?.img; }
       return (
         <img src={itemImg} alt={''} className="nftico" title={tableMutant[index][0].name} />
       )
@@ -1235,13 +1236,15 @@ function App() {
     getFromToExpand(Number(fromexpand) + 1, Number(toexpand), selectedExpandType);
   }, [fromexpand, toexpand, selectedExpandType]);
   useEffect(() => {
-    if (dataSet.options.useNotifications === true) {
-      if (inputValue) { subscribeToPush(); }
-    } else if (dataSet.options.useNotifications === 0) {
-      if (inputValue) { unsubscribeFromPush(); }
+    if (!curID) return;
+    if (dataSet.options.useNotifications) {
+      subscribeToPush();
+      console.log("useNotif:", dataSet.options.useNotifications);
+    } else {
+      unsubscribeFromPush();
+      console.log("useNotif:", dataSet.options.useNotifications);
     }
-    // eslint-disable-next-line
-  }, [useNotif]);
+  }, [dataSet.options.useNotifications]);
   useEffect(() => {
     if (!dataSetFarm?.itables?.it) return;
     const it = dataSetFarm.itables.it;

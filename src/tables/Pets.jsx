@@ -142,11 +142,11 @@ export default function PetsTable() {
           <td className="tdcenter" style={{ padding: "0 10px" }}>{bib}</td>
           <td className="tdcenter" style={{ padding: "0 10px" }}>{curNrg > 0 ? curNrg : ""}</td>
           {/* <td className="tdcenter" style={{ padding: "0 10px" }}>{petExp > 0 ? petExp : ""}</td> */}
-          <td className="tdcenter" style={{ fontSize: "12px" }}>{petFeeds}</td>
+          <td className="tdcenter tooltipcell" style={{ fontSize: "12px" }}>{petFeeds}</td>
           <td className="tdcenter" style={{ padding: "0 10px" }}>{totalNrg > 0 ? totalNrg : ""}</td>
-          <td className="tdcenter" style={{ padding: "0 10px" }} onClick={(e) => handleTooltip(requests, "cookcost", 1, e)}>
+          <td className="tdcenter tooltipcell" style={{ padding: "0 10px" }} onClick={(e) => handleTooltip(requests, "cookcost", 1, e)}>
             {petFeeds.length ? frmtNb(foodCostTotal / dataSet.options.coinsRatio) : ""}</td>
-          <td className="tdcenter" style={{ padding: "0 10px" }} onClick={(e) => handleTooltip(requests, "cookcost", 1, e)}
+          <td className="tdcenter tooltipcell" style={{ padding: "0 10px" }} onClick={(e) => handleTooltip(requests, "cookcost", 1, e)}
           >{petFeeds.length ? frmtNb(foodCostMTotal) : ""}</td>
           <td className="tdcenter" style={{ padding: "0 10px" }}>{petFeeds.length > 0 ? (energySfl > 0 ? frmtNb(energySfl) : "ꝏ") : ""}</td>
           <td className="tdcenter" style={{ padding: "0 10px" }}>{(energyMSfl > 0 && foodCostMTotal > 0) ? frmtNb(energyMSfl) : ""}</td>
@@ -189,10 +189,13 @@ export default function PetsTable() {
       const time = s?.time || "";
       const supply = s?.supply || 0;
       const compIcons = Object.entries(compo).map(([comp, qty]) => {
-        let cimg = petit?.[comp]?.img || "./icon/nft/na.png";
-        if (comp === "Obsidian") { cimg = it["Obsidian"].img }
-        compTotal += qty * petit?.[comp]?.cost || 0;
-        compMTotal += qty * petit?.[comp]?.costp2pt || 0;
+        let itemTable = {};
+        if (it[comp]) {itemTable = it;}
+        if (petit[comp]) {itemTable = petit;}
+        let cimg = itemTable?.[comp]?.img || "./icon/nft/na.png";
+        let coinRatioOrNot = (itemTable !== petit) ? dataSet.options.coinsRatio : 1;
+        compTotal += qty * ((itemTable?.[comp]?.cost || 0) / coinRatioOrNot);
+        compMTotal += qty * itemTable?.[comp]?.costp2pt || 0;
         return (
           <span key={comp} title={`${comp}×${qty}`} style={{ marginRight: 8 }}>
             <img src={cimg} alt="" className="itico" />×{qty}
@@ -206,8 +209,8 @@ export default function PetsTable() {
           <td className="tditem">{shName}</td>
           <td className="tdcenter">{compIcons.length ? compIcons : <i>N/A</i>}</td>
           <td className="tditem">{time}</td>
-          <td className="tdcenter" style={{ padding: "0 10px" }}>{compTotal > 0 ? frmtNb(compTotal) : ""}</td>
-          <td className="tdcenter" style={{ padding: "0 10px" }}>{compMTotal > 0 ? frmtNb(compMTotal) : ""}</td>
+          <td className="tdcenter tooltipcell" style={{ padding: "0 10px" }} onClick={(e) => handleTooltip(shName, "shrinecost", 1, e)}>{compTotal > 0 ? frmtNb(compTotal) : ""}</td>
+          <td className="tdcenter tooltipcell" style={{ padding: "0 10px" }} onClick={(e) => handleTooltip(shName, "shrinecost", 1, e)}>{compMTotal > 0 ? frmtNb(compMTotal) : ""}</td>
           <td className="tdcenter">{supply}</td>
           <td className="tditem">{boost}</td>
         </tr>

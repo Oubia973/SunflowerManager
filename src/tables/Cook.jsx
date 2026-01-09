@@ -6,6 +6,7 @@ import { frmtNb, convtimenbr, convTime, ColorValue, Timer, filterTryit } from '.
 let xdxp = 0;
 var dProd = [];
 var dProdtry = [];
+const maxLvl = 200;
 
 export default function CookTable() {
     const {
@@ -46,12 +47,14 @@ export default function CookTable() {
     function handleFromLvlChange(event) {
         const value = event.target.value.replace(/\D/g, '');
         //setInputFromLvl(value);
-        if (value > 0 && value <= 149) { getxpFromToLvl(value, inputToLvl, xdxp); }
+        //if (value > 0 && value <= 199) { getxpFromToLvl(value, inputToLvl, xdxp); }
+        getxpFromToLvl(value, inputToLvl, xdxp);
     }
     function handleToLvlChange(event) {
         const value = event.target.value.replace(/\D/g, '');
         //setInputToLvl(value);
-        if (value > 0 && value <= 150) { getxpFromToLvl(inputFromLvl, value, xdxp); }
+        //if (value > 0 && value <= 150) { getxpFromToLvl(inputFromLvl, value, xdxp); }
+        getxpFromToLvl(inputFromLvl, value, xdxp);
     }
     async function getxpFromToLvl(xfrom, xto, xdxp) {
         const responseLVL = await fetch(API_URL + "/getfromtolvl", {
@@ -216,9 +219,9 @@ export default function CookTable() {
                     {xListeColCook[6][1] === 1 ? <td className="tdcenter" style={CellXPHStyle}>{ixph}</td> : null}
                     {xListeColCook[7][1] === 1 ? <td className="tdcenter">{ixphcomp}</td> : null}
                     {xListeColCook[8][1] === 1 ? <td className="tdcenter" style={CellXPSflStyle}>{frmtNb(ixpsfl)}</td> : null}
-                    {xListeColCook[9][1] === 1 ? <td className="tdcenter"
+                    {xListeColCook[9][1] === 1 ? <td className="tdcenter tooltipcell"
                         onClick={(e) => handleTooltip(item, "cookcost", selectedQuantCook !== "unit" ? iQuant : 1, e)}>{frmtNb(icost)}</td> : null}
-                    {xListeColCook[10][1] === 1 ? <td className="tdcenter"
+                    {xListeColCook[10][1] === 1 ? <td className="tdcenter tooltipcell"
                         onClick={(e) => handleTooltip(item, "cookcost", selectedQuantCook !== "unit" ? iQuant : 1, e)}>{frmtNb(icostp2p)}</td> : null}
                     {xListeColCook[11][1] === 1 ? Object.values(sortedCompo).map((itemName, itIndex) => (
                         <td className="tdcenterbrd" style={{ fontSize: '12px' }} key={itemName}>
@@ -248,8 +251,8 @@ export default function CookTable() {
             <input
                 type="number"
                 min={1}
-                max={150}
-                step={1}
+                max={maxLvl-1}
+                step={10}
                 name="inputFromLvl"
                 value={inputFromLvl}
                 onChange={(e) => {
@@ -264,8 +267,8 @@ export default function CookTable() {
             <input
                 type="number"
                 min={1}
-                max={150}
-                step={1}
+                max={maxLvl}
+                step={10}
                 name="inputToLvl"
                 value={inputToLvl}
                 onChange={(e) => {

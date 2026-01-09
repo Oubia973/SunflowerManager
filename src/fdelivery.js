@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useAppCtx } from "./context/AppCtx";
-import { frmtNb, convtimenbr, convTime, ColorValue, Timer, filterTryit } from './fct.js';
-import { FormControl, InputLabel, Select, MenuItem, Switch, FormControlLabel } from '@mui/material';
+import { frmtNb } from './fct.js';
+import { Switch, FormControlLabel } from '@mui/material';
 import Tooltip from "./tooltip.js";
 const imgno = './icon/ui/cancel.png';
 const imgyes = './icon/ui/confirm.png';
@@ -19,140 +19,22 @@ function ModalDlvr({ onClose, tableData, imgtkt, coinsRatio }) {
     onClose();
   };
   const {
-          data: { dataSet, dataSetFarm, farmData, priceData },
-          ui: {
-              useNotif,
-              inputValue,
-              inputMaxBB,
-              inputFarmTime,
-              inputCoinsRatio,
-              inputFromLvl,
-              inputToLvl,
-              inputKeep,
-              fromtolvltime,
-              fromtolvlxp,
-              dailyxp,
-              cstPrices,
-              customSeedCM,
-              customQuantFetch,
-              toCM,
-              fromexpand,
-              toexpand,
-              fromtoexpand,
-              selectedCurr,
-              selectedQuant,
-              selectedQuantCook,
-              selectedQuantFish,
-              selectedCostCook,
-              selectedQuantity,
-              selectedQuantityCook,
-              selectedAnimalLvl,
-              selectedReady,
-              selectedDsfl,
-              selectedFromActivity,
-              selectedFromActivityDay,
-              selectedExpandType,
-              selectedSeedsCM,
-              selectedQuantFetch,
-              activityDisplay,
-              selectedInv,
-              selectedDigCur,
-              selectedSeason,
-              GraphType,
-              petView,
-              xListeCol,
-              xListeColCook,
-              xListeColFish,
-              xListeColFlower,
-              xListeColBounty,
-              xListeColAnimals,
-              xListeColExpand,
-              xListeColActivity,
-              xListeColActivityItem,
-              xListeColActivityQuest,
-              CostChecked,
-              TryChecked,
-              BurnChecked,
-              Refresh,
-          },
-          actions: {
-              handleUIChange,
-              setCstPrices,
-              setSelectedInv,
-              setPetView,
-              setInputValue,
-              setInputMaxBB,
-              setInputFarmTime,
-              setInputCoinsRatio,
-              setInputFromLvl,
-              setInputToLvl,
-              setInputKeep,
-              setSelectedQuantFetch,
-              setcustomQuantFetch,
-              setfromexpand,
-              settoexpand,
-              setfromtoexpand,
-              setuseNotif,
-              handleTooltip,
-              handleChangeQuant,
-              handleChangeQuantCook,
-              handleChangeQuantFish,
-              handleChangeFromActivity,
-              handleChangeFromActivityDay,
-              handleChangeActivityDisplay,
-              handleChangepetView,
-              handleChangeExpandType,
-              handleChangeQuantity,
-              handleChangeQuantityCook,
-              handleChangeAnimalLvl,
-              handleChangeSeason,
-              handleChangeReady,
-              handleChangeDsfl,
-              handleChangeDigCur,
-              handleChangeSeedsCM,
-              handleChangeQuantFetch,
-              handleChangeCurr,
-              handleInputKeepChange,
-              handleInputcstPricesChange,
-              handleInputcustomSeedCMChange,
-              handleInputcustomQuantFetchChange,
-              handleInputtoCMChange,
-              handleFromLvlChange,
-              handleToLvlChange,
-              handleCostCheckedChange,
-              handleTryCheckedChange,
-              handleBurnCheckedChange,
-              handleFarmitChange,
-              handleCookitChange,
-              handleIncrement,
-              handleDecrement,
-              handleFromExpandChange,
-              handleToExpandChange,
-              handleSetHrvMax,
-              handleTraderClick
-          },
-          img: {
-              imgwinter,
-              imgspring,
-              imgsummer,
-              imgautumn,
-              imgcrop,
-              imgwood,
-              imgstone,
-              imgbeehive,
-              imgcow,
-              imgsheep,
-              imgflowerbed,
-              imgchkn,
-              imgrdy,
-              imgpet,
-              imgexchng,
-              imgExchng,
-              imgbuyit,
-              imgna,
-              imgrod,
-          }
-      } = useAppCtx();
+    data: { dataSet, dataSetFarm },
+    ui: {
+      TryChecked,
+    },
+    actions: {
+      handleUIChange,
+      handleTooltip
+    },
+    img: {
+      imgrdy,
+      imgexchng,
+      imgExchng,
+      imgna,
+    }
+  } = useAppCtx();
+  const { it, food, fish } = dataSetFarm.itables;
   const [Delivery, setDelivery] = useState(tableData);
   const [selectedCost, setSelectedCost] = useState('trader');
   const [tableDeliveries, settableDeliveries] = useState([]);
@@ -234,6 +116,7 @@ function ModalDlvr({ onClose, tableData, imgtkt, coinsRatio }) {
       const costp2p = selectedCost === "shop" ? frmtNb(OrderItem.costs) : selectedCost === "trader" ? frmtNb(OrderItem.costt) : selectedCost === "nifty" ? frmtNb(OrderItem.costn) : selectedCost === "opensea" ? frmtNb(OrderItem.costo) : 0;
       const addRatio = iscoins && (OrderItem[key("cost")] / coinsRatio) > 0;
       const ratioCoins = addRatio ? frmtNb(quantreward / (OrderItem[key("cost")] / coinsRatio)) : "";
+      const convRewardSfl = iscoins ? quantreward / coinsRatio : issfl ? quantreward : 0;
       totCostR += addRatio ? (OrderItem[key("cost")] / coinsRatio) : 0;
       totCostp2pR += addRatio ? Number(costp2p) : 0;
       totCoinsR += addRatio ? quantreward : 0;
@@ -247,18 +130,27 @@ function ModalDlvr({ onClose, tableData, imgtkt, coinsRatio }) {
       if (OrderItem.nbcompleted > 0) { totCmp += OrderItem.nbcompleted }
       if (OrderItem.nbskipped > 0) { totSkp += OrderItem.nbskipped }
       const costTkt = OrderItem[key("costtkt")] > 0 ? frmtNb(OrderItem[key("costtkt")] / coinsRatio) : "";
+      const bakcGreen = 'rgba(10, 54, 18, 0.71)';
+      const cellRewardStyle = {};
+      if ((costp2p < convRewardSfl) && (!istkt)) {
+        cellRewardStyle.backgroundColor = bakcGreen;
+      }
+      const cellMarketStyle = {};
+      if ((costp2p > convRewardSfl) && (!istkt)) {
+        cellMarketStyle.backgroundColor = bakcGreen;
+      }
       return (
         <tr key={index}>
           <td id="iccolumn" className="tdcenter"><img src={xfrom} alt="" title={ofrom} style={{ width: '25px', height: '25px' }} /></td>
           <td className="tdcenter" dangerouslySetInnerHTML={{ __html: OrderItem.items }}></td>
           <td className="tdcenter">{imgComplete}</td>
           {/* <td className="tdcenter" dangerouslySetInnerHTML={{ __html: OrderItem.reward }}>{coinrewardconvertsfl}</td> */}
-          <td className="tdcenter">{textReward}</td>
+          <td className="tdcenter" style={cellRewardStyle}>{textReward}</td>
           <td className="tdcenter">{frmtNb(OrderItem[key("cost")] / coinsRatio)}</td>
-          <td className="tdcenter">{costp2p}</td>
+          <td className="tdcenter" style={cellMarketStyle}>{costp2p}</td>
           <td className="tdcenter">{ratioCoins}</td>
           <td className="tdcenter">{costTkt}</td>
-          <td className="tdcenter">{OrderItem.readyAt}</td>
+          <td className="date">{OrderItem.readyAt}</td>
           <td className="tdcenter">{OrderItem.nbcompleted}</td>
           <td className="tdcenter">{OrderItem.nbskipped}</td>
         </tr>
@@ -316,11 +208,61 @@ function ModalDlvr({ onClose, tableData, imgtkt, coinsRatio }) {
     settableDeliveries(tableContent);
     const chores = tableData.chores;
     const choreEntries = Object.entries(chores);
+    let actTotReward = 0;
+    let totReward = 0;
+    let totCostChores = 0;
+    let totMarketChores = 0;
+    let txtTotReward = "";
     const choreItems = choreEntries.map((item, index) => {
+      let totCostChore = 0;
+      let totMarketChore = 0;
+      let notInStock = false;
       //const costp2p = selectedCost === "shop" ? frmtNb(item[1].costs) : selectedCost === "trader" ? frmtNb(item[1].costt) : selectedCost === "nifty" ? frmtNb(item[1].costn) : selectedCost === "opensea" ? frmtNb(item[1].costo) : 0;
       const imgRew = <img src={item[1].rewardimg} alt="" title={item[1].rewarditem} style={{ width: '15px', height: '15px' }} />;
       const itemImg = <img src={item[1].itemimg} alt="" title={item[1].item} style={{ width: '20px', height: '20px' }} />;
       const totTime = TryChecked ? item[1].totaltimetry : item[1].totaltime;
+      totReward += item[1].reward;
+      actTotReward += item[1].completed && item[1].reward;
+      const getItemImg = (name, qty) => {
+        if (!name) return null;
+        if (it[name]) {
+          totCostChore += (it[name][key("cost")] / coinsRatio) * qty;
+          totMarketChore += (it[name]?.costp2pt || 0) * qty;
+          if(it[name]?.instock < tableData.totcomp[name]) {notInStock = true}
+          return it?.[name]?.img ?? imgna
+        }
+        if (food[name]) {
+          totCostChore += (food[name][key("cost")] / coinsRatio) * qty;
+          totMarketChore += (food[name]?.costp2pt || 0) * qty;
+          return food?.[name]?.img ?? imgna
+        }
+        if (fish[name]) {
+          totCostChore += (fish[name][key("cost")] / coinsRatio) * qty;
+          totMarketChore += (fish[name]?.costp2pt || 0) * qty;
+          if(fish[name]?.instock < tableData.totcomp[name]) {notInStock = true}
+          return fish?.[name]?.img ?? imgna
+        }
+        return imgna;
+      };
+      const choreTotCompSpan = (
+        <span style={{ display: "inline-flex", gap: 6, flexWrap: "wrap" }}>
+          {Object.entries(item[1].choreTotComp ?? {}).map(([name, qty]) => {
+            const img = getItemImg(name, qty);
+            return (<span key={name}
+              style={{ display: "inline-flex", gap: 4, alignItems: "center", flexWrap: "nowrap", whiteSpace: "nowrap", }}>
+              {img && (<img src={img} alt="" title={name} style={{ width: "15px", height: "15px" }} />)}
+              {/* <span style={{ fontSize: "10px" }}>x{qty}</span> */}
+            </span>);
+          })}
+        </span>
+      );
+      totCostChores += totCostChore;
+      totMarketChores += totMarketChore;
+      const backRed = 'rgba(63, 10, 10, 0.71)';
+      const cellCompStyle = {};
+      if (notInStock) {
+        cellCompStyle.backgroundColor = backRed;
+      }
       return (
         <tr key={index}>
           <td className="tdleft">{item[1].description}</td>
@@ -329,10 +271,15 @@ function ModalDlvr({ onClose, tableData, imgtkt, coinsRatio }) {
           <td className="tdcenter">{item[1].completed ? item[1].completedAt === undefined ? ximgrdy : ximgyes : ximgno}</td>
           <td className="tdcenter">{item[1].reward}{imgRew}</td>
           <td className="tdcenter">{totTime}</td>
-          <td className="tdcenter">{item[1].createdAt}</td>
+          <td className="tdcenter tooltipcell" style={cellCompStyle} onClick={(e) => handleTooltip(item[1].item, "cookcost", item[1].requirement, e)}>{choreTotCompSpan}</td>
+          <td className="tdcenter tooltipcell" onClick={(e) => handleTooltip(item[1].item, "cookcost", item[1].requirement, e)}>{totCostChore > 0 ? frmtNb(totCostChore) : ""}</td>
+          <td className="tdcenter tooltipcell" onClick={(e) => handleTooltip(item[1].item, "cookcost", item[1].requirement, e)}>{totMarketChore > 0 ? frmtNb(totMarketChore) : ""}</td>
+          <td className="date">{item[1].createdAt}</td>
         </tr>
       )
     });
+    txtTotReward = <span>{actTotReward}/{totReward}</span>;
+    const totCompImg = <img src={"./icon/ui/cropbucket.png"} alt="" title={"Total comp"} style={{ width: "25px", height: "25px" }} />;
     const choreContent = (
       <>
         <table>
@@ -344,7 +291,22 @@ function ModalDlvr({ onClose, tableData, imgtkt, coinsRatio }) {
               <th> </th>
               <th>Reward</th>
               <th>Total time</th>
+              <th>Components</th>
+              <th>Cost</th>
+              <th>{imgExchng}</th>
               <th>Since</th>
+            </tr>
+            <tr>
+              <th>TOTAL</th>
+              <th> </th>
+              <th> </th>
+              <th> </th>
+              <td className="tdcenter">{txtTotReward}</td>
+              <th></th>
+              <td className="tdcenter tooltipcell" onClick={(e) => handleTooltip(tableData.totcomp, "totChoreComp", "Weekly Chores", e)}>{totCompImg}</td>
+              <td className="tdcenter">{frmtNb(totCostChores)}</td>
+              <td className="tdcenter">{frmtNb(totMarketChores)}</td>
+              <th></th>
             </tr>
           </thead>
           <tbody>

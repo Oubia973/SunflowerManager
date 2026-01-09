@@ -104,85 +104,9 @@ function setActivityDay(activityData, dataSetFarm, ui) {
         data: { dataSet },
         actions: {
             handleUIChange,
-            setCstPrices,
-            setSelectedInv,
-            setPetView,
-            setInputValue,
-            setInputMaxBB,
-            setInputFarmTime,
-            setInputCoinsRatio,
-            setInputFromLvl,
-            setInputToLvl,
-            setInputKeep,
-            setSelectedQuantFetch,
-            setcustomQuantFetch,
-            setfromexpand,
-            settoexpand,
-            setfromtoexpand,
-            setuseNotif,
-            handleTooltip,
-            handleChangeQuant,
-            handleChangeQuantCook,
-            handleChangeQuantFish,
-            handleChangeFromActivity,
-            handleChangeFromActivityDay,
-            handleChangeActivityDisplay,
-            handleChangepetView,
-            handleChangeExpandType,
-            handleChangeQuantity,
-            handleChangeQuantityCook,
-            handleChangeAnimalLvl,
-            handleChangeSeason,
-            handleChangeReady,
-            handleChangeDsfl,
-            handleChangeDigCur,
-            handleChangeSeedsCM,
-            handleChangeQuantFetch,
-            handleChangeCurr,
-            handleInputKeepChange,
-            handleInputcstPricesChange,
-            handleInputcustomSeedCMChange,
-            handleInputcustomQuantFetchChange,
-            handleInputtoCMChange,
-            handleFromLvlChange,
-            handleToLvlChange,
-            handleCostCheckedChange,
-            handleTryCheckedChange,
-            handleBurnCheckedChange,
-            handleFarmitChange,
-            handleCookitChange,
-            handleIncrement,
-            handleDecrement,
-            handleFromExpandChange,
-            handleToExpandChange,
-            handleSetHrvMax,
-            handleTraderClick
         },
         img: {
-            imgsfl,
-            imgSFL,
-            imgcoins,
-            imgCoins,
             imgxp,
-            imgrdy,
-            imgwinter,
-            imgspring,
-            imgsummer,
-            imgautumn,
-            imgcrop,
-            imgwood,
-            imgstone,
-            imgbeehive,
-            imgcow,
-            imgsheep,
-            imgflowerbed,
-            imgchkn,
-            imgpet,
-            imgexchng,
-            imgExchng,
-            imgbuyit,
-            imgna,
-            imgrod,
         }
     } = useAppCtx();
     const {
@@ -330,7 +254,7 @@ function setActivityDay(activityData, dataSetFarm, ui) {
                         {xListeColActivity[1][1] === 1 ? <td className="tdcenter">{parseFloat(itotxp).toFixed(1)}</td> : null}
                         {xListeColActivity[2][1] === 1 ? <td className="tdcenter">{itktdchest > 0 ? itktdchest : ""}</td> : null}
                         {/* {xListeColActivity[3][1] === 1 ? <td className="tdcenter">{itktcrop > 0 ? itktcrop : ""}</td> : null} */}
-                        {xListeColActivity[4][1] === 1 ? <td className="tdcenter">{itktbert > 0 ? itktbert : ""}</td> : null}
+                        {/* {xListeColActivity[4][1] === 1 ? <td className="tdcenter">{itktbert > 0 ? itktbert : ""}</td> : null} */}
                         {/* {xListeColActivity[5][1] === 1 ? <td className="tdcenter">{itktwactv > 0 ? itktwactv : ""}</td> : null} */}
                         {xListeColActivity[6][1] === 1 ? <td className="tdcenter">{ideliveriestkt > 0 ? ideliveriestkt : ""}</td> : null}
                         {xListeColActivity[7][1] === 1 ? <td className="tdcenter">{ichorestkt > 0 ? ichorestkt : ""}</td> : null}
@@ -359,7 +283,7 @@ function setActivityDay(activityData, dataSetFarm, ui) {
                     {xListeColActivity[1][1] === 1 ? <th className="thcenter">{ximgxp}</th> : null}
                     {xListeColActivity[2][1] === 1 ? <th className="thcenter">{ximgdchest}</th> : null}
                     {/* {xListeColActivity[3][1] === 1 ? <th className="thcenter">{ximgcrop}</th> : null} */}
-                    {xListeColActivity[4][1] === 1 ? <th className="thcenter">{ximgbert}</th> : null}
+                    {/* {xListeColActivity[4][1] === 1 ? <th className="thcenter">{ximgbert}</th> : null} */}
                     {/* {xListeColActivity[5][1] === 1 ? <th className="thcenter">{ximgwactv}</th> : null} */}
                     {xListeColActivity[6][1] === 1 ? <th className="thcenter">{imgdeliv}</th> : null}
                     {xListeColActivity[7][1] === 1 ? <th className="thcenter">{imgchore}</th> : null}
@@ -375,7 +299,7 @@ function setActivityDay(activityData, dataSetFarm, ui) {
                     {xListeColActivity[1][1] === 1 ? <td className="tdcenter">{parseFloat(totXP).toFixed(1)}</td> : null}
                     {xListeColActivity[2][1] === 1 ? <td className="tdcenter">{tottktdchest}</td> : null}
                     {/* {xListeColActivity[3][1] === 1 ? <td className="tdcenter">{tottktcrop}</td> : null} */}
-                    {xListeColActivity[4][1] === 1 ? <td className="tdcenter">{tottktbert}</td> : null}
+                    {/* {xListeColActivity[4][1] === 1 ? <td className="tdcenter">{tottktbert}</td> : null} */}
                     {/* {xListeColActivity[5][1] === 1 ? <td className="tdcenter">{tottktwactv}</td> : null} */}
                     {xListeColActivity[6][1] === 1 ? <td className="tdcenter">{totdeliveriestkt}</td> : null}
                     {xListeColActivity[7][1] === 1 ? <td className="tdcenter">{totchorestkt}</td> : null}

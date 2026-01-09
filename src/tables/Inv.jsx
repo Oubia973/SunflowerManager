@@ -287,7 +287,8 @@ export default function InvTable() {
                                 {xListeCol[18][1] === 1 && xListeCol[9][1] === 1 ? (<td className="tdcenter"></td>) : ("")}
                                 {xListeCol[12][1] === 1 ? (<td className="tdcenter" style={{ color: `rgb(255, 234, 204)` }}></td>) : ("")}
                                 {xListeCol[13][1] === 1 ? (<td className="tdcenter" style={{ color: `rgb(255, 225, 183)` }}></td>) : ("")}
-                                {xListeCol[14][1] === 1 ? (<td className="tdcenter" style={{ color: `rgb(253, 215, 162)` }} onClick={(e) => handleTooltip(itemBuild, "buildcraft", buildCraft, e)}>
+                                {xListeCol[14][1] === 1 ? (<td className="tdcenter tooltipcell" style={{ color: `rgb(253, 215, 162)` }}
+                                    onClick={(e) => handleTooltip(itemBuild, "buildcraft", buildCraft, e)}>
                                     {iquant > 0 ? iquant : ""}{ximgfood}</td>) : ("")}
                                 {xListeCol[19][1] === 1 ? (<td id={`timer-${index}`} className="tdcenterbrd">{(irdyat > 0 ? selectedReady === "when" ? (<span>{formatdate(irdyat)}{' '}{ximgrdy}</span>) :
                                     <Timer key={`timer-${index}`} timestamp={irdyat} index={item} /> : "")}</td>) : ("")}
@@ -306,7 +307,7 @@ export default function InvTable() {
                 <table className="table">
                     <thead>
                         <tr>
-                            {xListeCol[0][1] === 1 ? (<th className="thcenter" onClick={(e) => handleTooltip("hoard", "th", "", e)}>Hoard</th>) : ("")}
+                            {xListeCol[0][1] === 1 ? (<th className="thcenter tooltipcell" onClick={(e) => handleTooltip("hoard", "th", "", e)}>Hoard</th>) : ("")}
                             <th className="th-icon">   </th>
                             <th className="thcenter"><div className="selectseasonback"><FormControl variant="standard" id="formselectquant" className="selectseason" size="small">
                                 <InputLabel style={{ fontSize: `12px` }}>Season</InputLabel>
@@ -325,7 +326,8 @@ export default function InvTable() {
                                 <img src="/icon/ui/arrow_left.png" alt="Hrv = Hrv max" title="Set Hrv to Hrv Max"
                                     onClick={() => handleSetHrvMax(TryChecked)} style={{ width: '11px', height: '11px' }} /></div>
                             </th>) : ("")}
-                            {xListeCol[2][1] === 1 ? (<th className="thcenter" style={{ color: `rgb(160, 160, 160)` }} onClick={(e) => handleTooltip("quantity", "th", "", e)}>
+                            {xListeCol[2][1] === 1 ? (<th className="thcenter tooltipcell" style={{ color: `rgb(160, 160, 160)` }}
+                                onClick={(e) => handleTooltip("quantity", "th", "", e)}>
                                 <div className="selectquantityback"><FormControl variant="standard" id="formselectquant" className="selectquant" size="small">
                                     <InputLabel>Quantity</InputLabel>
                                     <Select name="selectedQuantity" value={selectedQuantity} onChange={handleUIChange} onClick={(e) => e.stopPropagation()}>
@@ -336,7 +338,7 @@ export default function InvTable() {
                                     </Select></FormControl></div>
                             </th>) : ("")}
                             {xListeCol[3][1] === 1 ? (<th className="thcenter">{selectedQuantity === "daily" ? (<div><div>Time</div><div>{totTime}</div></div>) : ("Time")}</th>) : ("")}
-                            {xListeCol[4][1] === 1 ? (<th className="thcenter" onClick={(e) => handleTooltip("cost", "th", "", e)}>
+                            {xListeCol[4][1] === 1 ? (<th className="thcenter tooltipcell" onClick={(e) => handleTooltip("cost", "th", "", e)}>
                                 <div className="selectquantback"><FormControl variant="standard" id="formselectquant" className="selectquant" size="small">
                                     <InputLabel>Cost</InputLabel>
                                     <Select name="selectedQuant" value={selectedQuant} onChange={handleUIChange} onClick={(e) => e.stopPropagation()}>
@@ -349,19 +351,19 @@ export default function InvTable() {
                             {xListeCol[5][1] === 1 ? (<th className="thcenter">Betty</th>) : ("")}
                             {xListeCol[6][1] === 1 ? (<th className="thcenter">Ratio<div>{imgCoins}/{imgSFL}</div></th>) : ("")}
                             {xListeCol[7][1] === 1 ? (<th className="thtrad" onClick={() => handleTraderClick()}><div className="overlay-trad"></div>Market</th>) : ("")}
-                            {xListeCol[18][1] === 1 && xListeCol[6][1] === 1 ? (<th className="thcenter" style={{ fontSize: `10px` }}
+                            {xListeCol[18][1] === 1 && xListeCol[6][1] === 1 ? (<th className="thcenter tooltipcell" style={{ fontSize: `10px` }}
                                 onClick={(e) => handleTooltip("coef", "th", "", e)}>Profit<div>%</div></th>) : ("")}
-                            {xListeCol[8][1] === 2 ? (<th className="thcenter" style={{ color: `rgb(160, 160, 160)` }}
+                            {xListeCol[8][1] === 2 ? (<th className="thcenter tooltipcell" style={{ color: `rgb(160, 160, 160)` }}
                                 onClick={(e) => handleTooltip("withdraw", "th", "", e)} >Withdraw</th>) : ("")}
-                            {xListeCol[11][1] === 1 && xListeCol[14][1] === 1 ? (<th className="thcenter" onClick={(e) => handleTooltip("diff", "th", "", e)}>Diff</th>) : ("")}
+                            {xListeCol[11][1] === 1 && xListeCol[14][1] === 1 ? (<th className="thcenter tooltipcell" onClick={(e) => handleTooltip("diff", "th", "", e)}>Diff</th>) : ("")}
                             {xListeCol[9][1] === 1 ? (<th className="thnifty" onClick={() => handleNiftyClick()}><div className="overlay-nifty"></div> </th>) : ("")}
-                            {xListeCol[18][1] === 1 && xListeCol[8][1] === 1 ? (<th className="thcenter" onClick={(e) => handleTooltip("coef", "th", "", e)}>Coef</th>) : ("")}
-                            {xListeCol[11][1] === 1 && xListeCol[14][1] === 1 ? (<th className="thcenter" onClick={(e) => handleTooltip("diff", "th", "", e)}>Diff</th>) : ("")}
+                            {xListeCol[18][1] === 1 && xListeCol[8][1] === 1 ? (<th className="thcenter tooltipcell" onClick={(e) => handleTooltip("coef", "th", "", e)}>Coef</th>) : ("")}
+                            {xListeCol[11][1] === 1 && xListeCol[14][1] === 1 ? (<th className="thcenter tooltipcell" onClick={(e) => handleTooltip("diff", "th", "", e)}>Diff</th>) : ("")}
                             {xListeCol[10][1] === 1 ? (<th className="thos" onClick={() => handleOSClick()}><div className="overlay-os"></div> </th>) : ("")}
-                            {xListeCol[18][1] === 1 && xListeCol[9][1] === 1 ? (<th className="thcenter" onClick={(e) => handleTooltip("coef", "th", "", e)}>Coef</th>) : ("")}
-                            {xListeCol[12][1] === 1 ? (<th className="thcenter" onClick={(e) => handleTooltip("yield", "th", "", e)}>Yield</th>) : ("")}
-                            {xListeCol[13][1] === 1 ? (<th className="thcenter" onClick={(e) => handleTooltip("harvest", "th", "", e)}>Harvest<div style={{ fontSize: "10px" }}>average</div></th>) : ("")}
-                            {xListeCol[14][1] === 1 ? (<th className="thcenter" onClick={(e) => handleTooltip("toharvest", "th", "", e)}>ToHarvest<div style={{ fontSize: "10px" }}>growing</div></th>) : ("")}
+                            {xListeCol[18][1] === 1 && xListeCol[9][1] === 1 ? (<th className="thcenter tooltipcell" onClick={(e) => handleTooltip("coef", "th", "", e)}>Coef</th>) : ("")}
+                            {xListeCol[12][1] === 1 ? (<th className="thcenter tooltipcell" onClick={(e) => handleTooltip("yield", "th", "", e)}>Yield</th>) : ("")}
+                            {xListeCol[13][1] === 1 ? (<th className="thcenter tooltipcell" onClick={(e) => handleTooltip("harvest", "th", "", e)}>Harvest<div style={{ fontSize: "10px" }}>average</div></th>) : ("")}
+                            {xListeCol[14][1] === 1 ? (<th className="thcenter tooltipcell" onClick={(e) => handleTooltip("toharvest", "th", "", e)}>ToHarvest<div style={{ fontSize: "10px" }}>growing</div></th>) : ("")}
                             {xListeCol[19][1] === 1 ? (<th className="tdcenterbrd">
                                 <div className="selectreadyback"><FormControl variant="standard" id="formselectquant" className="selectquant" size="small">
                                     <InputLabel>Ready</InputLabel>
@@ -370,7 +372,8 @@ export default function InvTable() {
                                         <MenuItem value="remain">Remain</MenuItem>
                                     </Select></FormControl></div>
                             </th>) : ("")}
-                            {xListeCol[15][1] === 1 ? (<th className="thcenter" style={{ color: `rgb(160, 160, 160)` }} onClick={(e) => handleTooltip("1restock", "th", "", e)}>1restock</th>) : ("")}
+                            {xListeCol[15][1] === 1 ? (<th className="thcenter tooltipcell" style={{ color: `rgb(160, 160, 160)` }}
+                                onClick={(e) => handleTooltip("1restock", "th", "", e)}>1restock</th>) : ("")}
                             {/* {xListeCol[16][1] === 1 ? (<th className="thcenter">
                   <div className="selectquantityback"><FormControl variant="standard" id="formselectquant" className="selectquant" size="small">
                   <InputLabel>Daily {imgSFL}</InputLabel>
@@ -385,7 +388,8 @@ export default function InvTable() {
                                 <div>Daily {imgSFL}</div>
                                 <div><img src={imgexchng} alt={''} title="Marketplace" style={{ width: '20px', height: '20px' }} /></div>
                             </th>) : ("")}
-                            {xListeCol[17][1] === 1 ? (<th className="thcenter" style={{ color: `rgb(160, 160, 160)` }} onClick={(e) => handleTooltip("dailymax", "th", "", e)}>DailyMax<div style={{ fontSize: "10px" }}>average</div></th>) : ("")}
+                            {xListeCol[17][1] === 1 ? (<th className="thcenter tooltipcell" style={{ color: `rgb(160, 160, 160)` }}
+                                onClick={(e) => handleTooltip("dailymax", "th", "", e)}>DailyMax<div style={{ fontSize: "10px" }}>average</div></th>) : ("")}
                         </tr>
                         {selectedQuant !== "unit" ?
                             <tr style={{ position: "sticky" }}>
@@ -560,6 +564,8 @@ function setInvContent(pinventoryEntries, sortedInventoryItems, totCost, totShop
             const maxh = cobj ? cobj.hoard : 0;
             const costpOrB = cobj.cat === "crop" ? cobj.pcost : cobj.cost;
             const costpOrBtry = cobj.cat === "crop" ? cobj.pcosttry : cobj.costtry;
+            //const costpOrB = cobj.pcost;
+            //const costpOrBtry = cobj.pcosttry;
             var costp = cobj ? !TryChecked ? (costpOrB / dataSet.options.coinsRatio) : (costpOrBtry / dataSet.options.coinsRatio) : 0;
             var pShop = cobj ? ((!TryChecked ? cobj.shop : cobj.shoptry) / dataSet.options.coinsRatio) : 0;
             var time = cobj ? !TryChecked ? cobj.time : cobj.timetry : 0;
@@ -901,36 +907,36 @@ function setInvContent(pinventoryEntries, sortedInventoryItems, totCost, totShop
                             )
                         ) : ("")}
                         {xListeCol[3][1] === 1 ? (<td className="tdcenter" style={{ ...cellStyle, color: `rgb(200, 200, 200)` }}>{time}</td>) : ("")}
-                        {xListeCol[4][1] === 1 ? (<td className="tdcenter" style={cellStyle} onClick={(e) => handleTooltip(item, "costp", costp, e)}>{frmtNb(costp)}{ibuyit ? imgbuyit : null}</td>) : ("")}
+                        {xListeCol[4][1] === 1 ? (<td className="tdcenter tooltipcell" style={cellStyle} onClick={(e) => handleTooltip(item, "costp", costp, e)}>{frmtNb(costp)}{ibuyit ? imgbuyit : null}</td>) : ("")}
                         {xListeCol[5][1] === 1 ? (<td className="tdcenter" style={cellStyle}>{pShop > 0 ? frmtNb(pShop) : ""}</td>) : ("")}
                         {xListeCol[6][1] === 1 ? (<td className="tdcenterbrd" style={cellCoinRatioStyle}>{xcoinsRatio > 0 ? frmtNb(xcoinsRatio) : ""}</td>) : ("")}
-                        {xListeCol[7][1] === 1 ? (<td className={parseFloat(pTrad).toFixed(20) === getMaxValue(pTrad, pNifty, pOS) ? 'tdcentergreen' : 'tdcenterbrd'}
+                        {xListeCol[7][1] === 1 ? (<td className={(parseFloat(pTrad).toFixed(20) === getMaxValue(pTrad, pNifty, pOS) ? 'tdcentergreen' : 'tdcenterbrd') + " tooltipcell"}
                             onClick={(e) => handleTooltip(item, "market", marketDataTooltip, e)} style={cellStyle} title={titleTrad} >{puTrad !== 0 ? frmtNb(pTrad) : ""}{ximgtrd}</td>) : ("")}
                         {xListeCol[18][1] === 1 && xListeCol[6][1] === 1 ? (<td style={{ ...cellStyle, color: colorT, textAlign: 'center', fontSize: '10px' }}
                             onClick={(e) => handleTooltip(item, "coef", coefT, e)}>{pTrad > 0 ? coefT : ""}</td>) : ("")}
-                        {xListeCol[8][1] === 1 ? (<td className="tdcenter" style={{ ...cellStyle, color: `rgb(160, 160, 160)` }}>{parseFloat((iQuant) * 0.7).toFixed(2)}</td>) : ("")}
-                        {xListeCol[11][1] === 1 && xListeCol[14][1] === 1 ? (<td className={prctN > -20 ? 'tdpdiffgrn' : 'tdpdiff'} style={cellStyle}
+                        {xListeCol[8][1] === 1 ? (<td className="quantity" style={{ ...cellStyle }}>{parseFloat((iQuant) * 0.7).toFixed(2)}</td>) : ("")}
+                        {xListeCol[11][1] === 1 && xListeCol[14][1] === 1 ? (<td className={prctN > -20 ? 'tdpdiffgrn tooltipcell' : 'tdpdiff tooltipcell'} style={cellStyle}
                             onClick={(e) => handleTooltip(item, "prct", prctN, e)}>{prctN}{((pTrad > 0) && (pNifty > 0)) ? "%" : ""}</td>) : ("")}
                         {xListeCol[9][1] === 1 ? (<td className={parseFloat(pNifty).toFixed(20) === getMaxValue(pTrad, pNifty, pOS) ? 'tdcentergreen' : 'tdcenterbrd'}
                             style={cellStyle} title={titleNifty}>{puNifty !== 0 ? frmtNb(pNifty) : ""}</td>) : ("")}
-                        {xListeCol[18][1] === 1 && xListeCol[8][1] === 1 ? (<td style={{ ...cellStyle, color: colorN, textAlign: 'center', fontSize: '8px' }}
+                        {xListeCol[18][1] === 1 && xListeCol[8][1] === 1 ? (<td classname="tooltipcell" style={{ ...cellStyle, color: colorN, textAlign: 'center', fontSize: '8px' }}
                             onClick={(e) => handleTooltip(item, "coef", coefT, e)}>{coefN > 0 ? coefN : ""}</td>) : ("")}
-                        {xListeCol[11][1] === 1 && xListeCol[14][1] === 1 ? (<td className={prctO > -20 ? 'tdpdiffgrn' : 'tdpdiff'} style={cellStyle}
+                        {xListeCol[11][1] === 1 && xListeCol[14][1] === 1 ? (<td className={prctO > -20 ? 'tdpdiffgrn tooltipcell' : 'tdpdiff tooltipcell'} style={cellStyle}
                             onClick={(e) => handleTooltip(item, "prct", prctO, e)}>{prctO}{((pTrad > 0) && (pOS > 0)) ? "%" : ""}</td>) : ("")}
                         {xListeCol[10][1] === 1 ? (<td className={parseFloat(pOS).toFixed(20) === getMaxValue(pTrad, pNifty, pOS) ? 'tdcentergreen' : 'tdcenterbrd'}
                             onClick={(event) => handleTradeListClick(inputValue, ido, "OS")} style={cellStyle} title={titleOS}>{puOS !== 0 ? frmtNb(pOS) : ""}</td>) : ("")}
-                        {xListeCol[18][1] === 1 && xListeCol[9][1] === 1 ? (<td style={{ ...cellStyle, color: colorO, textAlign: 'center', fontSize: '8px' }}
+                        {xListeCol[18][1] === 1 && xListeCol[9][1] === 1 ? (<td classname="tooltipcell" style={{ ...cellStyle, color: colorO, textAlign: 'center', fontSize: '8px' }}
                             onClick={(e) => handleTooltip(item, "coef", coefO, e)}>{coefO > 0 ? coefO : ""}</td>) : ("")}
-                        {xListeCol[12][1] === 1 ? (<td className="tdcenter" style={{ ...cellStyle, color: `rgb(255, 234, 204)` }} onClick={(e) => handleTooltip(item, "trynft", "yield", e)}>
+                        {xListeCol[12][1] === 1 ? (<td className="tdcenter tooltipcell" style={{ ...cellStyle, color: `rgb(255, 234, 204)` }} onClick={(e) => handleTooltip(item, "trynft", "yield", e)}>
                             {parseFloat(imyield).toFixed(2)}</td>) : ("")}
-                        {xListeCol[13][1] === 1 ? (<td className="tdcenter" style={{ ...cellStyle, color: `rgb(255, 225, 183)` }} onClick={(e) => handleTooltip(item, "harvest", 0, e)}>
+                        {xListeCol[13][1] === 1 ? (<td className="tdcenter tooltipcell" style={{ ...cellStyle, color: `rgb(255, 225, 183)` }} onClick={(e) => handleTooltip(item, "harvest", 0, e)}>
                             {parseFloat(iharvest).toFixed(2)}</td>) : ("")}
-                        {xListeCol[14][1] === 1 ? (<td className="tdcenter" style={{ ...cellStyle, color: `rgb(253, 215, 162)` }} onClick={(e) => handleTooltip(item, "harvest", i2bharvest, e)}>
+                        {xListeCol[14][1] === 1 ? (<td className="tdcenter tooltipcell" style={{ ...cellStyle, color: `rgb(253, 215, 162)` }} onClick={(e) => handleTooltip(item, "harvest", i2bharvest, e)}>
                             {i2bharvest > 0 ? parseFloat(i2bharvest).toFixed(2) : ""}{bswarm && imgbee}{issick ? imgsick : needslove && imglove}</td>) : ("")}
                         {xListeCol[19][1] === 1 ? (<td id={`timer-${xIndex}`} className="tdcenterbrd" style={cellStyle}>{(i2bharvest > 0 || item === "Honey" ? selectedReady === "when" ?
                             (<span>{formatdate(irdyat)}{' '}{ximgrdy}</span>) : timerElement : "")}</td>) : ("")}
                         {xListeCol[15][1] === 1 ? (<td className="tdcenter" style={{ ...cellStyle, color: `rgb(160, 160, 160)` }}>{BBprod > 0 ? parseFloat(BBprod).toFixed(2) : ""}</td>) : ("")}
-                        {xListeCol[16][1] === 1 ? (<td className="tdcenter" style={{ ...cellStyle, ...cellDSflStyle }}
+                        {xListeCol[16][1] === 1 ? (<td className="tdcenter tooltipcell" style={{ ...cellStyle, ...cellDSflStyle }}
                             title={titleDsfl} onClick={(e) => handleTooltip(item, "dailysfl", costp, e)}>
                             {parseFloat(Dsfl).toFixed(2)}</td>) : ("")}
                         {xListeCol[17][1] === 1 ? (<td className="tdcenter" style={{ ...cellStyle, color: `rgb(160, 160, 160)` }}>{parseFloat(dailyprodmx).toFixed(2)}</td>) : ("")}

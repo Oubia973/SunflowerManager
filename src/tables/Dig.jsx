@@ -78,12 +78,12 @@ export default function DigTable() {
                     {xListeColBounty[3][1] === 1 ? <td className="tdcenter">{qtoday > 0 ? qtoday : ""}</td> : null}
                     {xListeColBounty[4][1] === 1 ? <td className="tdcenter">{valuetoday > 0 ? valuetoday : ""}</td> : null}
                     {xListeColBounty[5][1] === 1 ? <td className="tdcenter">{toolcostToday > 0 ? toolcostToday : ""}</td> : null}
-                    {xListeColBounty[5][1] === 1 ? <td className="tdcenter"
+                    {xListeColBounty[5][1] === 1 ? <td className="tdcenter tooltipcell"
                         onClick={(e) => handleTooltip(element, "ratiodig", dataSetDig, e)}>{ratioCoinsS > 0 ? ratioCoinsS : ""}</td> : null}
                     {xListeColBounty[5][1] === 1 ? <td className="tdcenter">{ptoday > 0 ? ptoday : ""}</td> : null}
                     {xListeColBounty[5][1] === 1 ? <td className="tdcenter">{valueptoday > 0 ? valueptoday : ""}</td> : null}
                     {xListeColBounty[5][1] === 1 ? <td className="tdcenter">{toolcostpToday > 0 ? toolcostpToday : ""}</td> : null}
-                    {xListeColBounty[5][1] === 1 ? <td className="tdcenter"
+                    {xListeColBounty[5][1] === 1 ? <td className="tdcenter tooltipcell"
                         onClick={(e) => handleTooltip(element, "ratiodigp", dataSetDig, e)}>{ratioCoinsPatternS > 0 ? ratioCoinsPatternS : ""}</td> : null}
                 </tr>
             );
@@ -127,12 +127,12 @@ export default function DigTable() {
                     {xListeColBounty[3][1] === 1 ? <td className="tdcenter"></td> : null}
                     {xListeColBounty[4][1] === 1 ? <td className="tdcenter">{parseFloat(vTodayTotal).toFixed(CurDec)}</td> : null}
                     {xListeColBounty[5][1] === 1 ? <td className="tdcenter">{parseFloat(toolcostTodayTotal).toFixed(CurDec)}</td> : null}
-                    {xListeColBounty[5][1] === 1 ? <td className="tdcenter"
+                    {xListeColBounty[5][1] === 1 ? <td className="tdcenter tooltipcell"
                         onClick={(e) => handleTooltip("Total", "ratiodig", dataSetDig, e)}>{parseFloat(ratioTotal).toFixed(0)}</td> : null}
                     {xListeColBounty[3][1] === 1 ? <td className="tdcenter"></td> : null}
                     {xListeColBounty[4][1] === 1 ? <td className="tdcenter">{parseFloat(vTodayPatternTotal).toFixed(CurDec)}</td> : null}
                     {xListeColBounty[5][1] === 1 ? <td className="tdcenter">{parseFloat(toolcostTodayPatternTotal).toFixed(CurDec)}</td> : null}
-                    {xListeColBounty[5][1] === 1 ? <td className="tdcenter"
+                    {xListeColBounty[5][1] === 1 ? <td className="tdcenter tooltipcell"
                         onClick={(e) => handleTooltip("Total", "ratiodigp", dataSetDig, e)}>{parseFloat(ratioPTotal).toFixed(0)}</td> : null}
                 </tr>
             </thead>

@@ -14,10 +14,10 @@ export default function HomeTable() {
             handleHomeClic,
         },
     } = useAppCtx();
+    if (selectedInv !== "home") return;
     if (!dataSetFarm?.itables) return null;
     const { Animals, orderstable } = dataSetFarm;
     const { it } = dataSetFarm.itables;
-    if (selectedInv !== "home") return;
     if (it) {
         try {
             dataSet.forTry = TryChecked;

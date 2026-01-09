@@ -3,21 +3,6 @@ import { useAppCtx } from "../context/AppCtx";
 import { frmtNb } from '../fct.js';
 const imgsfl = <img src="./icon/res/flowertoken.webp" alt="" className="itico" title="Flower" />;
 const imgna = <img src="./icon/nft/na.png" alt="" className="itico" title="" />;
-async function getMarket(dataSetFarm, API_URL) {
-  const farmId = dataSetFarm?.frmid;
-  const userName = dataSetFarm?.username;
-  if (!farmId) return null;
-  const res = await fetch(API_URL + "/getmarket", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ frmid: farmId, username: userName }),
-  });
-  if (!res.ok) {
-    console.log(`Error : ${res.status}`);
-    return null;
-  }
-  return res.json();
-}
 export default function MarketTable() {
   const {
     data: { dataSet, dataSetFarm },
@@ -26,13 +11,36 @@ export default function MarketTable() {
   } = useAppCtx();
   const [market, setMarket] = useState(null);
   const [loading, setLoading] = useState(false);
+  const [marketDate, setMarketDate] = useState(null);
+  const FIFTEEN_MIN = 10 * 60 * 1000;
+  let curID = "";
+  async function getMarket(dataSetFarm, API_URL) {
+    const farmId = dataSetFarm?.frmid;
+    const userName = dataSetFarm?.username;
+    if (!farmId) return null;
+    const res = await fetch(API_URL + "/getmarket", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ frmid: farmId, username: userName }),
+    });
+    if (!res.ok) {
+      console.log(`Error : ${res.status}`);
+      return null;
+    }
+    curID = farmId;
+    return res.json();
+  }
   useEffect(() => {
     let cancelled = false;
     async function run() {
       if (selectedInv !== "market") return;
+      const now = Date.now();
+      const last = marketDate ? new Date(marketDate).getTime() : 0;
+      if (market && (now - last < FIFTEEN_MIN)) return; // && (curID === dataSetFarm?.frmid)) return;
       setLoading(true);
       try {
         const data = await getMarket(dataSetFarm, API_URL);
+        setMarketDate(new Date());
         if (!cancelled) setMarket(data);
       } catch (e) {
         console.log(e);
@@ -107,8 +115,8 @@ function OffersTable({ elements, dataSet, dataSetFarm, xListeColBounty }) {
       icostp2pt > 0
         ? frmtNb(icostp2pt * itemQuant)
         : ipricemsfl > 0
-        ? parseFloat(ipricemsfl * itemQuant).toFixed(0)
-        : "";
+          ? parseFloat(ipricemsfl * itemQuant).toFixed(0)
+          : "";
     const isfl = cobj.sfl || 0;
     const ts = Number(cobj.createdAt);
     const createdDate = Number.isFinite(ts) ? new Date(ts < 1e12 ? ts * 1000 : ts) : null;
@@ -117,11 +125,11 @@ function OffersTable({ elements, dataSet, dataSetFarm, xListeColBounty }) {
       <tr key={k}>
         <td id="iccolumn">{ico}</td>
         {xListeColBounty?.[0]?.[1] === 1 ? <td className="tditem">{itemName}</td> : null}
-        {xListeColBounty?.[1]?.[1] === 1 ? <td className="tdcenter">{itemQuant}</td> : null}
+        {xListeColBounty?.[1]?.[1] === 1 ? <td className="quantity">{itemQuant}</td> : null}
         {xListeColBounty?.[1]?.[1] === 1 ? <td className="tdcenter">{isfl}</td> : null}
         {xListeColBounty?.[5]?.[1] === 1 ? <td className="tdcenter">{icostm}</td> : null}
         {xListeColBounty?.[4]?.[1] === 1 ? <td className="tdcenter">{parseFloat(icost).toFixed(3)}</td> : null}
-        {xListeColBounty?.[5]?.[1] === 1 ? <td className="tdcenter">{icreatedAt}</td> : null}
+        {xListeColBounty?.[5]?.[1] === 1 ? <td className="date">{icreatedAt}</td> : null}
       </tr>
     );
   });
@@ -202,7 +210,7 @@ function TradesTable({ elements, dataSet, dataSetFarm, xListeColBounty }) {
     const iQuant = cobj.quantity || 0;
     const iType = cobj.source || "?";
     const icost = frmtNb(((itemObj.cost || 0) * iQuant) / (dataSet?.options?.coinsRatio || 1));
-    const icostm = itemObj.costp2pt || 0;
+    const icostm = (itemObj.costp2pt || 0) * iQuant;
     const isfl = cobj.sfl || 0;
     const ts = Number(cobj.fulfilledAt);
     const createdDate = Number.isFinite(ts) ? new Date(ts < 1e12 ? ts * 1000 : ts) : null;
@@ -216,11 +224,11 @@ function TradesTable({ elements, dataSet, dataSetFarm, xListeColBounty }) {
         {xListeColBounty?.[0]?.[1] === 1 ? <td className="tdcenter">{iType}</td> : null}
         <td id="iccolumn">{ico}</td>
         {xListeColBounty?.[0]?.[1] === 1 ? <td className="tditem">{itemName}</td> : null}
-        {xListeColBounty?.[0]?.[1] === 1 ? <td className="tdcenter">{iQuant}</td> : null}
+        {xListeColBounty?.[0]?.[1] === 1 ? <td className="quantity">{iQuant}</td> : null}
         {xListeColBounty?.[1]?.[1] === 1 ? <td className="tdcenter">{isfl}</td> : null}
         {xListeColBounty?.[4]?.[1] === 1 ? <td className="tdcenter">{icostm ? frmtNb(icostm) : ""}</td> : null}
         {xListeColBounty?.[4]?.[1] === 1 ? <td className="tdcenter">{icost}</td> : null}
-        {xListeColBounty?.[5]?.[1] === 1 ? <td className="tdcenter">{icreatedAt}</td> : null}
+        {xListeColBounty?.[5]?.[1] === 1 ? <td className="date">{icreatedAt}</td> : null}
       </tr>
     );
   });

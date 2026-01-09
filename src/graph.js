@@ -62,7 +62,17 @@ function Graph({ data, vals, dataSetFarm }) {
           }
           if (vals === "supply") {
             logarithmicScale = false;
-            if (entry.supply > 0) { unitValue = frmtNb(entry.supply / Math.pow(10, 18)) };
+            //if (entry.supply > 0) { unitValue = frmtNb(entry.supply / Math.pow(10, 18)) };
+            if (entry.supply) {
+              //const parsFloatNumber = Math.floor(entry.supply * 1000000000) / 1000000000;
+              //const toStringNumber = parsFloatNumber.toString();
+              //const formattedNumber = toStringNumber.replace(/\B(?=(\d{3})+(?!\d))/g, " ");
+              //const formattedNumber = entry.supply.toLocaleString();
+              const formattedNumber = parseFloat(entry.supply).toFixed(2);
+              const corrNumber = formattedNumber > 1000000000000 ?
+                Math.round(Number(formattedNumber) / Math.pow(10, 18)) : Number(formattedNumber);
+              unitValue = corrNumber;
+            };
           }
           if (vals === "ntrade") {
             logarithmicScale = false;
@@ -154,7 +164,11 @@ function Graph({ data, vals, dataSetFarm }) {
                 label: (context) => {
                   const datasetLabel = context.dataset.label;
                   const value = context.parsed.y;
-                  return `${datasetLabel}: ${value}`;
+                  //return `${datasetLabel}: ${value}`;
+                  const formattedNumber = parseFloat(value).toFixed(2);
+                  const corrNumber = formattedNumber > 1000000000000 ?
+                    Math.round(Number(formattedNumber) / Math.pow(10, 18)) : Number(formattedNumber);
+                  return `${datasetLabel}: ${corrNumber.toLocaleString()}`;
                 },
               },
             },

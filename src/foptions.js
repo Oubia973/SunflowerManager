@@ -12,11 +12,11 @@ function ModalOptions({ onClose, dataSet, onOptionChange, API_URL }) {
     const [isOpen, setIsOpen] = useState(false);
     const [justOpened, setJustOpened] = useState(true);
     const [tradeTax, setTradeTax] = useState(dataSet.tradeTax || "");
-    const [gemRatio, setGemRatio] = useState(dataSet.gemsRatio || "");
+    //const [gemRatio, setGemRatio] = useState(dataSet.gemsRatio || "");
     //const [pos, setPos] = useState({ x: clickPosition.x, y: clickPosition.y });
     //const [inputFarmTime, setInputFarmTime] = useState(dataSet.inputFarmTime);
     //const [inputMaxBB, setInputMaxBB] = useState(dataSet.inputFarmTime);
-    const windowRef = useRef(null);
+    //const windowRef = useRef(null);
     /* let centerX, centerY = 0
     if (windowRef.current) {
         const rect = windowRef.current.getBoundingClientRect();
@@ -33,7 +33,12 @@ function ModalOptions({ onClose, dataSet, onOptionChange, API_URL }) {
         }
         return { x: e.clientX, y: e.clientY };
     };
+    const isInteractive = (target) =>
+        !!target.closest(
+            'input, textarea, select, button, a, label, [role="button"], .MuiInputBase-root, .MuiButtonBase-root'
+        );
     const handleMouseDown = (e) => {
+        if (isInteractive(e.target)) return;
         const { x, y } = getClientPos(e);
         setDragging(true);
         offset.current = { x: x - pos.x, y: y - pos.y };
@@ -188,7 +193,11 @@ function ModalOptions({ onClose, dataSet, onOptionChange, API_URL }) {
                     <input type="checkbox" onChange={onOptionChange} checked={!!dataSet.showRestockCost || 0}
                         name={"showRestockCost"} style={{ width: "18px", height: "18px", marginRight: 6 }} />show in tooltip</div>
                 <div><input type="checkbox" onChange={onOptionChange} checked={!!dataSet.restockCostDaily || 0}
-                    name={"restockCostDaily"} style={{ width: "18px", height: "18px", marginRight: 12 }} />Restock in daily numbers</div>
+                    name={"restockCostDaily"} style={{ width: "18px", height: "18px", marginRight: 12 }} />Restock counted in daily</div>
+                {dataSet.isAbo ? (<>
+                    <div><input type="checkbox" onChange={onOptionChange} checked={!!dataSet.averageDailyCycles || 0}
+                        name={"averageDailyCycles"} style={{ width: "18px", height: "18px", marginRight: 12 }} />Daily cycles average for more than 24h</div>
+                </>) : null}
                 <div><input type="number" onChange={onOptionChange} value={dataSet.coinsRatio || 1000}
                     name={"CoinsRatio"} style={{ textAlign: "left", width: "45px" }} />Coins{imgcoins}/{imgsfl}Flower
                     <input type="checkbox" onChange={onOptionChange} checked={!!dataSet.autoCoinRatio || 0}
@@ -286,7 +295,7 @@ function ModalOptions({ onClose, dataSet, onOptionChange, API_URL }) {
                 <div><input type="checkbox" onChange={onOptionChange} checked={!!dataSet.oilFood}
                     name={"oilFood"} style={{ width: "18px", height: "18px", marginRight: 12 }} />use Oil for foods</div>
                 <div><input type="checkbox" onChange={onOptionChange} checked={!!dataSet.toolsBurn}
-                    name={"toolsBurn"} style={{ width: "18px", height: "18px", marginRight: 12 }} />Ressources burned by tools in daily numbers</div>
+                    name={"toolsBurn"} style={{ width: "18px", height: "18px", marginRight: 12 }} />Ressources burned by tools in daily</div>
                 <div><input type="checkbox" onChange={onOptionChange} checked={!!dataSet.usePriceFood}
                     name={"usePriceFood"} style={{ width: "18px", height: "18px", marginRight: 12 }} />Use cheaper food for animals</div>
                 <div><input type="checkbox" onChange={onOptionChange} checked={!!dataSet.mergeAniProd}
@@ -300,9 +309,9 @@ function ModalOptions({ onClose, dataSet, onOptionChange, API_URL }) {
                     <div>if you liked this tool you can give me a coffee here : </div>
                     <div><a id="copy-link" href="#" onClick={(event) => handleDonClick("0xAc3c7f9f1f8492Cc10A4fdb8C738DD82013d61dA", event.target)} title="Clic to copy">
                         0xAc3c7f9f1f8492Cc10A4fdb8C738DD82013d61dA</a></div>
-                    <div>and you can help my farm here 
+                    <div>and you can help my farm here :
                         <a id="visit-link" href="https://sunflower-land.com/play/#/visit/1972" title="Clic to visit my farm" target="_blank" rel="noopener noreferrer">
-                            : 1972</a></div>
+                            : Oubia</a></div>
                 </div>
             </div>
         </div>

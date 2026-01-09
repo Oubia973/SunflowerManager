@@ -51,7 +51,7 @@ export default function CraftTable() {
                     {xListeColBounty[0][1] === 1 ? <td className="tditem">{itemName}</td> : null}
                     {xListeColBounty[1][1] === 1 ? <td className="tdcenter">{stock}</td> : null}
                     {xListeColBounty[2][1] === 1 ? <td className="tdcenter">{itime}</td> : null}
-                    {xListeColBounty[3][1] === 1 ? <td className="tdcenter"
+                    {xListeColBounty[3][1] === 1 ? <td className="tdcenter tooltipcell"
                         onClick={(e) => handleTooltip(itemName, "craftcompo", 0, e)}>{icompoimg}</td> : null}
                     {xListeColBounty[4][1] === 1 ? <td className="tdcenter">{parseFloat(icost).toFixed(3)}</td> : null}
                     {xListeColBounty[5][1] === 1 ? <td className="tdcenter">{parseFloat(icostm).toFixed(3)}</td> : null}

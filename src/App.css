@@ -791,6 +791,28 @@ input[type="checkbox"].checkbox-disabled:checked {
   background-color: #1d1d1d;
 }
 
+.tooltipcell {
+  cursor: help;
+  color: rgba(255, 255, 255, 0.82);
+  transition:
+    background-color 0.15s ease,
+    color 0.15s ease,
+    letter-spacing 0.15s ease;
+
+  -webkit-tap-highlight-color: transparent;
+}
+@media (hover: hover) and (pointer: fine) {
+  .tooltipcell:hover {
+    background-color: rgba(255, 255, 255, 0.205);
+    color: rgba(255, 255, 255, 0.95);
+    letter-spacing: 0.02em;
+  }
+}
+.tooltipcell:active {
+  background-color: rgba(255, 255, 255, 0.205);
+  color: rgba(255, 255, 255, 1);
+}
+
 body.no-select, body.no-select * {
   user-select: none;
   -webkit-user-select: none;
@@ -910,6 +932,26 @@ th {
   overflow: hidden;
   text-overflow: clip;
   padding-right: 3px;
+}
+
+.date {
+  position: relative;
+  text-align: center;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: clip;
+  padding-right: 3px;
+  color: rgb(119, 119, 119);
+}
+
+.quantity {
+  position: relative;
+  text-align: center;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: clip;
+  padding-right: 3px;
+  color: rgb(160, 160, 160);
 }
 
 .tdcenterbrd {

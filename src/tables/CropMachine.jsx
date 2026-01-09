@@ -137,13 +137,13 @@ export default function CropMachineTable() {
                             </Select></FormControl></div></th> : null}
                     {/* {xListeColBounty[2][1] === 1 ? <th className="thcenter">nHarvst</th> : null} */}
                     {xListeColBounty[1][1] === 1 ? <th className="thcenter">Harvest <div>Average</div></th> : null}
-                    {xListeColBounty[3][1] === 1 ? <th className="thcenter">Cost</th> : null}
+                    {xListeColBounty[3][1] === 1 ? <th className="thcenter"><div style={{ fontSize: "11px" }}>Harvest</div>Cost</th> : null}
                     {xListeColBounty[4][1] === 1 ? <th className="thcenter">Oil {imgoil}</th> : null}
-                    {xListeColBounty[5][1] === 1 ? <th className="thcenter">Cost</th> : null}
-                    {xListeColBounty[5][1] === 1 ? <th className="thcenter">Prod {imgSfl}</th> : null}
+                    {xListeColBounty[5][1] === 1 ? <th className="thcenter"><div style={{ fontSize: "11px" }}>Oil</div>Cost</th> : null}
+                    {xListeColBounty[5][1] === 1 ? <th className="thcenter"><div style={{ fontSize: "11px" }}>Total</div>Cost</th> : null}
                     {xListeColBounty[5][1] === 1 ? <th className="thcenter">{imgExchng}</th> : null}
                     {xListeColBounty[5][1] === 1 ? <th className="thcenter">Profit {imgSfl}</th> : null}
-                </tr><tr style={{ height: "20px" }}>
+                </tr><tr style={{ height: "25px" }}>
                     <td></td>
                     {xListeColBounty[0][1] === 1 ? <td className="thcenter"> </td> : null}
                     {xListeColBounty[0][1] === 2 ? <td className="thcenter"> </td> : null}
@@ -159,7 +159,6 @@ export default function CropMachineTable() {
                 </tr>
             </thead>
         );
-
         const table = (
             <>
                 <table className="table" style={{ borderCollapse: "separate", borderSpacing: "6px 0" }}>
@@ -170,7 +169,6 @@ export default function CropMachineTable() {
                 </table>
             </>
         );
-
         return (table);
     }
 }
