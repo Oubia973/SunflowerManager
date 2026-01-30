@@ -1,6 +1,6 @@
 import { useAppCtx } from "../context/AppCtx";
 import { FormControl, InputLabel, Select, MenuItem } from '@mui/material';
-import { frmtNb, convtimenbr, convTime, ColorValue, Timer } from '../fct.js';
+import { frmtNb, convtimenbr, convTime, ColorValue, ColorValueP, Timer, PBar, timeToDays } from '../fct.js';
 import CounterInput from "../counterinput.js";
 
 var xBurning = [];
@@ -14,6 +14,7 @@ export default function InvTable() {
             selectedQuantity,
             selectedQuant,
             selectedSeason,
+            selectedPChange,
             selectedReady,
             TryChecked,
             CostChecked,
@@ -337,7 +338,7 @@ export default function InvTable() {
                                         <MenuItem value="custom">Custom</MenuItem>
                                     </Select></FormControl></div>
                             </th>) : ("")}
-                            {xListeCol[3][1] === 1 ? (<th className="thcenter">{selectedQuantity === "daily" ? (<div><div>Time</div><div>{totTime}</div></div>) : ("Time")}</th>) : ("")}
+                            {xListeCol[3][1] === 1 ? (<th className="thcenter">{selectedQuantity === "daily" ? (<div><div>Time</div><div>{(totTime)}</div></div>) : ("Time")}</th>) : ("")}
                             {xListeCol[4][1] === 1 ? (<th className="thcenter tooltipcell" onClick={(e) => handleTooltip("cost", "th", "", e)}>
                                 <div className="selectquantback"><FormControl variant="standard" id="formselectquant" className="selectquant" size="small">
                                     <InputLabel>Cost</InputLabel>
@@ -361,6 +362,14 @@ export default function InvTable() {
                             {xListeCol[11][1] === 1 && xListeCol[14][1] === 1 ? (<th className="thcenter tooltipcell" onClick={(e) => handleTooltip("diff", "th", "", e)}>Diff</th>) : ("")}
                             {xListeCol[10][1] === 1 ? (<th className="thos" onClick={() => handleOSClick()}><div className="overlay-os"></div> </th>) : ("")}
                             {xListeCol[18][1] === 1 && xListeCol[9][1] === 1 ? (<th className="thcenter tooltipcell" onClick={(e) => handleTooltip("coef", "th", "", e)}>Coef</th>) : ("")}
+                            <th className="thcenter"><div className="selectseasonback"><FormControl variant="standard" id="formselectquant" className="selectseason" size="small">
+                                <InputLabel style={{ fontSize: `12px` }}>Chng%</InputLabel>
+                                <Select name={"selectedPChange"} value={selectedPChange} onChange={handleUIChange} onClick={(e) => e.stopPropagation()}>
+                                    <MenuItem value="24h">24h</MenuItem>
+                                    <MenuItem value="3d">3d</MenuItem>
+                                    <MenuItem value="7d">7d</MenuItem>
+                                    <MenuItem value="30d">30d</MenuItem>
+                                </Select></FormControl></div></th>
                             {xListeCol[12][1] === 1 ? (<th className="thcenter tooltipcell" onClick={(e) => handleTooltip("yield", "th", "", e)}>Yield</th>) : ("")}
                             {xListeCol[13][1] === 1 ? (<th className="thcenter tooltipcell" onClick={(e) => handleTooltip("harvest", "th", "", e)}>Harvest<div style={{ fontSize: "10px" }}>average</div></th>) : ("")}
                             {xListeCol[14][1] === 1 ? (<th className="thcenter tooltipcell" onClick={(e) => handleTooltip("toharvest", "th", "", e)}>ToHarvest<div style={{ fontSize: "10px" }}>growing</div></th>) : ("")}
@@ -460,6 +469,7 @@ function setInvContent(pinventoryEntries, sortedInventoryItems, totCost, totShop
             selectedReady,
             selectedDsfl,
             selectedSeason,
+            selectedPChange,
             xListeCol,
             CostChecked,
             TryChecked,
@@ -506,6 +516,8 @@ function setInvContent(pinventoryEntries, sortedInventoryItems, totCost, totShop
     const imglove = <img src="./icon/ui/expression_love.png" alt={''} className="nodico" title="Needs love" style={{ width: '15px', height: '15px' }} />;
     const imgsick = <img src="./icon/ui/happiness_03.png" alt={''} className="nodico" title="Sick" style={{ width: '15px', height: '15px' }} />;
     const imgfullmoon = <img src="./icon/ui/full_moon.png" alt={''} className="seasonico" title="Full Moon" />;
+    const imgPPriceChng = <img src="./icon/ui/priceup.png" alt={''} title="UP" style={{ width: '10px', height: '10px' }} />;
+    const imgNPriceChng = <img src="./icon/ui/pricedown.png" alt={''} title="DOWN" style={{ width: '10px', height: '10px' }} />;
     let maxCoinRatio = 0;
     let indexCoinRatio = 0;
     let iR = 0;
@@ -552,9 +564,11 @@ function setInvContent(pinventoryEntries, sortedInventoryItems, totCost, totShop
                 }
                 if (xSeasonImg[i] === "FullMoon") {
                     xSeasonImg[i] = imgfullmoon;
+                    isOnSeason = true;
                 }
+                if (!icoseason) { isOnSeason = true; }
             }
-            if (selectedSeason !== "all" && !isOnSeason && item !== "Wheat") {
+            if (selectedSeason !== "all" && !isOnSeason) {
                 return null;
             }
             const ido = cobj ? cobj.id : 0;
@@ -564,11 +578,14 @@ function setInvContent(pinventoryEntries, sortedInventoryItems, totCost, totShop
             const maxh = cobj ? cobj.hoard : 0;
             const costpOrB = cobj.cat === "crop" ? cobj.pcost : cobj.cost;
             const costpOrBtry = cobj.cat === "crop" ? cobj.pcosttry : cobj.costtry;
+            const priceChange = cobj?.["cost" + selectedPChange] ?? null;
+            const imgpriceChange = !priceChange ? "" : (priceChange > 0 ? imgPPriceChng : imgNPriceChng);
+            const txtpriceChange = !priceChange ? "" : Math.abs(priceChange);
             //const costpOrB = cobj.pcost;
             //const costpOrBtry = cobj.pcosttry;
             var costp = cobj ? !TryChecked ? (costpOrB / dataSet.options.coinsRatio) : (costpOrBtry / dataSet.options.coinsRatio) : 0;
             var pShop = cobj ? ((!TryChecked ? cobj.shop : cobj.shoptry) / dataSet.options.coinsRatio) : 0;
-            var time = cobj ? !TryChecked ? cobj.time : cobj.timetry : 0;
+            var time = cobj ? (!TryChecked ? cobj.time : cobj.timetry) : 0;
             const timmenbr = convtimenbr(time);
             const imyield = cobj ? !TryChecked ? cobj.myield : cobj.myieldtry : 0;
             const iharvest = cobj ? !TryChecked ? cobj.harvest : cobj.harvesttry : 0;
@@ -782,6 +799,7 @@ function setInvContent(pinventoryEntries, sortedInventoryItems, totCost, totShop
             const colorT = ColorValue(pTCoef);
             const colorN = ColorValue(coefN);
             const colorO = ColorValue(coefO);
+            const colorPChange = ColorValueP(priceChange, 50);
             const prctN = ((pTrad > 0) && (pNifty > 0)) ? parseFloat(((pNifty - pTrad) / pTrad) * 100).toFixed(0) : "";
             const prctO = ((pTrad > 0) && (pOS > 0)) ? parseFloat(((pOS - pTrad) / pTrad) * 100).toFixed(0) : "";
             //const BBsfl = (getMaxValue(puTrad, puNifty, puOS)) * BBprod;
@@ -850,7 +868,8 @@ function setInvContent(pinventoryEntries, sortedInventoryItems, totCost, totShop
                 <>
                     <tr key={xIndex}>
                         {xListeCol[0][1] === 1 ? (<td style={cellStyle}>
-                            {maxh > 0 && (
+                            {PBar(quantity, previousQuantity, maxh, 0)}
+                            {/* {maxh > 0 && (
                                 <div className={`progress-bar ${isNegativeDifference ? 'negative' : ''}`}>
                                     <div className="progress" style={{ width: `${hoardPercentage}%` }}>
                                         <span className="progress-text">
@@ -858,7 +877,7 @@ function setInvContent(pinventoryEntries, sortedInventoryItems, totCost, totShop
                                         </span>
                                     </div>
                                 </div>
-                            )}
+                            )} */}
                         </td>) : ("")}
                         <td id="iccolumn" style={cellStyle}><i><img src={ico} alt={''} className="itico" /></i></td>
                         <td style={cellStyle}>
@@ -906,7 +925,7 @@ function setInvContent(pinventoryEntries, sortedInventoryItems, totCost, totShop
                                 </td>
                             )
                         ) : ("")}
-                        {xListeCol[3][1] === 1 ? (<td className="tdcenter" style={{ ...cellStyle, color: `rgb(200, 200, 200)` }}>{time}</td>) : ("")}
+                        {xListeCol[3][1] === 1 ? (<td className="tdcenter" style={{ ...cellStyle, color: `rgb(200, 200, 200)` }}>{timeToDays(time)}</td>) : ("")}
                         {xListeCol[4][1] === 1 ? (<td className="tdcenter tooltipcell" style={cellStyle} onClick={(e) => handleTooltip(item, "costp", costp, e)}>{frmtNb(costp)}{ibuyit ? imgbuyit : null}</td>) : ("")}
                         {xListeCol[5][1] === 1 ? (<td className="tdcenter" style={cellStyle}>{pShop > 0 ? frmtNb(pShop) : ""}</td>) : ("")}
                         {xListeCol[6][1] === 1 ? (<td className="tdcenterbrd" style={cellCoinRatioStyle}>{xcoinsRatio > 0 ? frmtNb(xcoinsRatio) : ""}</td>) : ("")}
@@ -927,6 +946,7 @@ function setInvContent(pinventoryEntries, sortedInventoryItems, totCost, totShop
                             onClick={(event) => handleTradeListClick(inputValue, ido, "OS")} style={cellStyle} title={titleOS}>{puOS !== 0 ? frmtNb(pOS) : ""}</td>) : ("")}
                         {xListeCol[18][1] === 1 && xListeCol[9][1] === 1 ? (<td classname="tooltipcell" style={{ ...cellStyle, color: colorO, textAlign: 'center', fontSize: '8px' }}
                             onClick={(e) => handleTooltip(item, "coef", coefO, e)}>{coefO > 0 ? coefO : ""}</td>) : ("")}
+                        {xListeCol[3][1] === 1 ? (<td style={{ ...cellStyle, fontSize: "11px", color: colorPChange }}>{imgpriceChange}{txtpriceChange}</td>) : ("")}
                         {xListeCol[12][1] === 1 ? (<td className="tdcenter tooltipcell" style={{ ...cellStyle, color: `rgb(255, 234, 204)` }} onClick={(e) => handleTooltip(item, "trynft", "yield", e)}>
                             {parseFloat(imyield).toFixed(2)}</td>) : ("")}
                         {xListeCol[13][1] === 1 ? (<td className="tdcenter tooltipcell" style={{ ...cellStyle, color: `rgb(255, 225, 183)` }} onClick={(e) => handleTooltip(item, "harvest", 0, e)}>

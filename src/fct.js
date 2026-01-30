@@ -2,7 +2,7 @@ import React, { useEffect, useState, useRef } from 'react';
 
 const imgrdy = './icon/ui/expression_alerted.png';
 
-export function frmtNb(nombre) {
+export function frmtNb(nombre, decimal=2) {
   const nombreNumerique = parseFloat(nombre);
   var nombreStr = nombreNumerique.toString();
   const positionE = nombreStr.indexOf("e");
@@ -22,12 +22,12 @@ export function frmtNb(nombre) {
         break;
       }
     }
-    if (chiffreSupZero === null) { return nombreNumerique.toFixed(2) }
+    if (chiffreSupZero === null) { return nombreNumerique.toFixed(decimal) }
     if (Math.abs(Math.floor(nombre)) > 0) {
       if (Math.abs(Math.floor(nombre)) < 5) {
         return nombreNumerique.toFixed(3);
       } else {
-        return nombreNumerique.toFixed(2);
+        return nombreNumerique.toFixed(decimal);
       }
     } else {
       return nombreStr.slice(0, chiffreSupZero + 3);
@@ -103,7 +103,26 @@ export function formatUpdated(unixTime) {
     (remMinutes ? ` ${remMinutes} min` : "") +
     " ago";
 }
-
+export function timeToDays(time) {
+  if(!time) return;
+  const parts = time.split(":").map(Number);
+  const pad = (n) => String(n).padStart(2, "0");
+  if (parts.length === 4) {
+    const [d, h, m, s] = parts;
+    return d > 0
+      ? `${d}d ${pad(h)}:${pad(m)}:${pad(s)}`
+      : `${pad(h)}:${pad(m)}:${pad(s)}`;
+  }
+  if (parts.length === 3) {
+    const [h, m, s] = parts;
+    const d = Math.floor(h / 24);
+    const hh = h % 24;
+    return d > 0
+      ? `${d}d ${pad(hh)}:${pad(m)}:${pad(s)}`
+      : `${pad(hh)}:${pad(m)}:${pad(s)}`;
+  }
+  return time;
+}
 export function ColorValue(value, minValue = 1, maxValue = 10) {
   if (value <= minValue) {
     return "red";
@@ -124,6 +143,21 @@ export function ColorValue(value, minValue = 1, maxValue = 10) {
   const blue = 0;
   return `rgb(${red}, ${green}, ${blue})`;
 }
+export function ColorValueP(value, maxAbs = 50) {
+  if (!Number.isFinite(value)) return "rgb(255,255,0)";
+  const v = Math.max(-maxAbs, Math.min(maxAbs, value));
+  const n = v / maxAbs;
+  let r, g;
+  if (n >= 0) {
+    r = Math.round(255 * (1 - n));
+    g = 255;
+  } else {
+    r = 255;
+    g = Math.round(255 * (1 + n));
+  }
+  return `rgb(${r}, ${g}, 0)`;
+}
+
 
 export function Timer({ timestamp, index, onTimerFinish }) {
   const [timeLeft, setTimeLeft] = useState(timestamp - Date.now());
@@ -202,7 +236,62 @@ export function filterTryit(dataSet, toArray) {
   }
 }
 
-export function getMaxValue (value1, value2, value3) {
+export function getMaxValue(value1, value2, value3) {
   const positiveValues = [parseFloat(value1).toFixed(20), parseFloat(value2).toFixed(20), parseFloat(value3).toFixed(20)].filter(value => value > 0);
   return positiveValues.length > 0 ? parseFloat(Math.max(...positiveValues)).toFixed(20).toString() : null;
 };
+
+export function PBar(val, pval, max, left, width = 60) {
+  const maxh = max;
+  const maxTxt = formatKNumber(maxh);
+  const previousQuantity = Math.ceil(pval);
+  const Quantity = Math.ceil(val) || 0;
+  const harvestLeft = left || 0;
+  const harvestLeftTxt = formatKNumber(harvestLeft);
+  const difference = Quantity - previousQuantity;
+  const differenceTxt = formatKNumber(difference);
+  const absDifference = (difference);
+  const isNegativeDifference = difference < 0;
+  const progressPct = Math.max(
+    0,
+    Math.floor((absDifference / maxh) * 100)
+  );
+  const harvestPct = Math.max(
+    0,
+    Math.floor((harvestLeft / maxh) * 100)
+  );
+  const safeHarvestPct = Math.min(harvestPct, 100 - progressPct) || 0;
+  return (
+    <div className={`progress-barb ${isNegativeDifference ? 'negative' : ''}`} style={{ width }}>
+      <div
+        className="progress"
+        style={{ width: `${progressPct}%` }}
+      >
+        <span className="progress-text">
+          {isNegativeDifference
+            ? differenceTxt
+            : `${differenceTxt}${harvestLeft ? ("+" + harvestLeftTxt) : ""}/${maxTxt}`}
+        </span>
+      </div>
+      {safeHarvestPct > 0 && (
+        <div
+          className="progress-harvest"
+          style={{ width: `${safeHarvestPct}%` }}
+        >
+          {/* <span className="progress-text">
+            {frmtNb(harvestLeft)}
+          </span> */}
+        </div>
+      )}
+    </div>
+  );
+}
+export function formatKNumber(n) {
+  if (n >= 1_000_000) {
+    return (n / 1_000_000).toFixed(3).replace(/\.?0+$/, "") + "m";
+  }
+  if (n >= 1_000) {
+    return (n / 1_000).toFixed(1).replace(/\.0$/, "") + "k";
+  }
+  return String(n);
+}

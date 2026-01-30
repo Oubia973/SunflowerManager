@@ -194,10 +194,8 @@ function ModalOptions({ onClose, dataSet, onOptionChange, API_URL }) {
                         name={"showRestockCost"} style={{ width: "18px", height: "18px", marginRight: 6 }} />show in tooltip</div>
                 <div><input type="checkbox" onChange={onOptionChange} checked={!!dataSet.restockCostDaily || 0}
                     name={"restockCostDaily"} style={{ width: "18px", height: "18px", marginRight: 12 }} />Restock counted in daily</div>
-                {dataSet.isAbo ? (<>
-                    <div><input type="checkbox" onChange={onOptionChange} checked={!!dataSet.averageDailyCycles || 0}
-                        name={"averageDailyCycles"} style={{ width: "18px", height: "18px", marginRight: 12 }} />Daily cycles average for more than 24h</div>
-                </>) : null}
+                <div><input type="checkbox" onChange={onOptionChange} checked={!!dataSet.averageDailyCycles || 0}
+                    name={"averageDailyCycles"} style={{ width: "18px", height: "18px", marginRight: 12 }} />Daily cycles average when more than 24h</div>
                 <div><input type="number" onChange={onOptionChange} value={dataSet.coinsRatio || 1000}
                     name={"CoinsRatio"} style={{ textAlign: "left", width: "45px" }} />Coins{imgcoins}/{imgsfl}Flower
                     <input type="checkbox" onChange={onOptionChange} checked={!!dataSet.autoCoinRatio || 0}

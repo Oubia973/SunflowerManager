@@ -2,6 +2,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import { Chart, registerables } from 'chart.js';
 import 'chartjs-adapter-date-fns';
 import { format, parseISO } from 'date-fns';
+//import { frmtNb } from './fct.js';
 
 Chart.register(...registerables);
 const idName = {};
@@ -58,7 +59,9 @@ function Graph({ data, vals, dataSetFarm }) {
           let unitValue;
           if (vals === "price") {
             logarithmicScale = true;
-            unitValue = frmtNb(entry.unit);
+            //unitValue = frmtNb(entry.unit);
+
+            unitValue = Number(entry.unit);
           }
           if (vals === "supply") {
             logarithmicScale = false;
@@ -116,6 +119,9 @@ function Graph({ data, vals, dataSetFarm }) {
             },
             y: {
               type: logarithmicScale ? 'logarithmic' : 'linear',
+              ticks: {
+                callback: (v) => frmtNb(v),
+              },
               title: {
                 display: false,
                 text: 'Price',
@@ -165,10 +171,16 @@ function Graph({ data, vals, dataSetFarm }) {
                   const datasetLabel = context.dataset.label;
                   const value = context.parsed.y;
                   //return `${datasetLabel}: ${value}`;
-                  const formattedNumber = parseFloat(value).toFixed(2);
-                  const corrNumber = formattedNumber > 1000000000000 ?
-                    Math.round(Number(formattedNumber) / Math.pow(10, 18)) : Number(formattedNumber);
-                  return `${datasetLabel}: ${corrNumber.toLocaleString()}`;
+                  //const formattedNumber = parseFloat(value).toFixed(2);
+                  if (vals === "price") {
+                    return `${datasetLabel}: ${frmtNb(value)}`;
+                  } else if (vals === "supply") {
+                    const formattedNumber = value;
+                    const corrNumber = formattedNumber > 1000000000000 ?
+                      Math.round(Number(formattedNumber) / Math.pow(10, 18)) : Number(formattedNumber);
+                    return `${datasetLabel}: ${corrNumber.toLocaleString()}`;
+                  }
+                  //return `${datasetLabel}: ${frmtNb(value)}`;
                 },
               },
             },

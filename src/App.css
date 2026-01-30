@@ -467,21 +467,29 @@ input[type="checkbox"].checkbox-disabled:checked {
   color: #ff7474;
 }
 
-.progress-bar {
-  width: 50px;
+.progress-barb {
+  width: 60px;
   height: 10px;
-  background-color: #fcfcfc;
+  background-color: #f0f0f0;
   border-radius: 5px;
   overflow: hidden;
   position: relative;
+  display: flex;
 }
 
 .progress {
   height: 100%;
   background-color: #00aaff;
+  flex: 0 0 auto;
 }
 
-.negative .progress {
+.progress-harvest {
+  height: 100%;
+  background: #f59e0b;
+  flex: 0 0 auto;
+}
+
+.negative {
   background-color: #b4a9a9;
 }
 
@@ -492,15 +500,8 @@ input[type="checkbox"].checkbox-disabled:checked {
   top: 50%;
   left: 50%;
   transform: translate(-50%, -50%);
-}
-
-.progress-barb {
-  width: 60px;
-  height: 10px;
-  background-color: #f0f0f0;
-  border-radius: 5px;
-  overflow: hidden;
-  position: relative;
+  pointer-events: none;
+  white-space: nowrap;
 }
 
 .home-container {
@@ -518,6 +519,26 @@ input[type="checkbox"].checkbox-disabled:checked {
   border-radius: 8px;
   color: white;
   text-align: center;
+}
+
+.home-left-panel-image-wrap {
+  position: relative;
+}
+
+.bumpkin-refresh-btn {
+  position: absolute;
+  top: 1px;
+  right: 1px;
+  z-index: 1;
+  width: 19px;
+  height: 19px;
+  min-width: 19px;
+  min-height: 19px;
+}
+
+.bumpkin-refresh-btn img {
+  width: 10px;
+  height: 10px;
 }
 
 .home-left-panel-text p {

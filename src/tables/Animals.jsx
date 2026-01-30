@@ -1,7 +1,7 @@
 import React from "react";
 import { useAppCtx } from "../context/AppCtx";
 import { FormControl, InputLabel, Select, MenuItem } from '@mui/material';
-import { frmtNb, ColorValue } from '../fct.js';
+import { frmtNb, ColorValue, PBar } from '../fct.js';
 
 export default function AnimalTable() {
     const {
@@ -146,13 +146,14 @@ export default function AnimalTable() {
                     <tr style={{ ...cellStyle }}>
                         {/* <td id="iccolumn"></td> */}
                         {xListeColAnimals[0][1] === 1 ? <td className="tdcenter">
-                            <div className={`progress-bar`}>
+                            {PBar(xpprogress, 0, xptolvl, 0)}
+                            {/* <div className={`progress-bar`}>
                                 <div className="progress" style={{ width: `${xppercent}%` }}>
                                     <span className="progress-text">
                                         {`${parseFloat(xpprogress).toFixed(0)}/${parseFloat(xptolvl > 1000 ? (xptolvl / 1000) : xptolvl).toFixed(0)}${xptolvl > 1000 ? "k" : ""}`}
                                     </span>
                                 </div>
-                            </div></td> : null}
+                            </div> */}</td> : null}
                         {xListeColAnimals[1][1] === 1 ? <td className="tdcenter">{rewardImg}{xlvl}</td> : null}
                         {xListeColAnimals[2][1] === 1 ? <td className="tdcenter">{prod1 > 0 && prod1}{prod1 > 0 && prod1img}</td> : null}
                         {xListeColAnimals[3][1] === 1 ? <td className="tdcenter">{prod2 > 0 && prod2}{prod2 > 0 && prod2img}</td> : null}

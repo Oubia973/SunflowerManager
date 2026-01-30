@@ -117,8 +117,8 @@ export default function PetsTable() {
           foodCostTotal = Pets[petName][key("costsfl")] || 0;
           foodCostMTotal = Pets[petName].costp2p || 0;
           energySfl = Pets[petName][key("nrgsfl")] || 0;
-          energyMSfl = Pets[petName].nrgsflp2p || 0;
-          totalNrg = Pets[petName].totnrg || 0;
+          energyMSfl = Pets[petName][key("nrgsflp2p")] || 0;
+          totalNrg = Pets[petName][key("totnrg")] || 0;
           curNrg = Pets[petName].curnrg || 0;
         }
       }
@@ -194,7 +194,7 @@ export default function PetsTable() {
         if (petit[comp]) {itemTable = petit;}
         let cimg = itemTable?.[comp]?.img || "./icon/nft/na.png";
         let coinRatioOrNot = (itemTable !== petit) ? dataSet.options.coinsRatio : 1;
-        compTotal += qty * ((itemTable?.[comp]?.cost || 0) / coinRatioOrNot);
+        compTotal += qty * ((itemTable?.[comp]?.[key("cost")] || 0) / coinRatioOrNot);
         compMTotal += qty * itemTable?.[comp]?.costp2pt || 0;
         return (
           <span key={comp} title={`${comp}×${qty}`} style={{ marginRight: 8 }}>
@@ -258,7 +258,7 @@ export default function PetsTable() {
       const cinfo = petit[c] || {};
       const cimg = cinfo.img || "./icon/nft/na.png";
       const energy = cinfo.energy || 0;
-      const cost = cinfo.cost !== cinfo.costp2pt ? frmtNb(cinfo.cost) : "";
+      const cost = cinfo[key("cost")] !== cinfo.costp2pt ? frmtNb(cinfo[key("cost")]) : "";
       const cp2pt = cinfo.costp2pt || 0;
       const cstock = cinfo.instock || 0;
       const catArr = compToCats[c] || [];
@@ -268,7 +268,7 @@ export default function PetsTable() {
       const catIcons = catArr.map(cat => {
         for (let petName in Pets) {
           if (Pets[petName].cat === cat) {
-            const ipetNrg = selectedQuantFetch === "pets" ? Pets[petName]?.totnrg : selectedQuantFetch === "petst" ? Pets[petName]?.curnrg : 0;
+            const ipetNrg = selectedQuantFetch === "pets" ? Pets[petName]?.[key("totnrg")] : selectedQuantFetch === "petst" ? Pets[petName]?.curnrg : 0;
             let myield = (Pets[petName].lvl > 18 && c === "Acorn") ? 2 : 1;
             myield += (Pets[petName].lvl > 60 && Pets[petName].type === "nft" && c !== "Acorn") ? 1 : 0;
             totalComp += ((ipetNrg || 0) / cinfo.energy) * myield;

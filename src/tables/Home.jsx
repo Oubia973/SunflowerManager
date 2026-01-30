@@ -13,11 +13,27 @@ export default function HomeTable() {
         actions: {
             handleHomeClic,
         },
+        config: { API_URL },
     } = useAppCtx();
     if (selectedInv !== "home") return;
     if (!dataSetFarm?.itables) return null;
     const { Animals, orderstable } = dataSetFarm;
     const { it } = dataSetFarm.itables;
+    async function getBumpkin(dataSet) {
+        const response = await fetch(API_URL + "/getbumpkin", {
+            method: 'GET',
+            headers: {
+                frmid: dataSet.farmId,
+                username: dataSet.options.username,
+                tknuri: dataSet.bumpkin.tkuri,
+            }
+        });
+        if (response.ok) {
+            const data = await response.json();
+            let imageData = data.responseImage;
+            dataSet.bumpkinImg = imageData;
+        }
+    }
     if (it) {
         try {
             dataSet.forTry = TryChecked;
@@ -89,7 +105,19 @@ export default function HomeTable() {
             const leftPanel = (
                 <div className="home-left-panel">
                     {/* <img src="./path/to/your/image.png" alt="Farm" className="home-left-panel-image" /> */}
-                    <img src={`${img}`} width="100%"></img>
+                    <div className="home-left-panel-image-wrap">
+                        <img src={`${img}`} width="100%" alt="Bumpkin"></img>
+                        <button
+                            type="button"
+                            className="button small-btn bumpkin-refresh-btn"
+                            title="Refresh bumpkin"
+                            onClick={async () => {
+                                await getBumpkin(dataSet);
+                            }}
+                        >
+                            <img src="./icon/ui/refresh.png" alt="" />
+                        </button>
+                    </div>
                     <div className="home-left-panel-text">
                         <p><div>{vipImg} {vipDate}</div></p>
                         <p><div>Daily chest: {dailyChest} {dailyChestStreak}</div></p>

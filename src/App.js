@@ -88,6 +88,7 @@ function App() {
     activityDisplay: "item",
     selectedDigCur: "sfl",
     selectedSeason: "all",
+    selectedPChange: "3d",
     petView: "pets",
     inputValue: "",
     inputKeep: 3,
@@ -240,6 +241,7 @@ function App() {
   const pendingSaveRef = useRef(false);
   const [reqState, setReqState] = useState("");
   const [cdButton, setcdButton] = useState(false);
+  const [iaLoading, setIaLoading] = useState(false);
   const [showfTNFT, setShowfTNFT] = useState(false);
   const [showfGraph, setShowfGraph] = useState(false);
   const [showfDlvr, setShowfDlvr] = useState(false);
@@ -268,6 +270,32 @@ function App() {
   const handleButtonHelpClick = () => {
     helpImage = "./image/helpgeneral.jpg";
     setShowHelp(true);
+  };
+  const handleButtonIAClick = async (e) => {
+    if (iaLoading) return;
+    setIaLoading(true);
+    try {
+      const tryItArrays = filterTryit(dataSetFarm, true);
+      const response = await fetch("/askia", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          prompt: "Quelle est la meilleure stratégie aujourd'hui ?",
+          farmId: curID,
+          options: dataSet.options,
+          tryitarrays: tryItArrays,
+          //context: context,
+        }),
+      });
+      if (response.status) {
+        const responseData = await response.json();
+        handleTooltip("", "askIA", responseData.answer, e);
+      }
+    } catch (err) {
+      handleTooltip("IA indisponible", "askIA", "", e);
+    } finally {
+      setIaLoading(false);
+    }
   };
   const handleClosefTNFT = (xdataSet, xdataSetFarm) => {
     dataSet = xdataSet;
@@ -797,6 +825,7 @@ function App() {
       let bdrag = true;
       if (context === "trades") { bdrag = false }
       if (context === "username") { bdrag = false }
+      if (context === "askIA") { bdrag = false }
       setTooltipData({
         x: clientX,
         y: clientY,
@@ -1412,6 +1441,9 @@ function App() {
                   <div className="horizontal" style={{ margin: "0", padding: "0" }}>
                     <button onClick={handleButtonOptionsClick} title="Options" class="button"><img src="./options.png" alt="" className="itico" /></button>
                     <button onClick={handleButtonHelpClick} title="Help" class="button"><img src="./icon/nft/na.png" alt="" className="itico" /></button>
+                    {dataSet.options.isAbo ? <button onClick={(e) => handleButtonIAClick(e)} className="button" disabled={iaLoading} title={iaLoading ? "Loading" : "Ask IA"}>
+                      <img src={iaLoading ? "./icon/ui/syncing.gif" : "./icon/ui/bumpkin.png"} alt="" className="itico" />
+                    </button> : null}
                   </div>
                 </div>
                 <div className="currency-pair">

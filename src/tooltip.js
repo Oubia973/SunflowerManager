@@ -676,9 +676,10 @@ const Tooltip = ({ onClose, item, context, value, clickPosition, dataSet, dataSe
                 const imgOil = <img src={it["Oil"].img ?? imgna} style={{ width: "20px", height: "20px" }} />
                 //let itemSpot = spot[it[item].cat.toLowerCase()];
                 let itemSpot = Item[spotortry]; // > Item[stockortry] ? Item[stockortry] : Item[spotortry];
-                const cycleD = Item[dailycycleortry] || 1;
-                let dailySpot = cycleD * itemSpot;
-                const nTools = Item[key("toolshrvst")] * cycleD;
+                const decimals = dataSet?.options?.averageDailyCycles ? 2 : 0;
+                const cycleD = frmtNb(Item[dailycycleortry], decimals) || 1;
+                let dailySpot = frmtNb(cycleD * itemSpot, decimals);
+                const nTools = frmtNb(Item[key("toolshrvst")] * cycleD, decimals);
                 let dailySfl = Item[key("dailymarket")]; //((Item.costp2pt * tradeTax) * Item[harvestdmaxortry]); // * cycleD;
                 let dailyCoinsCost = Item[key("dailycost")]; //Item[costortry] * Item[harvestdmaxortry]; // * cycleD;
                 let dailySflCost = dailyCoinsCost / dataSet.options.coinsRatio;
@@ -687,7 +688,7 @@ const Tooltip = ({ onClose, item, context, value, clickPosition, dataSet, dataSe
                 let txtStock = <span>stock: {Item[stockortry]}</span>;
                 let isFree = Item[costortry] === 0;
                 if (Item.cat === "crop") {
-                    dailySpot = cycleD * itemSpot;
+                    dailySpot = frmtNb(cycleD * itemSpot, decimals);
                     const oilQuant = Item.greenhouse && (Item[key("oil")] * dailySpot);
                     const oilCost = Item.greenhouse ? (oilQuant * (it["Oil"][costortry])) : 0;
                     dailyCoinsCost = (dailySpot * Item[seedortry]) + oilCost;
@@ -740,7 +741,7 @@ const Tooltip = ({ onClose, item, context, value, clickPosition, dataSet, dataSe
                                 return (
                                     <React.Fragment key={itIndex}>
                                         <img src={itemToolCompo.img} className="resicon" alt={itemName} />
-                                        x{obsiCompoOrTry[itemName] * dailySpot}
+                                        x{frmtNb(obsiCompoOrTry[itemName] * dailySpot, decimals)}
                                     </React.Fragment>
                                 );
                             });
@@ -1330,6 +1331,40 @@ const Tooltip = ({ onClose, item, context, value, clickPosition, dataSet, dataSe
                 </table>
             );
             txt = <>{choreTotCompTable}</>;
+        }
+        if (context === "askIA") {
+            if (value) {
+                function formatIAAnswerJSX(answer) {
+                    if (!answer) return null;
+                    const parts = answer
+                        .replace(/\\n/g, "\n")
+                        .split(/(<[^>]+>)/g); // garde les <Item>
+                    return parts.map((part, index) => {
+                        const match = part.match(/^<(.+)>$/);
+                        if (match) {
+                            const itemName = match[1];
+                            const item = it[itemName];
+                            const img = item?.img || item?.icon || null;
+                            return (
+                                <span key={index} style={{ whiteSpace: "nowrap" }}>
+                                    {img && (<img src={img} alt={itemName} title={itemName}
+                                        style={{ width: 16, height: 16, verticalAlign: "middle", marginRight: 4 }} />)}{itemName} </span>
+                            );
+                        }
+                        return <span key={index}>{part}</span>;
+                    });
+                }
+                function formatIAAnswerHTML(answer) {
+                    return answer
+                        .replace(/\\n/g, "\n")
+                        .replace(/\*\*(.*?)\*\*/g, "🔹 $1")
+                        .trim();
+                }
+                const textIA = formatIAAnswerJSX(value);
+                //const username = dataSet?.options?.username || "No Name";
+                //const farmId = dataSet?.options?.farmId || "Unknown";
+                txt = <><pre style={{ whiteSpace: "pre-wrap", marginTop: 6 }}>{textIA}</pre></>;
+            }
         }
     } catch (error) {
         console.log("tooltip: ", error);

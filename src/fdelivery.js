@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useAppCtx } from "./context/AppCtx";
-import { frmtNb } from './fct.js';
+import { frmtNb, PBar, timeToDays } from './fct.js';
 import { Switch, FormControlLabel } from '@mui/material';
 import Tooltip from "./tooltip.js";
 const imgno = './icon/ui/cancel.png';
@@ -130,14 +130,27 @@ function ModalDlvr({ onClose, tableData, imgtkt, coinsRatio }) {
       if (OrderItem.nbcompleted > 0) { totCmp += OrderItem.nbcompleted }
       if (OrderItem.nbskipped > 0) { totSkp += OrderItem.nbskipped }
       const costTkt = OrderItem[key("costtkt")] > 0 ? frmtNb(OrderItem[key("costtkt")] / coinsRatio) : "";
+      const costProd = OrderItem[key("cost")] / coinsRatio;
       const bakcGreen = 'rgba(10, 54, 18, 0.71)';
+      const bakcRed = 'rgba(54, 10, 10, 0.71)';
+      const bakcYellow = 'rgba(66, 70, 12, 0.71)';
       const cellRewardStyle = {};
-      if ((costp2p < convRewardSfl) && (!istkt)) {
+      if (((costp2p < convRewardSfl) && (costProd < convRewardSfl)) && (!istkt)) {
         cellRewardStyle.backgroundColor = bakcGreen;
       }
+      if (((costp2p > convRewardSfl) || (costProd > convRewardSfl)) && (!istkt)) {
+        cellRewardStyle.backgroundColor = bakcRed;
+      }
+      const cellCostStyle = {};
+      if (((costProd > convRewardSfl) && (costProd < convRewardSfl)) && (!istkt)) {
+        cellCostStyle.backgroundColor = bakcGreen;
+      }
       const cellMarketStyle = {};
-      if ((costp2p > convRewardSfl) && (!istkt)) {
+      if (((costp2p > convRewardSfl) && (costp2p > costProd)) && (!istkt)) {
         cellMarketStyle.backgroundColor = bakcGreen;
+      }
+      if ((frmtNb(costp2p) === frmtNb(convRewardSfl)) && (!istkt)) {
+        cellMarketStyle.backgroundColor = bakcYellow;
       }
       return (
         <tr key={index}>
@@ -146,7 +159,7 @@ function ModalDlvr({ onClose, tableData, imgtkt, coinsRatio }) {
           <td className="tdcenter">{imgComplete}</td>
           {/* <td className="tdcenter" dangerouslySetInnerHTML={{ __html: OrderItem.reward }}>{coinrewardconvertsfl}</td> */}
           <td className="tdcenter" style={cellRewardStyle}>{textReward}</td>
-          <td className="tdcenter">{frmtNb(OrderItem[key("cost")] / coinsRatio)}</td>
+          <td className="tdcenter" style={cellCostStyle}>{frmtNb(costProd)}</td>
           <td className="tdcenter" style={cellMarketStyle}>{costp2p}</td>
           <td className="tdcenter">{ratioCoins}</td>
           <td className="tdcenter">{costTkt}</td>
@@ -267,10 +280,10 @@ function ModalDlvr({ onClose, tableData, imgtkt, coinsRatio }) {
         <tr key={index}>
           <td className="tdleft">{item[1].description}</td>
           <td className="tdcenter">{itemImg}</td>
-          <td className="tdcenter">{PBar(item[1].progress, item[1].progressstart, item[1].requirement)}</td>
+          <td className="tdcenter">{PBar(item[1].progress, item[1].progressstart, item[1].requirement, item[1]?.harvestleft, 80)}</td>
           <td className="tdcenter">{item[1].completed ? item[1].completedAt === undefined ? ximgrdy : ximgyes : ximgno}</td>
           <td className="tdcenter">{item[1].reward}{imgRew}</td>
-          <td className="tdcenter">{totTime}</td>
+          <td className="tdcenter">{timeToDays(totTime)}</td>
           <td className="tdcenter tooltipcell" style={cellCompStyle} onClick={(e) => handleTooltip(item[1].item, "cookcost", item[1].requirement, e)}>{choreTotCompSpan}</td>
           <td className="tdcenter tooltipcell" onClick={(e) => handleTooltip(item[1].item, "cookcost", item[1].requirement, e)}>{totCostChore > 0 ? frmtNb(totCostChore) : ""}</td>
           <td className="tdcenter tooltipcell" onClick={(e) => handleTooltip(item[1].item, "cookcost", item[1].requirement, e)}>{totMarketChore > 0 ? frmtNb(totMarketChore) : ""}</td>
@@ -470,26 +483,6 @@ function ModalDlvr({ onClose, tableData, imgtkt, coinsRatio }) {
         />
       )}
     </div>
-  );
-}
-function PBar(val, pval, max) {
-  const maxh = max;
-  const previousQuantity = pval;
-  const Quantity = val;
-  const difference = Quantity - previousQuantity;
-  const absDifference = Math.abs(difference);
-  const isNegativeDifference = difference < 0;
-  const hoardPercentage = Math.floor((absDifference / maxh) * 100);
-  return (
-    hoardPercentage > 0 && (
-      <div className={`progress-barb ${isNegativeDifference ? 'negative' : ''}`}>
-        <div className="progress" style={{ width: `${hoardPercentage}%` }}>
-          <span className="progress-text">
-            {isNegativeDifference ? frmtNb(absDifference) : `${frmtNb(difference)}/${frmtNb(maxh)}`}
-          </span>
-        </div>
-      </div>
-    )
   );
 }
 

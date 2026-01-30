@@ -7,8 +7,9 @@ export default function MapTable() {
     if (dataSetFarm.isleMap) {
         const { isleMap } = dataSetFarm;
         const { nftw } = dataSetFarm.boostables;
-        let minYield = 500;
-        let minYieldGH = 500;
+        const { it } = dataSetFarm.itables;
+        let minYield = Infinity;
+        let minYieldGH = Infinity;
         let cropMachineDone = false;
         let greenhouseDone = false;
         const isGA = nftw["Green Amulet"].isactive;
@@ -35,16 +36,19 @@ export default function MapTable() {
             Object.keys(isleMap[x]).forEach(y => {
                 const adjustedY = y - minY;
                 adjustedIsleMap[adjustedX][adjustedY] = isleMap[x][y];
-                if (isleMap[x][y].type === "crop") {
-                    minYield = isleMap[x][y].amount < minYield ? isleMap[x][y].amount : minYield;
+                const typeNode = isleMap[x][y].type;
+                const amountNode = isleMap[x][y].amount;
+                const amountValue = Number(amountNode);
+                if (it[typeNode]?.cat === "crop" && Number.isFinite(amountValue)) {
+                    minYield = amountValue < minYield ? amountValue : minYield;
                     rdyAtValues.push(isleMap[x][y].rdyAt);
                 }
-                if (isleMap[x][y].type === "greenhouse") {
-                    minYieldGH = isleMap[x][y].amount < minYieldGH ? isleMap[x][y].amount : minYieldGH;
+                if (typeNode === "greenhouse" && Number.isFinite(amountValue)) {
+                    minYieldGH = amountValue < minYieldGH ? amountValue : minYieldGH;
                     lastGreenhouseX = adjustedX;
                     lastGreenhouseY = adjustedY;
                 }
-                if (isleMap[x][y].type === "crop machine") {
+                if (typeNode === "crop machine") {
                     lastCropMachineX = adjustedX;
                     lastCropMachineY = adjustedY;
                 }
@@ -58,8 +62,9 @@ export default function MapTable() {
         adjustedIsleMap.forEach((row, x) => {
             Object.keys(row).forEach(y => {
                 const item = row[y];
+                const itemType = item.type;
                 //console.log(item);
-                if ((item.type === "crop") && (item.amount > minYield + 9)) {
+                if ((it[itemType]?.cat === "crop") && (item.amount > minYield + 9)) {
                     greenprocIndices.push(rdyAtMap.get(item.rdyAt));
                 }
             });
@@ -113,12 +118,13 @@ export default function MapTable() {
                 const item = row[y];
                 const tableX = parseInt(x);
                 const tableY = maxY - minY - parseInt(y);
-                const amount = parseFloat(item.amount).toFixed(2 * (item.type !== "crop machine"));
-                const Greenproc = (item.type === "crop") && (item.amount > minYield + 9);
-                const GreenprocGH = (item.type === "greenhouse") && (item.amount > minYieldGH + 9);
+                const itemType = item.type;
+                const amount = parseFloat(item.amount).toFixed(2 * (itemType !== "crop machine"));
+                const Greenproc = (it[itemType]?.cat === "crop") && (item.amount > minYield + 8);
+                const GreenprocGH = (itemType === "greenhouse") && (item.amount > minYieldGH + 8);
                 const colorAmount = (Greenproc || GreenprocGH) ? 'red' : 'white';
                 const rdyAtIndex = rdyAtMap.get(item.rdyAt);
-                const backColor = (item.type === "crop" && isGA) ? getBackgroundColor(rdyAtIndex) : 'transparent';
+                const backColor = (it[itemType]?.cat === "crop" && isGA) ? getBackgroundColor(rdyAtIndex) : 'transparent';
                 const mapX = item?.x || "";
                 const mapY = item?.y || "";
                 if (Greenproc) {

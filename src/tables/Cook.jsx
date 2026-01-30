@@ -1,7 +1,7 @@
 import React from "react";
 import { useAppCtx } from "../context/AppCtx";
 import { FormControl, InputLabel, Select, MenuItem, Switch, FormControlLabel } from '@mui/material';
-import { frmtNb, convtimenbr, convTime, ColorValue, Timer, filterTryit } from '../fct.js';
+import { frmtNb, convtimenbr, convTime, ColorValue, Timer, filterTryit, PBar, timeToDays } from '../fct.js';
 
 let xdxp = 0;
 var dProd = [];
@@ -214,7 +214,7 @@ export default function CookTable() {
                     </td> : null}
                     {xListeColCook[2][1] === 1 ? <td className="tdcenter">{iQuant}</td> : null}
                     {xListeColCook[3][1] === 1 ? <td className="tdcenter">{parseFloat(ixp).toFixed(1)}</td> : null}
-                    {xListeColCook[4][1] === 1 ? <td className="tdcenter">{time}</td> : null}
+                    {xListeColCook[4][1] === 1 ? <td className="tdcenter">{timeToDays(time)}</td> : null}
                     {xListeColCook[5][1] === 1 ? <td className="tdcenter">{timecomp}</td> : null}
                     {xListeColCook[6][1] === 1 ? <td className="tdcenter" style={CellXPHStyle}>{ixph}</td> : null}
                     {xListeColCook[7][1] === 1 ? <td className="tdcenter">{ixphcomp}</td> : null}
@@ -251,7 +251,7 @@ export default function CookTable() {
             <input
                 type="number"
                 min={1}
-                max={maxLvl-1}
+                max={maxLvl - 1}
                 step={10}
                 name="inputFromLvl"
                 value={inputFromLvl}
@@ -284,8 +284,9 @@ export default function CookTable() {
         const xLvlconft = selectedQuantCook !== "unit" && selectedQuantityCook !== "farm" ? " days, " + fromtolvlxp + "xp" : "";
         const xspace = selectedQuantCook !== "unit" && selectedQuantityCook !== "farm" ? " " : "";
         const bfdtolvl = !TryChecked ? bumpkinData[0].foodtolvl : bumpkinData[0].foodtolvltry;
-        const bfdpstlvl = !TryChecked ? bumpkinData[0].foodxppastlvl : bumpkinData[0].foodxppastlvltry;
-        const bxptonxtlvl = !TryChecked ? bumpkinData[0].xptonextlvl : bumpkinData[0].xptonextlvltry;
+        const bfdpstlvl = !TryChecked ? Math.ceil(bumpkinData[0].foodxppastlvl) : Math.ceil(bumpkinData[0].foodxppastlvltry);
+        const bxptonxtlvl = !TryChecked ? Math.ceil(bumpkinData[0].xptonextlvl) : Math.ceil(bumpkinData[0].xptonextlvltry);
+
         xdxp = totXP;
         //const icolspan = xListeColCook[0][1] === 1 ? 3 : 2;
         const tableContent = (
@@ -348,13 +349,15 @@ export default function CookTable() {
                                 {xListeColCook[4][1] === 1 ? <td className="tdcenter" style={{ color: timeOver && selectedQuantityCook !== "farm" ? "rgb(255, 0, 0)" : "rgb(255, 255, 255)" }}>
                                     {selectedQuantityCook !== "farm" ? totTime :
                                         <><span>to lvl{bfdtolvl}</span>
-                                            <div className="progress-bar" style={{ width: "80px" }}>
+                                            {PBar(bfdpstlvl, 0, bxptonxtlvl, 0, 90)}
+                                            {/* <div className="progress-bar" style={{ width: "80px" }}>
                                                 <div className="progress" style={{ width: `${bfdpstlvl / (bfdpstlvl + bxptonxtlvl) * 100}%` }}>
                                                     <span className="progress-text">
                                                         {`${parseFloat(bfdpstlvl).toFixed(0)}`}
                                                     </span>
                                                 </div>
-                                            </div></>}</td> : null}
+                                            </div> */}
+                                        </>}</td> : null}
                                 {xListeColCook[5][1] === 1 ? <td className="tdcenter"></td> : null}
                                 {xListeColCook[6][1] === 1 ? <td className="tdcenter"></td> : null}
                                 {xListeColCook[7][1] === 1 ? <td className="tdcenter"></td> : null}

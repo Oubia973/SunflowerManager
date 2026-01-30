@@ -1,6 +1,7 @@
 import React from "react";
 import { useAppCtx } from "../context/AppCtx";
 import { FormControl, InputLabel, Select, MenuItem } from '@mui/material';
+import { PBar } from '../fct.js';
 
 export default function FishTable() {
   const {
@@ -15,6 +16,7 @@ export default function FishTable() {
       selectedQuantFish,
       xListeColFish,
       TryChecked,
+      selectedSeason,
     },
     actions: {
       handleUIChange,
@@ -66,18 +68,26 @@ export default function FishTable() {
       const xChumsImg = ichumimgs.split("*");
       const iperiodimgs = cobj ? cobj.weather : '';
       const xPeriodImg = iperiodimgs.split("*");
+      let isOnSeason = false;
       for (let i = 0; i < xPeriodImg.length; i++) {
         if (xPeriodImg[i] === "Winter") {
           xPeriodImg[i] = imgwinter;
+          if (selectedSeason === "winter") { isOnSeason = true; }
         } else if (xPeriodImg[i] === "Summer") {
           xPeriodImg[i] = imgsummer;
+          if (selectedSeason === "summer") { isOnSeason = true; }
         } else if (xPeriodImg[i] === "Autumn") {
           xPeriodImg[i] = imgautumn;
+          if (selectedSeason === "autumn") { isOnSeason = true; }
         } else if (xPeriodImg[i] === "Spring") {
           xPeriodImg[i] = imgspring;
+          if (selectedSeason === "spring") { isOnSeason = true; }
         } else if (xPeriodImg[i] === "FullMoon") {
           xPeriodImg[i] = imgfullmoon;
         }
+      }
+      if (selectedSeason !== "all" && !isOnSeason) {
+        return null;
       }
       const iperiod = xPeriodImg;
       var icost = cobj ? ((!TryChecked ? cobj.cost : cobj.costtry) / dataSet.options.coinsRatio) : '';
@@ -107,7 +117,8 @@ export default function FishTable() {
             {xListeColFish[0][1] === 1 ? <td className="tdcenter">{icat}</td> : null}
             {xListeColFish[1][1] === 1 ? <td className="tdcenter">{ilocat}</td> : null}
             {xListeColFish[2][1] === 1 ? (<td>
-              {maxh > 0 && (
+              {PBar(quantity, previousQuantity, maxh, 0)}
+              {/* {maxh > 0 && (
                 <div className={`progress-bar ${isNegativeDifference ? 'negative' : ''}`}>
                   <div className="progress" style={{ width: `${hoardPercentage}%` }}>
                     <span className="progress-text">
@@ -115,7 +126,7 @@ export default function FishTable() {
                     </span>
                   </div>
                 </div>
-              )}
+              )} */}
             </td>) : ("")}
             <td id="iccolumn"><i><img src={ico} alt={''} className="itico" /></i></td>
             {xListeColFish[3][1] === 1 ? <td className="tditem">{item}</td> : null}
@@ -159,7 +170,17 @@ export default function FishTable() {
               {xListeColFish[5][1] === 1 ? <th className="thcenter" >Quantity</th> : null}
               {xListeColFish[6][1] === 1 ? <th className="thcenter" >Caught</th> : null}
               {xListeColFish[7][1] === 1 ? <th className="thcenter" >Chum</th> : null}
-              {xListeColFish[8][1] === 1 ? <th className="thcenter" >Period</th> : null}
+              {xListeColFish[8][1] === 1 ? <th className="thcenter" >
+                <div className="selectseasonback"><FormControl variant="standard" id="formselectquant" className="selectseason" size="small">
+                  <InputLabel style={{ fontSize: `12px` }}>Season</InputLabel>
+                  <Select name={"selectedSeason"} value={selectedSeason} onChange={handleUIChange} onClick={(e) => e.stopPropagation()}>
+                    <MenuItem value="all">All</MenuItem>
+                    <MenuItem value="spring"><img src="./icon/ui/spring.webp" alt={''} className="seasonico" title="Spring" style={{ width: '18px', height: '18px' }} /></MenuItem>
+                    <MenuItem value="summer"><img src="./icon/ui/summer.webp" alt={''} className="seasonico" title="Summer" style={{ width: '18px', height: '18px' }} /></MenuItem>
+                    <MenuItem value="autumn"><img src="./icon/ui/autumn.webp" alt={''} className="seasonico" title="Autumn" style={{ width: '18px', height: '18px' }} /></MenuItem>
+                    <MenuItem value="winter"><img src="./icon/ui/winter.webp" alt={''} className="seasonico" title="Winter" style={{ width: '18px', height: '18px' }} /></MenuItem>
+                  </Select></FormControl></div>
+              </th> : null}
               {xListeColFish[9][1] === 1 ? <th className="thcenter" > % </th> : null}
               {xListeColFish[10][1] === 1 ? <th className="thcenter" >
                 <div className="selectquantback" style={{ top: `4px` }}><FormControl variant="standard" id="formselectquant" className="selectquant" size="small">

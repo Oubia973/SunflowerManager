@@ -1,11 +1,13 @@
 import React from "react";
 import { useAppCtx } from "../context/AppCtx";
+import { timeToDays } from '../fct.js';
 
 export default function FlowerTable() {
     const {
         data: { dataSetFarm, farmData },
         ui: {
             xListeColFlower,
+            TryChecked,
         },
     } = useAppCtx();
     if (farmData.inventory) {
@@ -22,6 +24,7 @@ export default function FlowerTable() {
             const xBreedsImg = ibreedimgs.split("*");
             const iquant = cobj.quant > 0 ? cobj.quant : '';
             const ihrvstd = cobj.harvested > 0 ? cobj.harvested : '';
+            const itime = cobj.time ? timeToDays(TryChecked ? cobj.timetry : cobj.time) : '';
             let growingQuant = 0;
             let nBeds = 0;
             for (let key in it["Flower"].beds) {
@@ -39,6 +42,7 @@ export default function FlowerTable() {
                             if (value !== "") { return (<span key={index}><i><img src={xBreedsImg[index]} alt={''} className="itico" title={value} /></i></span>) }
                             return null;
                         })}</td> : null}
+                    {xListeColFlower[3][1] === 1 ? <td className="tdcenter">{itime}</td> : null}
                     {xListeColFlower[3][1] === 1 ? <td className="tdcenter">{iquant}</td> : null}
                     {xListeColFlower[4][1] === 1 ? <td className="tdcenter">{ihrvstd}</td> : null}
                     {xListeColFlower[4][1] === 1 ? <td className="tdcenter">{growingQuant > 0 ? growingQuant : ""}</td> : null}
@@ -52,6 +56,7 @@ export default function FlowerTable() {
                     <th className="th-icon"></th>
                     {xListeColFlower[1][1] === 1 ? <th className="thcenter">Name</th> : null}
                     {xListeColFlower[2][1] === 1 ? <th className="thcenter">Breed</th> : null}
+                    {xListeColFlower[3][1] === 1 ? <th className="thcenter">Time</th> : null}
                     {xListeColFlower[3][1] === 1 ? <th className="thcenter">Quant</th> : null}
                     {xListeColFlower[4][1] === 1 ? <th className="thcenter">Hrvst</th> : null}
                     {xListeColFlower[4][1] === 1 ? <th className="thcenter">Grow</th> : null}
