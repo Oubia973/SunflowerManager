@@ -37,6 +37,28 @@ export function frmtNb(nombre, decimal=2) {
   }
 }
 
+export function flattenCompoit(rawCompo) {
+  const out = {};
+  const walk = (tree) => {
+    if (!tree || typeof tree !== "object") return;
+    Object.entries(tree).forEach(([name, rawNode]) => {
+      if (typeof rawNode === "number") {
+        out[name] = (out[name] || 0) + Number(rawNode || 0);
+        return;
+      }
+      const qty = Number(rawNode?.qty ?? rawNode?.quant ?? rawNode?.q ?? 0) || 0;
+      const children = rawNode?.compoit && typeof rawNode.compoit === "object" ? rawNode.compoit : null;
+      if (children && Object.keys(children).length > 0) {
+        walk(children);
+      } else {
+        out[name] = (out[name] || 0) + qty;
+      }
+    });
+  };
+  walk(rawCompo || {});
+  return out;
+}
+
 export function convTime(nombre) {
   if (nombre > 0 && nombre !== Infinity) {
     //if (nombre === "-Infinity" || nombre === "Infinity" || nombre === 0 || nombre === NaN) { return "00:00:00" }
@@ -158,7 +180,22 @@ export function ColorValueP(value, maxAbs = 50) {
   return `rgb(${r}, ${g}, 0)`;
 }
 
-
+export function formatdate(timestamp) {
+    if (timestamp < 3600 * 1000 * 24) { timestamp -= 3600 * 1000 }
+    if (timestamp <= 0) { return 0 }
+    var dateActuelle = new Date(timestamp);
+    //var jours = dateActuelle.getDate();
+    var heures = dateActuelle.getHours();
+    var minutes = dateActuelle.getMinutes();
+    //var secondes = dateActuelle.getSeconds();
+    var dateFormatee = (
+        //(jours < 10 ? "0" : "") + jours + ":" +
+        (heures < 10 ? "0" : "") + heures + ":" +
+        (minutes < 10 ? "0" : "") + minutes //+ ":" +
+        //(secondes < 10 ? "0" : "") + secondes
+    );
+    return dateFormatee;
+}
 export function Timer({ timestamp, index, onTimerFinish }) {
   const [timeLeft, setTimeLeft] = useState(timestamp - Date.now());
   useEffect(() => {

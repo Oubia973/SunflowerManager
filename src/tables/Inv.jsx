@@ -2,6 +2,7 @@ import { useAppCtx } from "../context/AppCtx";
 import { FormControl, InputLabel, Select, MenuItem } from '@mui/material';
 import { frmtNb, convtimenbr, convTime, ColorValue, ColorValueP, Timer, PBar, timeToDays } from '../fct.js';
 import CounterInput from "../counterinput.js";
+import DList from "../dlist.jsx";
 
 var xBurning = [];
 xBurning.burn = [];
@@ -37,23 +38,36 @@ export default function InvTable() {
     } = useAppCtx();
     if (farmData.inventory) {
         const { spot, buildngf } = dataSetFarm.frmData;
-        const { it } = dataSetFarm.itables;
+        const { it, tool } = dataSetFarm.itables;
         const inventoryEntries = Object.entries(farmData.inventory);
         var pinventoryEntries = "";
         if (farmData.previousInventory) { pinventoryEntries = Object.entries(farmData.previousInventory) }
         const itemOrder = Object.keys(it);
-        const burnortry = !TryChecked ? "burn" : "burntry";
         //if (selectedQuantity === "daily") {
-        const stoneSpot = !TryChecked ? it["Stone"].farmit * (xHrvst["Stone"] * spot.stone) : it["Stone"].farmit * (xHrvsttry["Stone"] * spot.stone);
-        const ironSpot = !TryChecked ? it["Iron"].farmit * (xHrvst["Iron"] * spot.iron) : it["Iron"].farmit * (xHrvsttry["Iron"] * spot.iron);
-        const goldSpot = !TryChecked ? it["Gold"].farmit * (xHrvst["Gold"] * spot.gold) : it["Gold"].farmit * (xHrvsttry["Gold"] * spot.gold);
-        const crimestoneSpot = !TryChecked ? it["Crimstone"].farmit * (xHrvst["Crimstone"] * spot.crimstone) : it["Crimstone"].farmit * (xHrvsttry["Crimstone"] * spot.crimstone);
-        const sunstoneSpot = !TryChecked ? it["Sunstone"].farmit * (xHrvst["Sunstone"] * spot.sunstone) : it["Sunstone"].farmit * (xHrvsttry["Sunstone"] * spot.sunstone);
-        const oilSpot = !TryChecked ? it["Oil"].farmit * (xHrvst["Oil"] * spot.oil) : it["Oil"].farmit * (xHrvsttry["Oil"] * spot.oil);
-        xBurning[burnortry]["Wood"] = (stoneSpot * 3) + (ironSpot * 3) + (goldSpot * 3) + (crimestoneSpot * 3) + (sunstoneSpot * 3) + (oilSpot * 25);
-        xBurning[burnortry]["Stone"] = (ironSpot * 5);
-        xBurning[burnortry]["Iron"] = (goldSpot * 5) + (oilSpot * 10);
-        xBurning[burnortry]["Gold"] = (crimestoneSpot * 3) + (sunstoneSpot * 3);
+        function key(name) {
+            return TryChecked ? name + "try" : name;
+        }
+        const burnortry = !TryChecked ? "burn" : "burntry";
+        const xhrvstortry = !TryChecked ? xHrvst : xHrvsttry;
+        const sptStone = (it["Stone"]?.[key("spot")] - (it["Stone"]?.[key("spot2")] || 0) - (it["Stone"]?.[key("spot3")] || 0)) + ((it["Stone"]?.[key("spot2")] * 4) || 0) + ((it["Stone"]?.[key("spot3")] * 16) || 0);
+        const sptIron = (it["Iron"]?.[key("spot")] - (it["Iron"]?.[key("spot2")] || 0) - (it["Iron"]?.[key("spot3")] || 0)) + ((it["Iron"]?.[key("spot2")] * 4) || 0) + ((it["Iron"]?.[key("spot3")] * 16) || 0);
+        const sptGold = (it["Gold"]?.[key("spot")] - (it["Gold"]?.[key("spot2")] || 0) - (it["Gold"]?.[key("spot3")] || 0)) + ((it["Gold"]?.[key("spot2")] * 4) || 0) + ((it["Gold"]?.[key("spot3")] * 16) || 0);
+        const sptCrimstone = (it["Crimstone"]?.[key("spot")] - (it["Crimstone"]?.[key("spot2")] || 0) - (it["Crimstone"]?.[key("spot3")] || 0)) + ((it["Crimstone"]?.[key("spot2")] * 4) || 0) + ((it["Crimstone"]?.[key("spot3")] * 16) || 0);
+        const sptSunstone = (it["Sunstone"]?.[key("spot")] - (it["Sunstone"]?.[key("spot2")] || 0) - (it["Sunstone"]?.[key("spot3")] || 0)) + ((it["Sunstone"]?.[key("spot2")] * 4) || 0) + ((it["Sunstone"]?.[key("spot3")] * 16) || 0);
+        const sptOil = (it["Oil"]?.[key("spot")] - (it["Oil"]?.[key("spot2")] || 0) - (it["Oil"]?.[key("spot3")] || 0)) + ((it["Oil"]?.[key("spot2")] * 4) || 0) + ((it["Oil"]?.[key("spot3")] * 16) || 0);
+        const stoneSpot = it["Stone"].farmit * (xhrvstortry["Stone"] * sptStone);
+        const ironSpot = it["Iron"].farmit * (xhrvstortry["Iron"] * sptIron);
+        const goldSpot = it["Gold"].farmit * (xhrvstortry["Gold"] * sptGold);
+        const crimestoneSpot = it["Crimstone"].farmit * (xhrvstortry["Crimstone"] * sptCrimstone);
+        const sunstoneSpot = it["Sunstone"].farmit * (xhrvstortry["Sunstone"] * sptSunstone);
+        const oilSpot = it["Oil"].farmit * (xhrvstortry["Oil"] * sptOil);
+        const stoneToolfree = it["Stone"]?.[key("toolfree")];
+        const crimstoneToolfree = it["Crimstone"]?.[key("toolfree")];
+        const oilToolfree = it["Oil"]?.[key("toolfree")];
+        xBurning[burnortry]["Wood"] = (stoneSpot * tool[it["Stone"].tool]["Wood"] * !stoneToolfree) + (ironSpot * tool[it["Iron"].tool]["Wood"]) + (goldSpot * tool[it["Gold"].tool]["Wood"]) + (crimestoneSpot * tool[it["Crimstone"].tool]["Wood"] * !crimstoneToolfree) + (sunstoneSpot * tool[it["Sunstone"].tool]["Wood"]) + (oilSpot * tool[it["Oil"].tool]["Wood"] * !oilToolfree);
+        xBurning[burnortry]["Stone"] = (ironSpot * tool[it["Iron"].tool]["Stone"]);
+        xBurning[burnortry]["Iron"] = (goldSpot * tool[it["Gold"].tool]["Iron"]) + (oilSpot * tool[it["Oil"].tool]["Iron"] * !oilToolfree);
+        xBurning[burnortry]["Gold"] = (crimestoneSpot * tool[it["Crimstone"].tool]["Gold"] * !crimstoneToolfree) + (sunstoneSpot * tool[it["Sunstone"].tool]["Gold"]);
         //}
         const sortedInventoryItems = itemOrder.map(item => {
             const quantity = inventoryEntries.find(([entryItem]) => entryItem === item)?.[1] || 0;
@@ -241,7 +255,7 @@ export default function InvTable() {
         var showBldinv = true;
         var BldItems = "";
         if (showBldinv) {
-            const bldOrder = ["Fire Pit", "Kitchen", "Deli", "Bakery", "Smoothie Shack", "Compost Bin", "Turbo Composter", "Premium Composter"];
+            const bldOrder = ["Fire Pit", "Kitchen", "Deli", "Bakery", "Smoothie Shack", "Fish Market", "Compost Bin", "Turbo Composter", "Premium Composter"];
             const sortedBldItems = bldOrder.map(item => {
                 const quantity = inventoryEntries.find(([entryItem]) => entryItem === item)?.[1] || 0;
                 return [item, quantity];
@@ -310,15 +324,22 @@ export default function InvTable() {
                         <tr>
                             {xListeCol[0][1] === 1 ? (<th className="thcenter tooltipcell" onClick={(e) => handleTooltip("hoard", "th", "", e)}>Hoard</th>) : ("")}
                             <th className="th-icon">   </th>
-                            <th className="thcenter"><div className="selectseasonback"><FormControl variant="standard" id="formselectquant" className="selectseason" size="small">
-                                <InputLabel style={{ fontSize: `12px` }}>Season</InputLabel>
-                                <Select name={"selectedSeason"} value={selectedSeason} onChange={handleUIChange} onClick={(e) => e.stopPropagation()}>
-                                    <MenuItem value="all">All</MenuItem>
-                                    <MenuItem value="spring"><img src="./icon/ui/spring.webp" alt={''} className="seasonico" title="Spring" style={{ width: '18px', height: '18px' }} /></MenuItem>
-                                    <MenuItem value="summer"><img src="./icon/ui/summer.webp" alt={''} className="seasonico" title="Summer" style={{ width: '18px', height: '18px' }} /></MenuItem>
-                                    <MenuItem value="autumn"><img src="./icon/ui/autumn.webp" alt={''} className="seasonico" title="Autumn" style={{ width: '18px', height: '18px' }} /></MenuItem>
-                                    <MenuItem value="winter"><img src="./icon/ui/winter.webp" alt={''} className="seasonico" title="Winter" style={{ width: '18px', height: '18px' }} /></MenuItem>
-                                </Select></FormControl></div></th>
+                            <th className="thcenter">
+                                <DList
+                                    name="selectedSeason"
+                                    title="Season"
+                                    options={[
+                                        { value: "all", label: "All" },
+                                        { value: "spring", label: <img src="./icon/ui/spring.webp" alt={''} className="seasonico" title="Spring" style={{ width: '18px', height: '18px' }} /> },
+                                        { value: "summer", label: <img src="./icon/ui/summer.webp" alt={''} className="seasonico" title="Summer" style={{ width: '18px', height: '18px' }} /> },
+                                        { value: "autumn", label: <img src="./icon/ui/autumn.webp" alt={''} className="seasonico" title="Autumn" style={{ width: '18px', height: '18px' }} /> },
+                                        { value: "winter", label: <img src="./icon/ui/winter.webp" alt={''} className="seasonico" title="Winter" style={{ width: '18px', height: '18px' }} /> },
+                                    ]}
+                                    value={selectedSeason}
+                                    onChange={handleUIChange}
+                                    height={28}
+                                />
+                            </th>
                             <td style={{ display: 'none' }}>ID</td>
                             {xListeCol[1][1] === 1 ? (<th className="thcenter">Item</th>) : ("")}
                             {selectedQuantity === "daily" ? (<th className="thcenter"> </th>) : ("")}
@@ -327,27 +348,36 @@ export default function InvTable() {
                                 <img src="/icon/ui/arrow_left.png" alt="Hrv = Hrv max" title="Set Hrv to Hrv Max"
                                     onClick={() => handleSetHrvMax(TryChecked)} style={{ width: '11px', height: '11px' }} /></div>
                             </th>) : ("")}
-                            {xListeCol[2][1] === 1 ? (<th className="thcenter tooltipcell" style={{ color: `rgb(160, 160, 160)` }}
-                                onClick={(e) => handleTooltip("quantity", "th", "", e)}>
-                                <div className="selectquantityback"><FormControl variant="standard" id="formselectquant" className="selectquant" size="small">
-                                    <InputLabel>Quantity</InputLabel>
-                                    <Select name="selectedQuantity" value={selectedQuantity} onChange={handleUIChange} onClick={(e) => e.stopPropagation()}>
-                                        <MenuItem value="farm">Farm</MenuItem>
-                                        <MenuItem value="daily">Daily</MenuItem>
-                                        <MenuItem value="blockbuck">Restock</MenuItem>
-                                        <MenuItem value="custom">Custom</MenuItem>
-                                    </Select></FormControl></div>
+                            {xListeCol[2][1] === 1 ? (<th className="thcenter">
+                                <DList
+                                    name="selectedQuantity"
+                                    title="Quantity"
+                                    options={[
+                                        { value: "farm", label: "Farm" },
+                                        { value: "daily", label: "Daily" },
+                                        { value: "blockbuck", label: "Restock" },
+                                        { value: "custom", label: "Custom" },
+                                    ]}
+                                    value={selectedQuantity}
+                                    onChange={handleUIChange}
+                                    height={28}
+                                />
                             </th>) : ("")}
                             {xListeCol[3][1] === 1 ? (<th className="thcenter">{selectedQuantity === "daily" ? (<div><div>Time</div><div>{(totTime)}</div></div>) : ("Time")}</th>) : ("")}
-                            {xListeCol[4][1] === 1 ? (<th className="thcenter tooltipcell" onClick={(e) => handleTooltip("cost", "th", "", e)}>
-                                <div className="selectquantback"><FormControl variant="standard" id="formselectquant" className="selectquant" size="small">
-                                    <InputLabel>Cost</InputLabel>
-                                    <Select name="selectedQuant" value={selectedQuant} onChange={handleUIChange} onClick={(e) => e.stopPropagation()}>
-                                        <MenuItem value="unit">/ Unit</MenuItem>
-                                        <MenuItem value="quant">x Quantity</MenuItem>
-                                    </Select></FormControl></div>
-                                <div className="checkcost" style={{ visibility: selectedQuant === "quant" ? "visible" : "hidden" }}><input type="checkbox" id="CostColumnCheckbox" checked={CostChecked}
-                                    name="CostChecked" onChange={handleUIChange} onClick={(e) => e.stopPropagation()} /></div>
+                            {xListeCol[4][1] === 1 ? (<th className="thcenter">
+                                <DList
+                                    name="selectedQuant"
+                                    title={<><span>Cost</span>
+                                        {selectedQuant === "quant" &&
+                                            <><input type="checkbox" checked={CostChecked} name="CostChecked" onChange={handleUIChange} /><span>counted</span></>}</>}
+                                    options={[
+                                        { value: "unit", label: "/ Unit" },
+                                        { value: "quant", label: "x Quantity" },
+                                    ]}
+                                    value={selectedQuant}
+                                    onChange={handleUIChange}
+                                    height={28}
+                                />
                             </th>) : ("")}
                             {xListeCol[5][1] === 1 ? (<th className="thcenter">Betty</th>) : ("")}
                             {xListeCol[6][1] === 1 ? (<th className="thcenter">Ratio<div>{imgCoins}/{imgSFL}</div></th>) : ("")}
@@ -362,24 +392,36 @@ export default function InvTable() {
                             {xListeCol[11][1] === 1 && xListeCol[14][1] === 1 ? (<th className="thcenter tooltipcell" onClick={(e) => handleTooltip("diff", "th", "", e)}>Diff</th>) : ("")}
                             {xListeCol[10][1] === 1 ? (<th className="thos" onClick={() => handleOSClick()}><div className="overlay-os"></div> </th>) : ("")}
                             {xListeCol[18][1] === 1 && xListeCol[9][1] === 1 ? (<th className="thcenter tooltipcell" onClick={(e) => handleTooltip("coef", "th", "", e)}>Coef</th>) : ("")}
-                            <th className="thcenter"><div className="selectseasonback"><FormControl variant="standard" id="formselectquant" className="selectseason" size="small">
-                                <InputLabel style={{ fontSize: `12px` }}>Chng%</InputLabel>
-                                <Select name={"selectedPChange"} value={selectedPChange} onChange={handleUIChange} onClick={(e) => e.stopPropagation()}>
-                                    <MenuItem value="24h">24h</MenuItem>
-                                    <MenuItem value="3d">3d</MenuItem>
-                                    <MenuItem value="7d">7d</MenuItem>
-                                    <MenuItem value="30d">30d</MenuItem>
-                                </Select></FormControl></div></th>
+                            <th className="thcenter">
+                                <DList
+                                    name="selectedPChange"
+                                    title="Chng%"
+                                    options={[
+                                        { value: "24h", label: "24h" },
+                                        { value: "3d", label: "3d" },
+                                        { value: "7d", label: "7d" },
+                                        { value: "30d", label: "30d" },
+                                    ]}
+                                    value={selectedPChange}
+                                    onChange={handleUIChange}
+                                    height={28}
+                                />
+                            </th>
                             {xListeCol[12][1] === 1 ? (<th className="thcenter tooltipcell" onClick={(e) => handleTooltip("yield", "th", "", e)}>Yield</th>) : ("")}
                             {xListeCol[13][1] === 1 ? (<th className="thcenter tooltipcell" onClick={(e) => handleTooltip("harvest", "th", "", e)}>Harvest<div style={{ fontSize: "10px" }}>average</div></th>) : ("")}
                             {xListeCol[14][1] === 1 ? (<th className="thcenter tooltipcell" onClick={(e) => handleTooltip("toharvest", "th", "", e)}>ToHarvest<div style={{ fontSize: "10px" }}>growing</div></th>) : ("")}
                             {xListeCol[19][1] === 1 ? (<th className="tdcenterbrd">
-                                <div className="selectreadyback"><FormControl variant="standard" id="formselectquant" className="selectquant" size="small">
-                                    <InputLabel>Ready</InputLabel>
-                                    <Select name="selectedReady" value={selectedReady} onChange={handleUIChange} onClick={(e) => e.stopPropagation()}>
-                                        <MenuItem value="when">When</MenuItem>
-                                        <MenuItem value="remain">Remain</MenuItem>
-                                    </Select></FormControl></div>
+                                <DList
+                                    name="selectedReady"
+                                    title="Ready"
+                                    options={[
+                                        { value: "when", label: "When" },
+                                        { value: "remain", label: "Remain" },
+                                    ]}
+                                    value={selectedReady}
+                                    onChange={handleUIChange}
+                                    height={28}
+                                />
                             </th>) : ("")}
                             {xListeCol[15][1] === 1 ? (<th className="thcenter tooltipcell" style={{ color: `rgb(160, 160, 160)` }}
                                 onClick={(e) => handleTooltip("1restock", "th", "", e)}>1restock</th>) : ("")}
@@ -662,7 +704,7 @@ function setInvContent(pinventoryEntries, sortedInventoryItems, totCost, totShop
             //dProdtry[item] = it[item].farmit ? bhrvstItem * (item === "Egg" ? rhdmaxtry : rharvesttry) : 0;
             //const hrvstdmaxx = (icat === "fruit" ? !TryChecked ? iharvestdmax : iharvestdmaxtry : item === "Egg" ? !TryChecked ? iharvestdmax : iharvestdmaxtry : iharvest);
             //const dailyprodmx = hrvstdmx * hrvstdmaxx;
-            //const iburn = xBurning[burnortry][item] ? xBurning[burnortry][item] : 0;
+            const iburn = xBurning[burnortry][item] ? xBurning[burnortry][item] : 0;
             /* if (!cstPrices?.[xIndex]) {
                 const newcstPrices = { ...cstPrices };
                 newcstPrices[xIndex] = (it[item]?.tradmax || 0);
@@ -671,7 +713,7 @@ function setInvContent(pinventoryEntries, sortedInventoryItems, totCost, totShop
             if (ifrmit === 1 && icat === "crop") { totTimeCrp += (!TryChecked ? (xHrvst[item] ?? idailycycle) : (xHrvsttry[item] ?? idailycycle)) * timmenbr }
             if (ifrmit === 1 && (icat === "mineral" || icat === "gem" || icat === "wood")) { totTimeRs += tmstk }
             const customPrice = cstPrices?.[item] ?? (it?.[item]?.tradmax ?? 0);
-            const quantNHrvst = (TryChecked ? (xHrvsttry[item]) : (xHrvst[item])) * iharvest;
+            const quantNHrvst = ((TryChecked ? (xHrvsttry[item]) : (xHrvst[item])) * iharvest) - iburn;
             const iQuant =
                 selectedQuantity === "daily"
                     ? (ifrmit === 1 ? quantNHrvst : 0)
@@ -864,6 +906,16 @@ function setInvContent(pinventoryEntries, sortedInventoryItems, totCost, totShop
             }
             cellCoinRatioStyle.borderBottom = cellStyle.borderBottom;
             cellCoinRatioStyle.borderTop = cellStyle.borderTop;
+            let tooltipContnt = [];
+            let tltpDBurn = "";
+            if (selectedQuantity === "daily") {
+                tooltipContnt = [
+                    iburn,
+                    TryChecked ? (xHrvsttry[item]) : (xHrvst[item]),
+                    iharvest
+                ];
+                tltpDBurn = "dailyBurn";
+            }
             return (
                 <>
                     <tr key={xIndex}>
@@ -920,7 +972,8 @@ function setInvContent(pinventoryEntries, sortedInventoryItems, totCost, totShop
                                     />
                                 </td>
                             ) : (
-                                <td className="tdcenter" style={{ ...cellStyle, color: `rgb(160, 160, 160)` }}>
+                                <td className="tdcenter" style={{ ...cellStyle, color: `rgb(160, 160, 160)` }}
+                                    onClick={(e) => handleTooltip(item, tltpDBurn, tooltipContnt, e)}>
                                     {parseFloat(iQuant).toFixed(2)}
                                 </td>
                             )
@@ -946,7 +999,7 @@ function setInvContent(pinventoryEntries, sortedInventoryItems, totCost, totShop
                             onClick={(event) => handleTradeListClick(inputValue, ido, "OS")} style={cellStyle} title={titleOS}>{puOS !== 0 ? frmtNb(pOS) : ""}</td>) : ("")}
                         {xListeCol[18][1] === 1 && xListeCol[9][1] === 1 ? (<td classname="tooltipcell" style={{ ...cellStyle, color: colorO, textAlign: 'center', fontSize: '8px' }}
                             onClick={(e) => handleTooltip(item, "coef", coefO, e)}>{coefO > 0 ? coefO : ""}</td>) : ("")}
-                        {xListeCol[3][1] === 1 ? (<td style={{ ...cellStyle, fontSize: "11px", color: colorPChange }}>{imgpriceChange}{txtpriceChange}</td>) : ("")}
+                        {xListeCol[3][1] === 1 ? (<td className="tdcenter" style={{ ...cellStyle, fontSize: "11px", color: colorPChange }}>{imgpriceChange}{txtpriceChange}</td>) : ("")}
                         {xListeCol[12][1] === 1 ? (<td className="tdcenter tooltipcell" style={{ ...cellStyle, color: `rgb(255, 234, 204)` }} onClick={(e) => handleTooltip(item, "trynft", "yield", e)}>
                             {parseFloat(imyield).toFixed(2)}</td>) : ("")}
                         {xListeCol[13][1] === 1 ? (<td className="tdcenter tooltipcell" style={{ ...cellStyle, color: `rgb(255, 225, 183)` }} onClick={(e) => handleTooltip(item, "harvest", 0, e)}>
@@ -954,7 +1007,7 @@ function setInvContent(pinventoryEntries, sortedInventoryItems, totCost, totShop
                         {xListeCol[14][1] === 1 ? (<td className="tdcenter tooltipcell" style={{ ...cellStyle, color: `rgb(253, 215, 162)` }} onClick={(e) => handleTooltip(item, "harvest", i2bharvest, e)}>
                             {i2bharvest > 0 ? parseFloat(i2bharvest).toFixed(2) : ""}{bswarm && imgbee}{issick ? imgsick : needslove && imglove}</td>) : ("")}
                         {xListeCol[19][1] === 1 ? (<td id={`timer-${xIndex}`} className="tdcenterbrd" style={cellStyle}>{(i2bharvest > 0 || item === "Honey" ? selectedReady === "when" ?
-                            (<span>{formatdate(irdyat)}{' '}{ximgrdy}</span>) : timerElement : "")}</td>) : ("")}
+                            (<span>{irdyat ? formatdate(irdyat) : ''}{' '}{ximgrdy}</span>) : timerElement : "")}</td>) : ("")}
                         {xListeCol[15][1] === 1 ? (<td className="tdcenter" style={{ ...cellStyle, color: `rgb(160, 160, 160)` }}>{BBprod > 0 ? parseFloat(BBprod).toFixed(2) : ""}</td>) : ("")}
                         {xListeCol[16][1] === 1 ? (<td className="tdcenter tooltipcell" style={{ ...cellStyle, ...cellDSflStyle }}
                             title={titleDsfl} onClick={(e) => handleTooltip(item, "dailysfl", costp, e)}>

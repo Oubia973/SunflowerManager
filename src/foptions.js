@@ -1,5 +1,6 @@
 import React, { useEffect, useState, useRef } from 'react';
 import DropdownCheckbox from './listcol.js';
+import DList from "./dlist.jsx";
 import { FormControl, InputLabel, Select, MenuItem, Switch, FormControlLabel } from '@mui/material';
 import { frmtNb } from './fct.js';
 
@@ -12,6 +13,13 @@ function ModalOptions({ onClose, dataSet, onOptionChange, API_URL }) {
     const [isOpen, setIsOpen] = useState(false);
     const [justOpened, setJustOpened] = useState(true);
     const [tradeTax, setTradeTax] = useState(dataSet.tradeTax || "");
+    const [gemsPack, setGemsPack] = useState(Number(dataSet.gemsPack || 2800));
+    const [draftOptions, setDraftOptions] = useState(() => ({
+        inputFarmTime: String(dataSet.inputFarmTime ?? 15),
+        inputMaxBB: String(dataSet.inputMaxBB ?? 1),
+        coinsRatio: String(dataSet.coinsRatio ?? 1000),
+        animalLvl: { ...(dataSet.animalLvl || {}) },
+    }));
     //const [gemRatio, setGemRatio] = useState(dataSet.gemsRatio || "");
     //const [pos, setPos] = useState({ x: clickPosition.x, y: clickPosition.y });
     //const [inputFarmTime, setInputFarmTime] = useState(dataSet.inputFarmTime);
@@ -108,24 +116,40 @@ function ModalOptions({ onClose, dataSet, onOptionChange, API_URL }) {
     };
     function handleChangeTradeTax(e) {
         setTradeTax(e.target.value);
-        onOptionChange(e);
+    }
+    const sanitizeNumber = (raw, { min = null, max = null, fallback = 0, allowDecimal = false } = {}) => {
+        const cleaned = allowDecimal
+            ? String(raw ?? "").replace(/[^0-9.]/g, "")
+            : String(raw ?? "").replace(/\D/g, "");
+        let xvalue = Number(cleaned);
+        if (isNaN(xvalue)) xvalue = fallback;
+        if (min !== null && xvalue < min) xvalue = min;
+        if (max !== null && xvalue > max) xvalue = max;
+        return xvalue;
+    };
+    const commitNumber = (name, raw, opts) => {
+        const value = sanitizeNumber(raw, opts);
+        onOptionChange({ target: { name, value } });
+        return value;
     }
     function handleChangeGemRatio(e) {
-        e.name = "gemsRatio";
-        dataSet.gemsPack = e.target.value;
-        const gemPack = dataSet.gemsPack;
-        let gemRatioValue = 0;
+        const gemPack = Number(e.target.value);
+        setGemsPack(gemPack);
+        dataSet.gemsPack = gemPack;
         const usdFlwr = Number(dataSet.usdSfl) || 0;
-        if (gemPack === "100") { gemRatioValue = (0.9 / usdFlwr) / gemPack }
-        if (gemPack === "650") { gemRatioValue = (4.54 / usdFlwr) / gemPack }
-        if (gemPack === "1350") { gemRatioValue = (9.09 / usdFlwr) / gemPack }
-        if (gemPack === "2800") { gemRatioValue = (18.19 / usdFlwr) / gemPack }
-        if (gemPack === "7400") { gemRatioValue = (45.49 / usdFlwr) / gemPack }
-        if (gemPack === "15500") { gemRatioValue = (90.99 / usdFlwr) / gemPack }
-        if (gemPack === "200000") { gemRatioValue = (909.99 / usdFlwr) / gemPack }
+        let gemRatioValue = 0;
+        if (usdFlwr > 0) {
+            if (gemPack === 100) gemRatioValue = (0.9 / usdFlwr) / gemPack;
+            if (gemPack === 650) gemRatioValue = (4.54 / usdFlwr) / gemPack;
+            if (gemPack === 1350) gemRatioValue = (9.09 / usdFlwr) / gemPack;
+            if (gemPack === 2800) gemRatioValue = (18.19 / usdFlwr) / gemPack;
+            if (gemPack === 7400) gemRatioValue = (45.49 / usdFlwr) / gemPack;
+            if (gemPack === 15500) gemRatioValue = (90.99 / usdFlwr) / gemPack;
+            if (gemPack === 200000) gemRatioValue = (909.99 / usdFlwr) / gemPack;
+        }
         dataSet.gemsRatio = gemRatioValue;
         setGemRatio(gemRatioValue);
-        onOptionChange(e);
+        onOptionChange({ target: { name: "GemsRatio", value: gemRatioValue } });
     }
     const handleClickOutside = (event) => {
         if (justOpened) return;
@@ -153,6 +177,15 @@ function ModalOptions({ onClose, dataSet, onOptionChange, API_URL }) {
     }, [justOpened]);
     useEffect(() => {
         //setTradeTax(dataSet.tradeTax || "");
+    }, [dataSet]);
+    useEffect(() => {
+        setDraftOptions({
+            inputFarmTime: String(dataSet.inputFarmTime ?? 15),
+            inputMaxBB: String(dataSet.inputMaxBB ?? 1),
+            coinsRatio: String(dataSet.coinsRatio ?? 1000),
+            animalLvl: { ...(dataSet.animalLvl || {}) },
+        });
+        setTradeTax(dataSet.tradeTax ?? "");
     }, [dataSet]);
     return (
         <div className={`tooltip-wrapper ${isOpen ? "open" : ""}`}
@@ -184,9 +217,21 @@ function ModalOptions({ onClose, dataSet, onOptionChange, API_URL }) {
                 <span style={{ fontWeight: "bold", fontSize: "16px" }}>Preferences</span>
                 <div><input type="checkbox" onChange={onOptionChange} checked={!!dataSet.checkPlacedEquiped || 0}
                     name={"checkPlacedEquiped"} style={{ width: "18px", height: "18px", marginRight: 12 }} />Check boosts placed/equipped</div>
-                <div><input type="number" onChange={onOptionChange} value={dataSet.inputFarmTime || 15}
+                <div><input type="number"
+                    onChange={(e) => setDraftOptions(prev => ({ ...prev, inputFarmTime: e.target.value }))}
+                    onBlur={(e) => {
+                        const value = commitNumber("FarmTime", e.target.value, { min: 1, max: 24, fallback: 15 });
+                        setDraftOptions(prev => ({ ...prev, inputFarmTime: String(value) }));
+                    }}
+                    value={draftOptions.inputFarmTime}
                     name={"FarmTime"} style={{ textAlign: "left", width: "45px" }} />Hours you can check your farm daily</div>
-                <div><input type="number" onChange={onOptionChange} value={dataSet.inputMaxBB || 1}
+                <div><input type="number"
+                    onChange={(e) => setDraftOptions(prev => ({ ...prev, inputMaxBB: e.target.value }))}
+                    onBlur={(e) => {
+                        const value = commitNumber("inputMaxBB", e.target.value, { min: 0, fallback: 1 });
+                        setDraftOptions(prev => ({ ...prev, inputMaxBB: String(value) }));
+                    }}
+                    value={draftOptions.inputMaxBB}
                     name={"inputMaxBB"} style={{ textAlign: "left", width: "45px" }} />Restock daily</div>
                 <div><input type="checkbox" onChange={onOptionChange} checked={!!dataSet.autoRefill || 0}
                     name={"autoRefill"} style={{ width: "18px", height: "18px", marginRight: 12 }} />Auto restock by time
@@ -196,14 +241,19 @@ function ModalOptions({ onClose, dataSet, onOptionChange, API_URL }) {
                     name={"restockCostDaily"} style={{ width: "18px", height: "18px", marginRight: 12 }} />Restock counted in daily</div>
                 <div><input type="checkbox" onChange={onOptionChange} checked={!!dataSet.averageDailyCycles || 0}
                     name={"averageDailyCycles"} style={{ width: "18px", height: "18px", marginRight: 12 }} />Daily cycles average when more than 24h</div>
-                <div><input type="number" onChange={onOptionChange} value={dataSet.coinsRatio || 1000}
+                <div><input type="number"
+                    onChange={(e) => setDraftOptions(prev => ({ ...prev, coinsRatio: e.target.value }))}
+                    onBlur={(e) => {
+                        const value = commitNumber("CoinsRatio", e.target.value, { min: 300, fallback: 1000 });
+                        setDraftOptions(prev => ({ ...prev, coinsRatio: String(value) }));
+                    }}
+                    value={draftOptions.coinsRatio}
                     name={"CoinsRatio"} style={{ textAlign: "left", width: "45px" }} />Coins{imgcoins}/{imgsfl}Flower
                     <input type="checkbox" onChange={onOptionChange} checked={!!dataSet.autoCoinRatio || 0}
                         name={"autoCoinRatio"} style={{ width: "18px", height: "18px", marginRight: 6 }} />Auto</div>
                 <div style={{ display: 'flex', alignItems: 'center' }}><input type="text" disabled onChange={onOptionChange} value={dataSet.gemsRatio || 0.07}
                     name={"GemsRatio"} style={{ textAlign: "left", width: "45px" }} />Flower{imgsfl}/{imggems}Gems
-                    <div className="selectinvback" style={{ display: 'flex', alignItems: 'left', height: '20px', width: '80px', margin: "0", padding: "0" }}>
-                        <FormControl variant="standard" id="formselectinv" className="selectinv" size="small">
+                    {/* <FormControl variant="standard" id="formselectinv" className="selectinv" size="small">
                             <InputLabel></InputLabel>
                             <Select value={dataSet.gemsPack} onChange={handleChangeGemRatio}>
                                 <MenuItem value="100">100{imggems}</MenuItem>
@@ -214,10 +264,29 @@ function ModalOptions({ onClose, dataSet, onOptionChange, API_URL }) {
                                 <MenuItem value="15500">15k5{imggems}</MenuItem>
                                 <MenuItem value="200000">200k{imggems}</MenuItem>
                             </Select>
-                        </FormControl>
-                    </div>
+                        </FormControl> */}
+                    <DList
+                        name="gemPack"
+                        options={[
+                            { value: 100, label: (<span style={{ display: "inline-flex", alignItems: "center", gap: 4 }}>100{imggems}</span>) },
+                            { value: 650, label: (<span style={{ display: "inline-flex", alignItems: "center", gap: 4 }}>650{imggems}</span>) },
+                            { value: 1350, label: (<span style={{ display: "inline-flex", alignItems: "center", gap: 4 }}>1350{imggems}</span>) },
+                            { value: 2800, label: (<span style={{ display: "inline-flex", alignItems: "center", gap: 4 }}>2800{imggems}</span>) },
+                            { value: 7400, label: (<span style={{ display: "inline-flex", alignItems: "center", gap: 4 }}>7400{imggems}</span>) },
+                            { value: 15500, label: (<span style={{ display: "inline-flex", alignItems: "center", gap: 4 }}>15500{imggems}</span>) },
+                            { value: 200000, label: (<span style={{ display: "inline-flex", alignItems: "center", gap: 4 }}>200000{imggems}</span>) },
+                        ]}
+                        value={gemsPack}
+                        onChange={handleChangeGemRatio}
+                    />
                 </div>
-                <div style={{ display: "flex", alignItems: "center", gap: 2 }}><input type="number" onChange={handleChangeTradeTax} value={tradeTax}
+                <div style={{ display: "flex", alignItems: "center", gap: 2 }}><input type="number"
+                    onChange={handleChangeTradeTax}
+                    onBlur={(e) => {
+                        const value = commitNumber("tradeTax", e.target.value, { min: 0, fallback: 0, allowDecimal: true });
+                        setTradeTax(String(value));
+                    }}
+                    value={tradeTax}
                     name={"tradeTax"} style={{ textAlign: "left", width: "45px" }} />
                     <button
                         onPointerDown={(e) => {
@@ -257,18 +326,28 @@ function ModalOptions({ onClose, dataSet, onOptionChange, API_URL }) {
                             min={1}
                             max={15}
                             name={`animalLvl_${animal}`}
-                            value={lvl}
+                            value={(draftOptions.animalLvl && draftOptions.animalLvl[animal] !== undefined)
+                                ? draftOptions.animalLvl[animal]
+                                : lvl}
                             onChange={e => {
-                                let xvalue = e.target.value;
-                                if (isNaN(xvalue)) xvalue = 7;
-                                if (xvalue < 1) xvalue = 1;
-                                if (xvalue > 15) xvalue = 15;
-                                onOptionChange({
-                                    target: {
-                                        name: `animalLvl_${animal}`,
-                                        value: xvalue
-                                    }
-                                });
+                                const value = e.target.value;
+                                setDraftOptions(prev => ({
+                                    ...prev,
+                                    animalLvl: {
+                                        ...(prev.animalLvl || {}),
+                                        [animal]: value,
+                                    },
+                                }));
+                            }}
+                            onBlur={e => {
+                                const value = commitNumber(`animalLvl_${animal}`, e.target.value, { min: 1, max: 15, fallback: 7 });
+                                setDraftOptions(prev => ({
+                                    ...prev,
+                                    animalLvl: {
+                                        ...(prev.animalLvl || {}),
+                                        [animal]: String(value),
+                                    },
+                                }));
                             }}
                             style={{ textAlign: "left", width: "45px" }}
                         />
@@ -284,11 +363,22 @@ function ModalOptions({ onClose, dataSet, onOptionChange, API_URL }) {
                         style={{ width: "18px", height: "18px", marginRight: 6 }}
                     />
                     <span style={{ fontSize: 15, marginRight: 6 }}>Notifications</span>
-                    <DropdownCheckbox
+                    {/* <DropdownCheckbox
                         options={dataSet.notifList}
                         onChange={onOptionChange}
                         listIcon={"./options.png"}
-                    />
+                    /> */}
+                    <div className="dlist-icon-only">
+                        <DList
+                            name="NotifList"
+                            options={dataSet.notifList}
+                            onChange={onOptionChange}
+                            listIcon={"./options.png"}
+                            multiple
+                            clearable={false}
+                            emitEvent={false}
+                        />
+                    </div>
                 </div>
                 <div><input type="checkbox" onChange={onOptionChange} checked={!!dataSet.oilFood}
                     name={"oilFood"} style={{ width: "18px", height: "18px", marginRight: 12 }} />use Oil for foods</div>

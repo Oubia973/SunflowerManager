@@ -299,8 +299,24 @@ function ModalTNFT({ onClose }) {
     const keySpot = "spot" + (tier || "") + "try";
     const xOtherTier = tier ? (tier === "3" ? "2" : "3") : "";
     const keySpotOther = "spot" + xOtherTier + "try";
-    const xvalue = xOtherTier ? it[item].spottry >= value + it[item][keySpotOther] ? value : it[item].spottry - it[item][keySpotOther] : value;
-    const newIt = { ...it, [item]: { ...it[item], [keySpot]: xvalue }, };
+    const getSpotValue = (itemObj) => (
+      xOtherTier
+        ? (itemObj.spottry >= value + itemObj[keySpotOther] ? value : itemObj.spottry - itemObj[keySpotOther])
+        : value
+    );
+    const isCrop = it[item]?.cat === "crop" && !it[item]?.greenhouse;
+    let newIt = { ...it };
+    if (isCrop) {
+      Object.keys(newIt).forEach((itemKey) => {
+        if (newIt[itemKey]?.cat === "crop" && !newIt[itemKey]?.greenhouse) {
+          const xvalue = getSpotValue(newIt[itemKey]);
+          newIt[itemKey] = { ...newIt[itemKey], [keySpot]: xvalue };
+        }
+      });
+    } else {
+      const xvalue = getSpotValue(it[item]);
+      newIt = { ...it, [item]: { ...it[item], [keySpot]: xvalue }, };
+    }
     const newDataSetLocal = { ...dataSetLocal, itables: { ...dataSetLocal.itables, it: newIt, }, };
     //const newbase = { ...it, [item]: { ...it[item], [keySpot]: xvalue } };
     //const newDataSetLocal = { ...dataSetLocal, ["it"]: newbase };
@@ -564,7 +580,18 @@ function ModalTNFT({ onClose }) {
         Machinery: { 2: 2, 3: 5 },
         Compost: { 2: 3, 3: 7 }
       };
+      let currentCategory = null;
       for (const [items, values] of skillEntries) {
+        if (values.cat !== currentCategory) {
+          currentCategory = values.cat;
+          NFT.push(
+            <tr>
+              <td colSpan={5} style={{ textAlign: "center", fontWeight: "bold" }}>
+                {currentCategory}
+              </td>
+            </tr>
+          );
+        }
         if (!tierPoints[skill[items].cat]) { tierPoints[skill[items].cat] = {}; }
         if (!tierPoints[skill[items].cat][skill[items].tier]) { tierPoints[skill[items].cat][skill[items].tier] = 0; }
         if (values.tryit) {

@@ -2,6 +2,7 @@ import React from "react";
 import { useAppCtx } from "../context/AppCtx";
 import { FormControl, InputLabel, Select, MenuItem } from '@mui/material';
 import { frmtNb, convtimenbr, convTime, ColorValue } from '../fct.js';
+import DList from "../dlist.jsx";
 
 
 export default function CropMachineTable() {
@@ -128,13 +129,26 @@ export default function CropMachineTable() {
                     {xListeColBounty[0][1] === 2 ? <th className="thcenter">Name</th> : null}
                     {xListeColBounty[1][1] === 1 ? <th className="thcenter">Time</th> : null}
                     {xListeColBounty[2][1] === 1 ? <th className="thcenter">
-                        <div className="selectquantityback"><FormControl variant="standard" id="formselectquant" className="selectquant" size="small">
+                        {/* <div className="selectquantityback"><FormControl variant="standard" id="formselectquant" className="selectquant" size="small">
                             <InputLabel>Seeds</InputLabel>
                             <Select name="selectedSeedsCM" value={selectedSeedsCM} onChange={handleUIChange} onClick={(e) => e.stopPropagation()}>
                                 <MenuItem value="stock">Stock</MenuItem>
                                 <MenuItem value="max">Max</MenuItem>
                                 <MenuItem value="custom">Custom</MenuItem>
-                            </Select></FormControl></div></th> : null}
+                            </Select></FormControl></div> */}
+                        <DList
+                            name="selectedSeedsCM"
+                            title="Seeds"
+                            options={[
+                                { value: "stock", label: "Stock" },
+                                { value: "max", label: "Max" },
+                                { value: "custom", label: "Custom" },
+                            ]}
+                            value={selectedSeedsCM}
+                            onChange={handleUIChange}
+                            height={28}
+                        />
+                    </th> : null}
                     {/* {xListeColBounty[2][1] === 1 ? <th className="thcenter">nHarvst</th> : null} */}
                     {xListeColBounty[1][1] === 1 ? <th className="thcenter">Harvest <div>Average</div></th> : null}
                     {xListeColBounty[3][1] === 1 ? <th className="thcenter"><div style={{ fontSize: "11px" }}>Harvest</div>Cost</th> : null}

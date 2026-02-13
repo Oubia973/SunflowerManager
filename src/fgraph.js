@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import Graph from './graph.js';
 import { FormControl, InputLabel, Select, MenuItem } from '@mui/material';
+import DList from "./dlist.jsx";
 
 function ModalGraph({ onClose, graphtype, frmid, dataSetFarm, API_URL, username }) {
   const [chartData, setChartData] = useState([]);
@@ -90,7 +91,7 @@ function ModalGraph({ onClose, graphtype, frmid, dataSetFarm, API_URL, username 
         {/* <button onClick={handlePriceClick}>Prices</button>
         {(graphtype === "OpenSea") && <button onClick={handleSupplyClick}>Supply</button>}
         {(graphtype === "Trader" || graphtype === "OpenSea") && <button onClick={handleTradesClick}>Trades number</button>} */}
-        <div className="selectgraphdateback">
+        {/* <div className="selectgraphdateback">
           <FormControl id="formselectgraphdate" className="selectgraphdate" size="small">
             <InputLabel></InputLabel>
             <Select value={Graphstartdate} onChange={handleChangeGraphdate}>
@@ -100,7 +101,20 @@ function ModalGraph({ onClose, graphtype, frmid, dataSetFarm, API_URL, username 
               <MenuItem value="3m">3m</MenuItem>
             </Select>
           </FormControl>
-        </div>
+        </div> */}
+        <DList
+          name="Graphstartdate"
+          title="Graph period"
+          options={[
+            { value: "24h", label: "24h" },
+            { value: "7d", label: "7 days" },
+            { value: "31d", label: "1 month" },
+            { value: "3m", label: "3 month" },
+          ]}
+          value={Graphstartdate}
+          onChange={handleChangeGraphdate}
+          height={25}
+        />
       </div>
       <div className="modalgraph-content" style={{ width: '100%', height: '100%' }}>
         <Graph data={chartData} vals={vals} dataSetFarm={dataSetFarm} />

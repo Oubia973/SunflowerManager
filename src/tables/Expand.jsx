@@ -2,6 +2,7 @@ import React from "react";
 import { useAppCtx } from "../context/AppCtx";
 import { FormControl, InputLabel, Select, MenuItem } from '@mui/material';
 import { frmtNb, convTime } from '../fct.js';
+import DList from "../dlist.jsx";
 
 export default function ExpandTable() {
   const {
@@ -21,6 +22,8 @@ export default function ExpandTable() {
       imgcrop,
       imgwood,
       imgstone,
+      imgexchng,
+      imgExchng
     }
   } = useAppCtx();
   if (farmData.inventory) {
@@ -49,7 +52,7 @@ export default function ExpandTable() {
     const imgcrimstoneres = <img src="./icon/res/crimstone.png" alt={''} className="itico" title="Crimstone" />;
     const imgoilres = <img src="./icon/res/oil.webp" alt={''} className="itico" title="Oil" />;
     const imgobsidianres = <img src="./icon/res/obsidian.webp" alt={''} className="itico" title="Obsidian" />;
-    const imgbbres = <img src="./icon/res/gem.webp" alt={''} className="itico" title="Block Buck" />;
+    const imgbbres = <img src="./icon/res/gem.webp" alt={''} className="itico" title="Gems" />;
     const imgcoinres = <img src="./icon/res/coins.png" alt={''} className="itico" title="Coins" />;
     const imgsflres = <img src={imgsfl} alt={''} className="itico" title="Flower" />;
     const itotTime = fromtoexpand.expand.totalTime / (60 * 60 * 24);
@@ -57,6 +60,7 @@ export default function ExpandTable() {
     const imglvl = './icon/ui/confirm.png';
     const tableContent = expKeys.map(([element]) => {
       let resTotal = 0;
+      let resTotalM = 0;
       i++;
       //const indx = Number(element);
       //const cobj = expand[i];
@@ -95,6 +99,12 @@ export default function ExpandTable() {
               resValue
               : ((!TryChecked ? it[resItem].cost : it[resItem].costtry) * resValue);
           resTotal += (resPrice / dataSet.options.coinsRatio);
+          const resPriceM = resItem === "Block Buck" ?
+            resValue * (dataSet.options?.gemsRatio || 0.07)
+            : resItem === "Coins" ?
+              resValue / dataSet.options.coinsRatio
+              : ((it[resItem].costp2pt) * resValue);
+          resTotalM += (resPriceM);
         }
       }
       return (
@@ -144,10 +154,12 @@ export default function ExpandTable() {
           {xListeColExpand[4][1] === 1 ? <td className="tdcenter">{resBB}</td> : null}
           {xListeColExpand[4][1] === 1 ? <td className="tdcenter">{resCoins}</td> : null}
           {xListeColExpand[4][1] === 1 ? <td className="tdcenter">{frmtNb(resTotal)}</td> : null}
+          {xListeColExpand[4][1] === 1 ? <td className="tdcenter">{frmtNb(resTotalM)}</td> : null}
         </tr>
       );
     });
     let resTTotal = 0;
+    let resTTotalM = 0;
     for (let [resItem, resValue] of Object.entries(fromtoexpand.expand.totalResources)) {
       //console.log("hello");
       const resPrice = resItem === "Block Buck" ?
@@ -156,19 +168,39 @@ export default function ExpandTable() {
           resValue
           : ((!TryChecked ? it[resItem].cost : it[resItem].costtry) * resValue);
       resTTotal += (resPrice / dataSet.options.coinsRatio);
+      const resPriceM = resItem === "Block Buck" ?
+        resValue * (dataSet.options?.gemsRatio || 0.07)
+        : resItem === "Coins" ?
+          resValue / dataSet.options.coinsRatio
+          : (it[resItem].costp2pt * resValue);
+      resTTotalM += (resPriceM);
     }
     const tableHeader = (
       <thead>
         <tr>
           {xListeColExpand[0][1] === 1 ? <th className="th-icon">
-            <div className="selectquantback" style={{ top: `4px` }}><FormControl variant="standard" id="formselectquant" className="selectquant" size="small">
+            {/* <div className="selectquantback" style={{ top: `4px` }}><FormControl variant="standard" id="formselectquant" className="selectquant" size="small">
               <InputLabel>LVL</InputLabel>
               <Select name="selectedExpandType" value={selectedExpandType} onChange={handleUIChange}>
                 <MenuItem value="basic">Basic</MenuItem>
                 <MenuItem value="spring">Spring</MenuItem>
                 <MenuItem value="desert">Desert</MenuItem>
                 <MenuItem value="volcano">Volcan</MenuItem>
-              </Select></FormControl></div></th> : null}
+              </Select></FormControl></div> */}
+              <DList
+                name="selectedExpandType"
+                title="LVL"
+                options={[
+                  { value: "basic", label: "Basic" },
+                  { value: "spring", label: "Spring" },
+                  { value: "desert", label: "Desert" },
+                  { value: "volcano", label: "Volcan" },
+                ]}
+                value={selectedExpandType}
+                onChange={handleUIChange}
+                height={28}
+              />
+              </th> : null}
           {xListeColExpand[1][1] === 1 ? <th className="thcenter">Bumpkin</th> : null}
           <th className="tdcenter">Farm</th>
           {xListeColExpand[2][1] === 1 ? <th className="thcenter">From</th> : null}
@@ -195,6 +227,7 @@ export default function ExpandTable() {
           {xListeColExpand[4][1] === 1 ? <th className="thcenter">{imgbbres}</th> : null}
           {xListeColExpand[4][1] === 1 ? <th className="thcenter">{imgcoinres}</th> : null}
           {xListeColExpand[4][1] === 1 ? <th className="thcenter">Value {imgsflres}</th> : null}
+          {xListeColExpand[4][1] === 1 ? <th className="thcenter">{imgExchng}</th> : null}
         </tr>
         <tr>
           {xListeColExpand[0][1] === 1 ? <td className="tdcenter">TOTAL</td> : null}
@@ -224,6 +257,7 @@ export default function ExpandTable() {
           {xListeColExpand[4][1] === 1 ? <td className="tdcenter">{fromtoexpand.expand.totalResources["Block Buck"]}</td> : null}
           {xListeColExpand[4][1] === 1 ? <td className="tdcenter">{fromtoexpand.expand.totalResources.Coins}</td> : null}
           {xListeColExpand[4][1] === 1 ? <td className="tdcenter">{frmtNb(resTTotal)}</td> : null}
+          {xListeColExpand[4][1] === 1 ? <td className="tdcenter">{frmtNb(resTTotalM)}</td> : null}
         </tr>
       </thead>
     );

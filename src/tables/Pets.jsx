@@ -2,6 +2,7 @@ import React from "react";
 import { useAppCtx } from "../context/AppCtx";
 import { FormControl, InputLabel, Select, MenuItem } from '@mui/material';
 import { frmtNb } from '../fct.js';
+import DList from "../dlist.jsx";
 
 export default function PetsTable() {
   const {
@@ -116,7 +117,7 @@ export default function PetsTable() {
           bib = Pets[petName]?.bib === "Collar" ? "+5xp" : Pets[petName]?.bib === "Gold Necklace" ? "+10xp" : "";
           foodCostTotal = Pets[petName][key("costsfl")] || 0;
           foodCostMTotal = Pets[petName].costp2p || 0;
-          energySfl = Pets[petName][key("nrgsfl")] || 0;
+          energySfl = (Pets[petName][key("nrgsfl")] || 0) * dataSet.options.coinsRatio;
           energyMSfl = Pets[petName][key("nrgsflp2p")] || 0;
           totalNrg = Pets[petName][key("totnrg")] || 0;
           curNrg = Pets[petName].curnrg || 0;
@@ -190,11 +191,11 @@ export default function PetsTable() {
       const supply = s?.supply || 0;
       const compIcons = Object.entries(compo).map(([comp, qty]) => {
         let itemTable = {};
-        if (it[comp]) {itemTable = it;}
-        if (petit[comp]) {itemTable = petit;}
+        if (it[comp]) { itemTable = it; }
+        if (petit[comp]) { itemTable = petit; }
         let cimg = itemTable?.[comp]?.img || "./icon/nft/na.png";
-        let coinRatioOrNot = (itemTable !== petit) ? dataSet.options.coinsRatio : 1;
-        compTotal += qty * ((itemTable?.[comp]?.[key("cost")] || 0) / coinRatioOrNot);
+        //let coinRatioOrNot = (itemTable !== petit) ? dataSet.options.coinsRatio : 1;
+        compTotal += qty * ((itemTable?.[comp]?.[key("cost")] || 0) / dataSet.options.coinsRatio);
         compMTotal += qty * itemTable?.[comp]?.costp2pt || 0;
         return (
           <span key={comp} title={`${comp}×${qty}`} style={{ marginRight: 8 }}>
@@ -258,7 +259,7 @@ export default function PetsTable() {
       const cinfo = petit[c] || {};
       const cimg = cinfo.img || "./icon/nft/na.png";
       const energy = cinfo.energy || 0;
-      const cost = cinfo[key("cost")] !== cinfo.costp2pt ? frmtNb(cinfo[key("cost")]) : "";
+      const cost = ((cinfo[key("cost")] / dataSet.options.coinsRatio) !== cinfo.costp2pt) ? frmtNb(cinfo[key("cost")] / dataSet.options.coinsRatio) : 0;
       const cp2pt = cinfo.costp2pt || 0;
       const cstock = cinfo.instock || 0;
       const catArr = compToCats[c] || [];
@@ -322,7 +323,7 @@ export default function PetsTable() {
               /></td>) :
             (<td className="tdcenter">{frmtNb(iQuant)}</td>) : ("")}
           <td className="tdcenter" style={{ padding: "0 10px" }}>{frmtNb(iNrg)}</td>
-          <td className="tdcenter" style={{ padding: "0 10px" }} onClick={(e) => handleTooltip(c, "fetchcost", 0, e)}>{frmtNb(iCost)}</td>
+          <td className="tdcenter" style={{ padding: "0 10px" }} onClick={(e) => handleTooltip(c, "fetchcost", 0, e)}>{iCost > 0 ? frmtNb(iCost) : ""}</td>
           <td className="tdcenter" style={{ padding: "0 10px" }}>{frmtNb(iMarket)}</td>
           <td className="tdcenter">{c === "Moonfur" ? "All NFT" : c === "Acorn" ? "All" : (catIcons.length ? catIcons : <i>N/A</i>)}</td>
           <td className="tdcenter">{c === "Acorn" ? "All" : shrineBadges.length ? shrineBadges : <i>N/A</i>}</td>
@@ -336,14 +337,28 @@ export default function PetsTable() {
             <th className="th-icon"></th>
             <th className="thcenter">Component</th>
             {xListeColBounty[2][1] === 1 ? <th className="thcenter">
-              <div className="selectquantityback"><FormControl variant="standard" id="formselectquant" className="selectquant" size="small">
+              {/* <div className="selectquantityback"><FormControl variant="standard" id="formselectquant" className="selectquant" size="small">
                 <InputLabel>Quantity</InputLabel>
                 <Select name="selectedQuantFetch" value={selectedQuantFetch} onChange={handleUIChange} onClick={(e) => e.stopPropagation()}>
                   <MenuItem value="stock">Stock</MenuItem>
                   <MenuItem value="pets">Pets Daily</MenuItem>
                   <MenuItem value="petst">Pets Total</MenuItem>
                   <MenuItem value="custom">Custom</MenuItem>
-                </Select></FormControl></div></th> : null}
+                </Select></FormControl></div> */}
+              <DList
+                name="selectedQuantFetch"
+                title="Quantity"
+                options={[
+                  { value: "stock", label: "Stock" },
+                  { value: "pets", label: "Pets Daily" },
+                  { value: "petst", label: "Pets Total" },
+                  { value: "custom", label: "Custom" },
+                ]}
+                value={selectedQuantFetch}
+                onChange={handleUIChange}
+                height={28}
+              />
+            </th> : null}
             <th className="thcenter"><img src="./icon/ui/lightning.png" alt="" className="itico" title="Energy" /></th>
             <th className="thcenter">Cost</th>
             <th className="thcenter">{imgExchng}</th>

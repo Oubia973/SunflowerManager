@@ -1,6 +1,7 @@
 import React from "react";
 import { useAppCtx } from "../context/AppCtx";
 import { FormControl, InputLabel, Select, MenuItem } from '@mui/material';
+import DList from "../dlist.jsx";
 
 export default function DigTable() {
     const {
@@ -104,12 +105,24 @@ export default function DigTable() {
                     {xListeColBounty[0][1] === 1 ? <th className="thcenter">Name</th> : null}
                     {xListeColBounty[1][1] === 1 ? <th className="thcenter">Stock</th> : null}
                     {xListeColBounty[2][1] === 1 ? <th className="thcenter">
-                        <div className="selectquantityback"><FormControl variant="standard" id="formselectquant" className="selectquant" size="small">
+                        {/* <div className="selectquantityback"><FormControl variant="standard" id="formselectquant" className="selectquant" size="small">
                             <InputLabel>Value</InputLabel>
                             <Select name="selectedDigCur" value={selectedDigCur} onChange={handleUIChange} onClick={(e) => e.stopPropagation()}>
                                 <MenuItem value="sfl">{imgSfl}</MenuItem>
                                 <MenuItem value="coins">{imgCoins}</MenuItem>
-                            </Select></FormControl></div></th> : null}
+                            </Select></FormControl></div> */}
+                        <DList
+                            name="selectedDigCur"
+                            title="Value"
+                            options={[
+                                { value: "sfl", label: imgSfl },
+                                { value: "coins", label: imgCoins },
+                            ]}
+                            value={selectedDigCur}
+                            onChange={handleUIChange}
+                            height={28}
+                        />
+                    </th> : null}
                     {xListeColBounty[3][1] === 1 ? <th className="thcenter">Today</th> : null}
                     {xListeColBounty[4][1] === 1 ? <th className="thcenter">Value</th> : null}
                     {xListeColBounty[5][1] === 1 ? <th className="thcenter">Tool cost</th> : null}

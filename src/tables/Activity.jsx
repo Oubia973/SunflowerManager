@@ -2,7 +2,8 @@
 import React, { useEffect, useState } from "react";
 import { useAppCtx } from "../context/AppCtx";
 import { FormControl, InputLabel, Select, MenuItem } from '@mui/material';
-import { frmtNb } from '../fct.js';
+import { frmtNb, flattenCompoit } from '../fct.js';
+import DList from "../dlist.jsx";
 
 export default function ActivityTable() {
     const {
@@ -273,13 +274,26 @@ function setActivityDay(activityData, dataSetFarm, ui) {
             <thead>
                 <tr>
                     {xListeColActivity[0][1] === 1 ? <th className="th-icon">
-                        <div className="selectquantback" style={{ top: `4px` }}><FormControl variant="standard" id="formselectquant" className="selectquant" size="small">
+                        {/* <div className="selectquantback" style={{ top: `4px` }}><FormControl variant="standard" id="formselectquant" className="selectquant" size="small">
                             <InputLabel>From</InputLabel>
                             <Select name={"selectedFromActivityDay"} value={selectedFromActivityDay} onChange={handleUIChange}>
                                 <MenuItem value="7">7 days</MenuItem>
                                 <MenuItem value="31">1 month</MenuItem>
                                 <MenuItem value="season">season</MenuItem>
-                            </Select></FormControl></div></th> : null}
+                            </Select></FormControl></div> */}
+                        <DList
+                            name="selectedFromActivityDay"
+                            title="From"
+                            options={[
+                                { value: "7", label: "7 days" },
+                                { value: "31", label: "1 month" },
+                                { value: "season", label: "Season" },
+                            ]}
+                            value={selectedFromActivityDay}
+                            onChange={handleUIChange}
+                            height={28}
+                        />
+                    </th> : null}
                     {xListeColActivity[1][1] === 1 ? <th className="thcenter">{ximgxp}</th> : null}
                     {xListeColActivity[2][1] === 1 ? <th className="thcenter">{ximgdchest}</th> : null}
                     {/* {xListeColActivity[3][1] === 1 ? <th className="thcenter">{ximgcrop}</th> : null} */}
@@ -539,7 +553,7 @@ function setActivityItem(activityData, dataSetFarm, ui) {
                     {xListeColActivityItem[0][1] === 1 ? <th className="thcenter">Item</th> : null}
                     {xListeColActivityItem[1][1] === 1 ? <th className="thcenter">Hrvst</th> : null}
                     {xListeColActivityItem[2][1] === 1 ? <th className="thcenter">
-                        <div className="selectquantback" style={{ top: `4px` }}><FormControl variant="standard" id="formselectquant" className="selectquant" size="small">
+                        {/* <div className="selectquantback" style={{ top: `4px` }}><FormControl variant="standard" id="formselectquant" className="selectquant" size="small">
                             <InputLabel>Quantity</InputLabel>
                             <Select name={"selectedFromActivity"} value={selectedFromActivity} onChange={handleUIChange}>
                                 <MenuItem value="today">today</MenuItem>
@@ -547,7 +561,22 @@ function setActivityItem(activityData, dataSetFarm, ui) {
                                 <MenuItem value="7">7 days</MenuItem>
                                 <MenuItem value="31">1 month</MenuItem>
                                 <MenuItem value="season">season</MenuItem>
-                            </Select></FormControl></div></th> : null}
+                            </Select></FormControl></div> */}
+                        <DList
+                            name="selectedFromActivity"
+                            title="Quantity"
+                            options={[
+                                { value: "today", label: "Today" },
+                                { value: "1", label: "24h" },
+                                { value: "7", label: "7 days" },
+                                { value: "31", label: "1 month" },
+                                { value: "season", label: "Season" },
+                            ]}
+                            value={selectedFromActivity}
+                            onChange={handleUIChange}
+                            height={28}
+                        />
+                    </th> : null}
                     {xListeColActivityItem[3][1] === 1 ? <th className="thcenter">
                         <div className="checktry"><input type="checkbox" id="CostColumnCheckbox" style={{ alignContent: `right` }} checked={BurnChecked} onChange={handleBurnCheckedChange} /></div>
                         Burn</th> : null}
@@ -810,12 +839,13 @@ function setActivityTot(activityData, xContext, dataSetFarm, dataSet) {
             totBuildEntries.map(([item, quantity]) => {
                 const buildQuant = DataContext.data.totbuild[item];
                 if (food[item]) {
+                    const foodCompo = flattenCompoit(food[item].compoit);
                     foodBuild[item] = foodBuild[item] || [];
                     foodBuild[item]["quant"] = foodBuild[item]["quant"] || 0;
                     foodBuild[item]["quant"] += buildQuant;
-                    for (let compofood in food[item].compoit) {
+                    for (let compofood in foodCompo) {
                         const compo = compofood;
-                        const quant = food[item].compoit[compofood];
+                        const quant = foodCompo[compofood];
                         if (it[compo] || fish[compo]) {
                             compoBurn[compo] = compoBurn[compo] || 0;
                             compoBurn[compo] += quant * buildQuant;
@@ -906,10 +936,11 @@ function setActivityTot(activityData, xContext, dataSetFarm, dataSet) {
                         const ivalue = Number(value);
                         var title = match[2];
                         if (food[title]) {
+                            const foodCompo = flattenCompoit(food[title].compoit);
                             //for (let i = 1; i < 5; i++) {
-                            for (let compofood in food[title].compoit) {
+                            for (let compofood in foodCompo) {
                                 const compo = compofood;
-                                const quant = food[title].compoit[compofood];
+                                const quant = foodCompo[compofood];
                                 if (it[compo] || fish[compo]) {
                                     compoBurn[compo] = compoBurn[compo] || 0;
                                     compoBurn[compo] += quant * ivalue;
@@ -1113,33 +1144,33 @@ function setActivityTotQuest(activityData, dataSetFarm) {
     return result;
 }
 function formatDate(xDate, setUTC) {
-  const currentDate = (xDate instanceof Date) ? xDate : new Date(xDate);
-  var day = "";
-  var month = "";
-  var year = "";
-  if (setUTC) {
-    day = String(currentDate.getUTCDate()).padStart(2, '0');
-    month = String(currentDate.getUTCMonth() + 1).padStart(2, '0');
-    year = String(currentDate.getUTCFullYear()).slice(-2);
-  } else {
-    day = String(currentDate.getDate()).padStart(2, '0');
-    month = String(currentDate.getMonth() + 1).padStart(2, '0');
-    year = String(currentDate.getFullYear()).slice(-2);
-  }
-  const dateNow = `${month}/${day}/${year}`;
-  return dateNow;
+    const currentDate = (xDate instanceof Date) ? xDate : new Date(xDate);
+    var day = "";
+    var month = "";
+    var year = "";
+    if (setUTC) {
+        day = String(currentDate.getUTCDate()).padStart(2, '0');
+        month = String(currentDate.getUTCMonth() + 1).padStart(2, '0');
+        year = String(currentDate.getUTCFullYear()).slice(-2);
+    } else {
+        day = String(currentDate.getDate()).padStart(2, '0');
+        month = String(currentDate.getMonth() + 1).padStart(2, '0');
+        year = String(currentDate.getFullYear()).slice(-2);
+    }
+    const dateNow = `${month}/${day}/${year}`;
+    return dateNow;
 }
 function formatDateAndSupYr(xDate, setUTC) {
-  const currentDate = (xDate instanceof Date) ? xDate : new Date(xDate);
-  var day = "";
-  var month = "";
-  if (setUTC) {
-    day = String(currentDate.getUTCDate()).padStart(2, '0');
-    month = String(currentDate.getUTCMonth() + 1).padStart(2, '0');
-  } else {
-    day = String(currentDate.getDate()).padStart(2, '0');
-    month = String(currentDate.getMonth() + 1).padStart(2, '0');
-  }
-  const dateNow = `${month}/${day}`;
-  return dateNow;
+    const currentDate = (xDate instanceof Date) ? xDate : new Date(xDate);
+    var day = "";
+    var month = "";
+    if (setUTC) {
+        day = String(currentDate.getUTCDate()).padStart(2, '0');
+        month = String(currentDate.getUTCMonth() + 1).padStart(2, '0');
+    } else {
+        day = String(currentDate.getDate()).padStart(2, '0');
+        month = String(currentDate.getMonth() + 1).padStart(2, '0');
+    }
+    const dateNow = `${month}/${day}`;
+    return dateNow;
 }

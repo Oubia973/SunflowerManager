@@ -2,6 +2,7 @@ import React from "react";
 import { useAppCtx } from "../context/AppCtx";
 import { FormControl, InputLabel, Select, MenuItem } from '@mui/material';
 import { frmtNb, ColorValue, PBar } from '../fct.js';
+import DList from "../dlist.jsx";
 
 export default function AnimalTable() {
     const {
@@ -198,14 +199,24 @@ export default function AnimalTable() {
                     <tr>
                         {/* <td></td> */}
                         {xListeColAnimals[0][1] === 1 ? <td className="tdcenter">
-                            <div className="selectquantityback" style={{ top: `4px` }}>
+                            {/* <div className="selectquantityback" style={{ top: `4px` }}>
                                 <FormControl variant="standard" id="formselectquant" className="selectquant" size="small">
                                     <InputLabel></InputLabel>
                                     <Select name="selectedAnimalLvl" value={selectedAnimalLvl} onChange={handleUIChange}>
                                         <MenuItem value="farm">Farm</MenuItem>
                                         <MenuItem value="all">All lvl</MenuItem>
                                     </Select></FormControl>
-                            </div>
+                            </div> */}
+                            <DList
+                                name="selectedAnimalLvl"
+                                options={[
+                                    { value: "farm", label: "Farm" },
+                                    { value: "all", label: "All lvl" },
+                                ]}
+                                value={selectedAnimalLvl}
+                                onChange={handleUIChange}
+                                height={28}
+                            />
                         </td> : null}
                         {xListeColAnimals[1][1] === 1 ? <td className="tdcenter"></td> : null}
                         {xListeColAnimals[2][1] === 1 ? <td className="tdcenter">{showTotal && parseFloat(prod1Total).toFixed(2)}</td> : null}

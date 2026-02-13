@@ -1,7 +1,8 @@
 import React from "react";
 import { useAppCtx } from "../context/AppCtx";
 import { FormControl, InputLabel, Select, MenuItem, Switch, FormControlLabel } from '@mui/material';
-import { frmtNb, convtimenbr, convTime, ColorValue, Timer, filterTryit, PBar, timeToDays } from '../fct.js';
+import { frmtNb, convtimenbr, convTime, ColorValue, Timer, filterTryit, PBar, timeToDays, flattenCompoit } from '../fct.js';
+import DList from "../dlist.jsx";
 
 let xdxp = 0;
 var dProd = [];
@@ -79,18 +80,24 @@ export default function CookTable() {
         }
     }
     if (farmData.inventory) {
-        const { it, food, fish, bounty } = dataSetFarm.itables;
-        const inventoryEntries = selectedQuantityCook === "farm" || "daily" || "dailymax" ? Object.entries(farmData.inventory) : Object.entries(farmData.inventory);
+        const { it, food, fish, bounty, pfood, crustacean } = dataSetFarm.itables;
+        //const inventoryEntries = selectedQuantityCook === "farm" || "daily" || "dailymax" ? Object.entries(farmData.inventory) : Object.entries(farmData.inventory);
+        const inventoryEntries = Object.entries(farmData.inventory);
         const foodNames = Object.keys(food);
+        const pfoodNames = Object.keys(pfood);
+        const cookNames = [...foodNames, ...pfoodNames];
         const Compo = [];
         Compo["total"] = [];
         const sortedCompo = [];
-        const sortedInventoryItems = foodNames.map(item => {
-            const quantity = inventoryEntries.find(([entryItem]) => entryItem === item)?.[1] || 0;
-            for (let compofood in food[item].compoit) {
+        const sortedInventoryItems = cookNames.map(item => {
+            const cobj = food[item] || pfood[item];
+            const cobjCompo = flattenCompoit(cobj?.compoit);
+            const quantityInventory = inventoryEntries.find(([entryItem]) => entryItem === item)?.[1] || 0;
+            const quantity = Number((food[item] || pfood[item])?.instock ?? quantityInventory ?? 0);
+            for (let compofood in cobjCompo) {
                 const compo = compofood;
-                const quant = food[item].compoit[compofood];
-                if (it[compo] || fish[compo] || bounty[compo]) {
+                const quant = cobjCompo[compofood];
+                if (it[compo] || fish[compo] || bounty[compo] || pfood[compo]) {
                     Compo[item] = Compo[item] || [];
                     Compo["total"][compo] = 0;
                     Compo[item][compo] = Compo[item][compo] || 0;
@@ -114,6 +121,11 @@ export default function CookTable() {
                 sortedCompo.push(item);
             }
         });
+        Object.keys(pfood).forEach(item => {
+            if (Object.hasOwn(Compo["total"], item)) {
+                sortedCompo.push(item);
+            }
+        });
         //console.log(sortedCompo);
         const farmTime = dataSet.options.inputFarmTime / 24;
         var totXP = 0;
@@ -122,20 +134,21 @@ export default function CookTable() {
         var BldTime = [];
         var totTime = 0;
         const inventoryItems = sortedInventoryItems.map(([item, quantity], index) => {
-            const cobj = food[item];
+            const cobj = food[item] || pfood[item];
+            const cobjCompo = flattenCompoit(cobj?.compoit);
             const ico = cobj ? cobj.img : '';
-            const ibld = cobj ? cobj.bld : '';
+            const ibld = cobj ? (cobj.bld || "Fish Market") : '';
             var time = cobj ? !TryChecked ? cobj.time : cobj.timetry : '';
             const timenbr = convtimenbr(time);
-            var timecomp = cobj ? !TryChecked ? cobj.timecrp : cobj.timecrptry : '';
+            var timecomp = cobj ? (!TryChecked ? cobj.timecrp : cobj.timecrptry) || '' : '';
             //if (timecomp === '') {console.log (item + ": error timecomp" )}
             const timecrpnbr = convtimenbr(timecomp);
-            const icookit = cobj ? cobj.cookit : 0;
+            const icookit = Number(cobj?.cookit) || 0;
             const iquantd = Math.ceil(farmTime / timenbr) !== Infinity ? Math.ceil(farmTime / timenbr) : 0;
             let prodValues = [];
-            for (let compofood in food[item].compoit) {
+            for (let compofood in cobjCompo) {
                 const compo = compofood;
-                const quant = food[item].compoit[compofood];
+                const quant = cobjCompo[compofood];
                 if (it[compo]) {
                     const bhrvstItem = !TryChecked ? xHrvst[compo] : xHrvsttry[compo];
                     dProd[compo] = it[compo].farmit ? bhrvstItem * it[compo].harvest : 0;
@@ -152,19 +165,37 @@ export default function CookTable() {
             //!TryChecked ? food[item].dprod = xquantd : food[item].dprodtry = xquantd;
             const iKeep = selectedQuantCook !== "unit" ? dataSet.options.inputKeep : 0;
             const iQuant = selectedQuantityCook === "farm" ? (quantity - iKeep > 0 ? quantity - iKeep : 0) : xquantd;
-            const ixp = cobj ? selectedQuantCook === "unit" ? (!TryChecked ? cobj.xp : cobj.xptry) : (!TryChecked ? cobj.xp : cobj.xptry) * iQuant : 0;
-            const ixph = cobj ? (!TryChecked ? cobj.xph : cobj.xphtry) : 0;
-            const ixpsfl = cobj ? (!TryChecked ? cobj.xpsfl * dataSet.options.coinsRatio : cobj.xpsfltry * dataSet.options.coinsRatio) : 0;
-            totXP += (selectedQuantityCook === "daily" || selectedQuantityCook === "dailymax" ? isNaN(ixp) ? 0 : Number(ixp) * food[item].cookit : isNaN(ixp) ? 0 : Number(ixp));
-            if (cobj.cookit) {
+            const cookitValue = Number(cobj?.cookit) || 0;
+            const xpBase = Number(cobj ? (!TryChecked ? cobj.xp : cobj.xptry) : 0) || 0;
+            const ixp = selectedQuantCook === "unit" ? xpBase : xpBase * iQuant;
+            const ixph = Number(cobj ? (!TryChecked ? cobj.xph : cobj.xphtry) : 0) || 0;
+            const xpsflBase = Number(cobj ? (!TryChecked ? cobj.xpsfl : cobj.xpsfltry) : 0) || 0;
+            const ixpsfl = xpsflBase * dataSet.options.coinsRatio;
+            totXP += (selectedQuantityCook === "daily" || selectedQuantityCook === "dailymax" ? isNaN(ixp) ? 0 : Number(ixp) * cookitValue : isNaN(ixp) ? 0 : Number(ixp));
+            if (cookitValue === 1) {
                 if (!BldTime[ibld]) { BldTime[ibld] = 0 }
                 BldTime[ibld] += xquantd * timenbr;
             }
-            const ixphcomp = cobj ? timecomp !== 0 ? parseFloat(ixp / (timecrpnbr * 24)).toFixed(1) : 0 : 0;
+            const ixphcomp = cobj ? timecrpnbr > 0 ? parseFloat(ixp / (timecrpnbr * 24)).toFixed(1) : 0 : 0;
             var icost = cobj ? selectedQuantCook === "unit" ? ((!TryChecked ? cobj.cost : cobj.costtry) / dataSet.options.coinsRatio) : ((!TryChecked ? cobj.cost : cobj.costtry) / dataSet.options.coinsRatio) * iQuant : 0;
+            const getMarketUnitWithFallback = (name) => {
+                const src = it[name] || fish[name] || bounty[name] || crustacean[name] || pfood[name] || food[name];
+                if (!src) { return 0; }
+                const market = Number(!TryChecked ? (src.costp2pt || 0) : (src.costp2pttry || 0));
+                const prod = (Number(!TryChecked ? src.cost : src.costtry) || 0) / dataSet.options.coinsRatio;
+                return market > 0 ? market : prod;
+            };
+            const traderUnitFromCompo = cobjCompo
+                ? Object.entries(cobjCompo).reduce((sum, [name, quant]) => sum + (Number(quant || 0) * getMarketUnitWithFallback(name)), 0)
+                : 0;
+            const traderUnit = traderUnitFromCompo > 0
+                ? traderUnitFromCompo
+                : (cobj ? ((Number(!TryChecked ? (cobj.costp2pt || 0) : (cobj.costp2pttry ?? cobj.costp2pt ?? 0)) > 0
+                    ? Number(!TryChecked ? (cobj.costp2pt || 0) : (cobj.costp2pttry ?? cobj.costp2pt ?? 0))
+                    : (Number(!TryChecked ? cobj.cost : cobj.costtry) || 0) / dataSet.options.coinsRatio)) : 0);
             var icostp2p = cobj ? selectedQuantCook === "unit" ?
-                selectedCostCook === "shop" ? (cobj.costshop / dataSet.options.coinsRatio) : selectedCostCook === "trader" ? cobj.costp2pt : selectedCostCook === "nifty" ? cobj.costp2pn : selectedCostCook === "opensea" ? cobj.costp2po : 0
-                : selectedCostCook === "shop" ? (cobj.costshop / dataSet.options.coinsRatio) * iQuant : selectedCostCook === "trader" ? cobj.costp2pt * iQuant : selectedCostCook === "nifty" ? cobj.costp2pn * iQuant : selectedCostCook === "opensea" ? cobj.costp2po * iQuant : 0 : 0;
+                selectedCostCook === "shop" ? (cobj.costshop / dataSet.options.coinsRatio) : selectedCostCook === "trader" ? traderUnit : selectedCostCook === "nifty" ? cobj.costp2pn : selectedCostCook === "opensea" ? cobj.costp2po : 0
+                : selectedCostCook === "shop" ? (cobj.costshop / dataSet.options.coinsRatio) * iQuant : selectedCostCook === "trader" ? traderUnit * iQuant : selectedCostCook === "nifty" ? cobj.costp2pn * iQuant : selectedCostCook === "opensea" ? cobj.costp2po * iQuant : 0 : 0;
             if (isNaN(icostp2p)) { icostp2p = 0 }
             let convPricep = 0;
             let convPricep2p = 0;
@@ -186,13 +217,13 @@ export default function CookTable() {
                 if (time !== "" && time !== 0) { time = convTime(iQuant * timenbr) }
                 if (timecomp !== "" && timecomp !== 0) { timecomp = convTime(iQuant * timecrpnbr) }
             }
-            if (((selectedQuantityCook === "daily" || selectedQuantityCook === "dailymax") && cobj.cookit) || selectedQuantityCook === "farm") {
+            if (((selectedQuantityCook === "daily" || selectedQuantityCook === "dailymax") && cookitValue === 1) || selectedQuantityCook === "farm") {
                 totCost += icost;
                 totCostp2p += icostp2p;
-                for (let compofood in food[item].compoit) {
+                for (let compofood in cobjCompo) {
                     const compo = compofood;
-                    const quant = food[item].compoit[compofood];
-                    if (it[compo] || fish[compo] || bounty[compo]) { Compo["total"][compo] += quant * (selectedQuantCook === "unit" ? 1 : iQuant) }
+                    const quant = cobjCompo[compofood];
+                    if (it[compo] || fish[compo] || bounty[compo] || pfood[compo]) { Compo["total"][compo] += quant * (selectedQuantCook === "unit" ? 1 : iQuant) }
                 }
             }
             const CellXPSflStyle = {};
@@ -225,7 +256,7 @@ export default function CookTable() {
                         onClick={(e) => handleTooltip(item, "cookcost", selectedQuantCook !== "unit" ? iQuant : 1, e)}>{frmtNb(icostp2p)}</td> : null}
                     {xListeColCook[11][1] === 1 ? Object.values(sortedCompo).map((itemName, itIndex) => (
                         <td className="tdcenterbrd" style={{ fontSize: '12px' }} key={itemName}>
-                            {food[item].compoit[itemName] ? food[item].compoit[itemName] * (selectedQuantCook === "unit" ? 1 : iQuant) : ""}
+                            {cobjCompo[itemName] ? cobjCompo[itemName] * (selectedQuantCook === "unit" ? 1 : iQuant) : ""}
                         </td>
                     )) : null}
                 </tr>
@@ -302,20 +333,31 @@ export default function CookTable() {
                             {xListeColCook[1][1] === 1 ? <th className="thcenter" >Food</th> : null}
                             {selectedQuantityCook === "daily" || selectedQuantityCook === "dailymax" ? <th className="thcenter" >Cook</th> : null}
                             {xListeColCook[2][1] === 1 ? <th className="thcenter" >
-                                <div className="selectquantback" style={{ top: `4px` }}><FormControl variant="standard" id="formselectquant" className="selectquant" size="small">
-                                    <InputLabel>Quant</InputLabel>
-                                    <Select name="selectedQuantityCook" value={selectedQuantityCook} onChange={handleUIChange}>
-                                        <MenuItem value="farm">Farm</MenuItem>
-                                        {/* <MenuItem value="daily">Daily/Farm</MenuItem> */}
-                                        <MenuItem value="dailymax">Daily</MenuItem>
-                                    </Select></FormControl></div></th> : null}
+                                <DList
+                                    name="selectedQuantityCook"
+                                    title="Quantity"
+                                    options={[
+                                        { value: "farm", label: "Farm" },
+                                        { value: "dailymax", label: "Daily" },
+                                    ]}
+                                    value={selectedQuantityCook}
+                                    onChange={handleUIChange}
+                                    height={28}
+                                />
+                            </th> : null}
                             {xListeColCook[3][1] === 1 ? <th className="thcenter"  >
-                                <div className="selectquantback" style={{ top: `4px` }}><FormControl variant="standard" id="formselectquant" className="selectquant" size="small">
-                                    <InputLabel>XP</InputLabel>
-                                    <Select name="selectedQuantCook" value={selectedQuantCook} onChange={handleUIChange}>
-                                        <MenuItem value="unit">/ Unit</MenuItem>
-                                        <MenuItem value="quant">x Quantity</MenuItem>
-                                    </Select></FormControl></div></th> : null}
+                                <DList
+                                    name="selectedQuantCook"
+                                    title="XP"
+                                    options={[
+                                        { value: "unit", label: "/ Unit" },
+                                        { value: "quant", label: "x Quantity" },
+                                    ]}
+                                    value={selectedQuantCook}
+                                    onChange={handleUIChange}
+                                    height={28}
+                                />
+                            </th> : null}
                             {xListeColCook[4][1] === 1 ? <th className="thcenter" >Time</th> : null}
                             {xListeColCook[5][1] === 1 ? <th className="thcenter" >Time comp</th> : null}
                             {xListeColCook[6][1] === 1 ? <th className="thcenter" >XP/H</th> : null}
@@ -332,7 +374,7 @@ export default function CookTable() {
                       <MenuItem value="opensea">OpenSea</MenuItem>
                     </Select></FormControl></div> */}{imgExchng}</th> : null}
                             {xListeColCook[11][1] === 1 ? Object.values(sortedCompo).map((itemName, itIndex) => (
-                                <th className="thcenter" key={itemName}><i><img src={(it[itemName] ? it[itemName].img : fish[itemName] ? fish[itemName].img : bounty[itemName] ? bounty[itemName].img : imgna)} alt={itemName} className="itico" /></i></th>
+                                <th className="thcenter" key={itemName}><i><img src={(it[itemName] ? it[itemName].img : fish[itemName] ? fish[itemName].img : bounty[itemName] ? bounty[itemName].img : pfood[itemName] ? pfood[itemName].img : imgna)} alt={itemName} className="itico" /></i></th>
                             )) : null}
                         </tr>
                         {(selectedQuantCook !== "unit" || selectedQuantityCook !== "farm") ?

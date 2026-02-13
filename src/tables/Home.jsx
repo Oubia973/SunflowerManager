@@ -1,23 +1,28 @@
+import { useState } from "react";
 import { useAppCtx } from "../context/AppCtx";
 import { frmtNb, ColorValue } from '../fct.js';
 
 export default function HomeTable() {
+    const [isBumpkinCooldown, setIsBumpkinCooldown] = useState(false);
     const {
         data: { dataSet, dataSetFarm },
         ui: {
             selectedInv,
             xListeColBounty,
             TryChecked,
-            isOpen
+            isOpen,
+            selectedHomeBlocks,
+            selectedHomeItems
         },
         actions: {
             handleHomeClic,
+            setUIField,
         },
         config: { API_URL },
     } = useAppCtx();
     if (selectedInv !== "home") return;
     if (!dataSetFarm?.itables) return null;
-    const { Animals, orderstable } = dataSetFarm;
+    const { Animals, orderstable, Pets } = dataSetFarm;
     const { it } = dataSetFarm.itables;
     async function getBumpkin(dataSet) {
         const response = await fetch(API_URL + "/getbumpkin", {
@@ -52,6 +57,9 @@ export default function HomeTable() {
             const imgTkt = <img src={dataSet.imgtkt || "./icon/nft/na.png"} alt={''} className="seasonico" title={dataSet.tktName || "Season tiquets"} />;
             const imgCoinsSmall = <img src={"./icon/res/coins.png"} alt={''} className="seasonico" title={"Coins"} />;
             const imgSflSmall = <img src={"./icon/res/flowertoken.webp"} alt={''} className="seasonico" title={"Flower"} />;
+            const imgFishSmall = <img src={"./icon/fish/anchovy.png"} alt={''} className="itico" title={"Fish casts"} />;
+            const imgPetSmall = <img src={"./icon/pet/dog.webp"} alt={''} className="itico" title={"Pets"} />;
+            const imgDishSmall = <img src={"./icon/food/sunflower_crunch.png"} alt={''} className="itico" title={"Pet requests"} />;
             const vipDate = dataSet.dateVip ? new Date(dataSet.dateVip).toLocaleDateString('en-US', {
                 day: '2-digit',
                 month: '2-digit',
@@ -102,6 +110,42 @@ export default function HomeTable() {
             const protectSpring = dataSetFarm?.frmData?.protectSpring ? imgDoneSmall : imgCancelSmall;
             const protectSummer = dataSetFarm?.frmData?.protectSummer ? imgDoneSmall : imgCancelSmall;
             const protectAutumn = dataSetFarm?.frmData?.protectAutumn ? imgDoneSmall : imgCancelSmall;
+            const fishingDetails = dataSetFarm?.Fish || {};
+            const fishCasts = fishingDetails?.casts ?? 0;
+            const fishCastMax = TryChecked
+                ? (fishingDetails?.fishcastmaxtry ?? fishingDetails?.fishcastmax ?? 0)
+                : (fishingDetails?.fishcastmax ?? 0);
+            const fishCastsStatus = (fishCastMax > 0 && fishCasts >= fishCastMax) ? imgDone : imgCancel;
+            const reqToArray = (reqObj) => {
+                if (Array.isArray(reqObj)) return reqObj.filter(Boolean);
+                if (reqObj && typeof reqObj === "object") return Object.values(reqObj).filter(Boolean);
+                return [];
+            };
+            const countFedRequests = (requested, fed) => {
+                if (!requested.length) return 0;
+                const fedCount = {};
+                fed.forEach((name) => { fedCount[name] = (fedCount[name] || 0) + 1; });
+                let matched = 0;
+                requested.forEach((name) => {
+                    if (fedCount[name] > 0) {
+                        matched += 1;
+                        fedCount[name] -= 1;
+                    }
+                });
+                return matched;
+            };
+            const petsWithRequests = Object.values(Pets || {}).filter((pet) => reqToArray(pet?.req).length > 0);
+            const allPetsRequestsValidated = petsWithRequests.length > 0
+                && petsWithRequests.every((pet) => pet?.reqallfed === true);
+            const petRequestsStatus = allPetsRequestsValidated ? imgDone : imgCancel;
+            const petRequestsTotal = petsWithRequests.reduce((sum, pet) => sum + reqToArray(pet?.req).length, 0);
+            const petRequestsFed = petsWithRequests.reduce((sum, pet) => (
+                sum + countFedRequests(reqToArray(pet?.req), reqToArray(pet?.reqfed))
+            ), 0);
+
+            let profitTotalHarvests = 0;
+            let marketTotalHarvests = 0;
+            let costTotalHarvests = 0;
             const leftPanel = (
                 <div className="home-left-panel">
                     {/* <img src="./path/to/your/image.png" alt="Farm" className="home-left-panel-image" /> */}
@@ -110,9 +154,13 @@ export default function HomeTable() {
                         <button
                             type="button"
                             className="button small-btn bumpkin-refresh-btn"
-                            title="Refresh bumpkin"
+                            title={isBumpkinCooldown ? "Loading" : "Refresh bumpkin"}
+                            disabled={isBumpkinCooldown}
                             onClick={async () => {
+                                if (isBumpkinCooldown) return;
+                                setIsBumpkinCooldown(true);
                                 await getBumpkin(dataSet);
+                                setTimeout(() => setIsBumpkinCooldown(false), 10000);
                             }}
                         >
                             <img src="./icon/ui/refresh.png" alt="" />
@@ -129,6 +177,8 @@ export default function HomeTable() {
                             <div>{txtBountiesDone}</div></p>
                         <p><div>Daily dig: {dailyDig} {dailyDigStreak}</div></p>
                         <p><div>Protections</div><div>{imgwinter}{protectWinter} {imgspring}{protectSpring} {imgsummer}{protectSummer} {imgautumn}{protectAutumn}</div></p>
+                        <p><div>{imgFishSmall} {fishCasts}/{fishCastMax} {fishCastsStatus}</div></p>
+                        <p><div>{imgPetSmall} {petRequestsFed}/{petRequestsTotal}{imgDishSmall} {petRequestsStatus}</div></p>
                     </div>
                 </div>
             );
@@ -148,12 +198,79 @@ export default function HomeTable() {
             const collapsibleBlocks = categories.map((category, index) => {
                 const bntName = category.name;
                 const icocat = category.img;
+                const isSelected = selectedHomeBlocks?.[index] ?? true;
+                const hasItemSelection = (bntName === "Minerals" || bntName === "Henhouse" || bntName === "Barn");
+                const isAnimalCategory = (bntName === "Henhouse" || bntName === "Barn");
+                const getItemSelectionKey = (itemObj) => {
+                    if (!itemObj) return "";
+                    if (bntName === "Minerals") return `minerals:${itemObj.name || ""}`;
+                    if (isAnimalCategory) return `${bntName.toLowerCase()}:${itemObj.animal || itemObj.name || ""}`;
+                    return "";
+                };
+                const isItemActive = (itemObj) => {
+                    if (!hasItemSelection) return true;
+                    const selectionKey = getItemSelectionKey(itemObj);
+                    if (!selectionKey) return true;
+                    return selectedHomeItems?.[selectionKey] ?? true;
+                };
+                const isPrimaryAnimalProd = (itemObj) => Number(itemObj?.matcat) === 1;
+                const shouldRenderItemCheckbox = (itemObj) => {
+                    if (bntName === "Minerals") return true;
+                    if (isAnimalCategory) return isPrimaryAnimalProd(itemObj);
+                    return false;
+                };
+                const toggleItemSelection = (itemObj) => {
+                    const selectionKey = getItemSelectionKey(itemObj);
+                    if (!selectionKey) return;
+                    setUIField("selectedHomeItems", (prevState) => ({
+                        ...(prevState || {}),
+                        [selectionKey]: !(prevState?.[selectionKey] ?? true),
+                    }));
+                };
+                const handleItemToggleClick = (event, itemObj) => {
+                    event.stopPropagation();
+                    toggleItemSelection(itemObj);
+                };
 
-                let plantedValue = dataSet.forTry ? "spottry" : "planted";
-                let harvestValue = dataSet.forTry ? "harvesttry" : "tobharvest";
+                let plantedValue = "planted";
 
                 let plantedHeader = "Node";
                 let harvestHeader = "Harvest";
+                const getHarvestPerNodeValue = (itemObj) => {
+                    if (!dataSet.forTry) return 0;
+                    const direct = itemObj?.harvestnodehome ?? itemObj?.harvestnodetry;
+                    if (direct !== undefined && direct !== null) return direct;
+                    const total = itemObj?.harvesthome ?? itemObj?.harvesttry ?? 0;
+                    const spot = itemObj?.spot ?? 0;
+                    return spot > 0 ? (total / spot) : 0;
+                };
+                const getHarvestUnits = (itemObj, plantedCount = 0) => {
+                    if (!dataSet.forTry) return plantedCount || 0;
+                    const spot = Number(itemObj?.spot || 0);
+                    const spot2 = Number(itemObj?.spot2 || 0);
+                    const spot3 = Number(itemObj?.spot3 || 0);
+                    const spot1 = spot - spot2 - spot3;
+                    const weightedTools = spot1 + (spot2 * 4) + (spot3 * 16);
+                    if (spot > 0 && weightedTools > 0) {
+                        return weightedTools * ((plantedCount || 0) / spot);
+                    }
+                    return plantedCount || 0;
+                };
+                const getHarvestValue = (itemObj, plantedCount = 0) => (
+                    dataSet.forTry
+                        ? (getHarvestPerNodeValue(itemObj) * getHarvestUnits(itemObj, plantedCount))
+                        : (itemObj?.tobharvest ?? 0)
+                );
+                const getNodeCostValue = (itemObj) => (
+                    dataSet.forTry
+                        ? (itemObj?.nodecosthome ?? itemObj?.nodecosttry ?? itemObj?.nodecost ?? 0)
+                        : (itemObj?.nodecost ?? 0)
+                );
+                const getNbHarvestValue = (itemObj) => (
+                    dataSet.forTry
+                        ? (itemObj?.nbharvesthome ?? itemObj?.nbharvesttry ?? itemObj?.nbharvest ?? 1)
+                        : (itemObj?.nbharvest ?? 1)
+                );
 
                 //let plantedTotal = 0;
                 let costTotal = 0;
@@ -212,6 +329,8 @@ export default function HomeTable() {
                     if (bntName === "Henhouse" || bntName === "Barn") {
                         Object.keys(Items).map((item, itemIndex) => {
                             plantedFinal[Items[item].name] = Items[item][plantedValue];
+                            const itemActive = isItemActive(Items[item]);
+                            if (!itemActive) return null;
                             const aniName = Items[item]?.animal;
                             if (!Animals[aniName]) return null;
                             //plantedTotal += Number(Items[item][plantedValue]);
@@ -227,7 +346,7 @@ export default function HomeTable() {
                                 ignoredAnimals += ignoreAnimal;
                                 //console.log(Items[item].animal + ": " + animalCost);
                             });
-                            let harvestFinal = Items[item][harvestValue]; //animalProdQuant;
+                            let harvestFinal = getHarvestValue(Items[item], plantedFinal[Items[item].name]); //animalProdQuant;
                             //plantedFinal[Items[item].name] -= (ignoredAnimals);
                             if (Items[item].name === "Feather") { animalCost = 0 };
                             if (Items[item].name === "Leather") { animalCost = 0 };
@@ -240,9 +359,11 @@ export default function HomeTable() {
                     } else {
                         Object.keys(Items).map((item, itemIndex) => {
                             plantedFinal[Items[item].name] = Items[item][plantedValue];
-                            const nbHarvest = (Items[item][key("nbharvest")]) || 1;
-                            costTotal += Number(((Items[item][key("nodecost")] * Items[item][plantedValue]) / nbHarvest) / dataSet.options.coinsRatio);
-                            marketTotal += Number(Items[item]["costp2pt"] * Items[item][harvestValue]);
+                            const itemActive = isItemActive(Items[item]);
+                            if (!itemActive) return null;
+                            const nbHarvest = getNbHarvestValue(Items[item]) || 1;
+                            costTotal += Number(((getNodeCostValue(Items[item]) * Items[item][plantedValue]) / nbHarvest) / dataSet.options.coinsRatio);
+                            marketTotal += Number(Items[item]["costp2pt"] * getHarvestValue(Items[item], plantedFinal[Items[item].name]));
                         });
                     }
 
@@ -262,7 +383,8 @@ export default function HomeTable() {
                                 let harvestCost = 0;
                                 let harvestCostp2pt = 0;
                                 let harvestProfit = 0;
-                                let harvestFinal = Items[item][harvestValue];
+                                let harvestFinal = getHarvestValue(Items[item], plantedFinal[Items[item].name]);
+                                const rowActive = isItemActive(Items[item]);
                                 if (Items[item].scat === "henhouse" || Items[item].scat === "barn") {
                                     const aniName = Items[item]?.animal;
                                     if (!Animals[aniName]) return null;
@@ -284,16 +406,47 @@ export default function HomeTable() {
                                     harvestCost = (animalCost) / dataSet.options.coinsRatio;
                                     harvestCostp2pt = (Items[item]["costp2pt"] * harvestFinal);
                                 } else {
-                                    nbHarvest = (Items[item][key("nbharvest")]) || 1;
-                                    harvestCost = ((Items[item][key("nodecost")] * plantedFinal[Items[item].name]) / nbHarvest) / dataSet.options.coinsRatio;
+                                    nbHarvest = getNbHarvestValue(Items[item]) || 1;
+                                    harvestCost = ((getNodeCostValue(Items[item]) * plantedFinal[Items[item].name]) / nbHarvest) / dataSet.options.coinsRatio;
                                     harvestCostp2pt = (Items[item]["costp2pt"] * harvestFinal);
+                                }
+                                if (!rowActive) {
+                                    harvestFinal = 0;
+                                    harvestCost = 0;
+                                    harvestCostp2pt = 0;
                                 }
                                 harvestProfit = Number(frmtNb((harvestCostp2pt * tradeTax) - harvestCost));
                                 return (
-                                    <tr key={itemIndex}>
+                                    <tr key={itemIndex} style={{ opacity: rowActive ? 1 : 0.5 }}>
                                         {xListeColBounty[1][1] === 1 && (
                                             <td className="tdcenter">
-                                                <img src={Items[item].img} alt={Items[item].name} className="nodico" />
+                                                {shouldRenderItemCheckbox(Items[item]) ? (
+                                                    <span
+                                                        className="home-item-toggle"
+                                                        title="Tap to count / uncount this item"
+                                                        role="button"
+                                                        tabIndex={0}
+                                                        onClick={(event) => handleItemToggleClick(event, Items[item])}
+                                                        onKeyDown={(event) => {
+                                                            if (event.key === "Enter" || event.key === " ") {
+                                                                event.preventDefault();
+                                                                handleItemToggleClick(event, Items[item]);
+                                                            }
+                                                        }}
+                                                    >
+                                                        <input
+                                                            type="checkbox"
+                                                            className="home-item-checkbox"
+                                                            checked={!!rowActive}
+                                                            onClick={(event) => event.stopPropagation()}
+                                                            onChange={() => toggleItemSelection(Items[item])}
+                                                            title="Count this item"
+                                                        />
+                                                        <img src={Items[item].img} alt={Items[item].name} className="nodico" />
+                                                    </span>
+                                                ) : (
+                                                    <img src={Items[item].img} alt={Items[item].name} className="nodico" />
+                                                )}
                                             </td>
                                         )}
                                         {xListeColBounty[2][1] === 1 && <td className="tdcenter">{frmtNb(plantedFinal[Items[item].name])}</td>}
@@ -314,16 +467,33 @@ export default function HomeTable() {
                         profitTotal += Number((Items[item].costp2pt * 0.9) - Items[item].cost);
                     });
                 } */
-                profitTotal = (marketTotal * tradeTax) - costTotal;
 
                 //const [isOpen, setIsOpen] = useState(false);
                 if (!isOpen[index]) { isOpen[index] = false };
-
+                if (isSelected) {
+                    marketTotalHarvests += marketTotal;
+                    costTotalHarvests += costTotal;
+                }
+                profitTotal = (marketTotal * tradeTax) - costTotal;
                 return (
                     <div key={index} className="collapsible-block">
                         {/* <div className="collapsible-header" onClick={() => setIsOpen(!isOpen)}> //onClick={() => setIsOpen(!isOpen)}> */}
                         <div className="collapsible-header" onClick={() => handleHomeClic(index)}>
-                            <span style={{ textAlign: 'left' }}>{icocat} {bntName}</span>
+                            <span className="collapsible-header-left">
+                                <input
+                                    type="checkbox"
+                                    className="collapsible-header-checkbox"
+                                    checked={!!isSelected}
+                                    onClick={(e) => e.stopPropagation()}
+                                    onChange={() => {
+                                        setUIField("selectedHomeBlocks", (prevState) => ({
+                                            ...(prevState || {}),
+                                            [index]: !(prevState?.[index] ?? true),
+                                        }));
+                                    }}
+                                />
+                                {icocat} {bntName}
+                            </span>
                             <span style={{ textAlign: 'right' }}>
                                 Cost: {frmtNb(costTotal)} - Profit: <span style={{ color: ColorValue(frmtNb(profitTotal), 0, 10) }}>{frmtNb(profitTotal)}</span>
                             </span>
@@ -338,11 +508,22 @@ export default function HomeTable() {
                     </div>
                 );
             });
-
+            profitTotalHarvests = (marketTotalHarvests * tradeTax) - costTotalHarvests;
+            const curHrvst = TryChecked ? "average" : "current"
+            const txtProfit = <span style={{ color: ColorValue(frmtNb(profitTotalHarvests), 0, 10) }}>{frmtNb(profitTotalHarvests)}</span>;
+            const txtYourHrvst = <>Your {curHrvst} harvests total :</>
+            const txtCostHrvst = <>Cost: {frmtNb(costTotalHarvests)} - Profit: {txtProfit}</>
+            //const homeLine = "";
             return (
                 <div className="home-container">
                     {leftPanel}
-                    <div className="collapsible-container">{collapsibleBlocks}</div>
+                    <div className="home-collapsible-wrap">
+                    <div className="home-collapsible-header home-harvest-row">
+                        <span className="home-harvest-block home-harvest-block-primary">{txtYourHrvst}</span>
+                        <span className="home-harvest-block home-harvest-block-secondary">{txtCostHrvst}</span>
+                    </div>
+                        <div className="collapsible-container">{collapsibleBlocks}</div>
+                    </div>
                 </div>
             );
         } catch (error) {

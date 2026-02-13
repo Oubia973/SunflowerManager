@@ -15,6 +15,7 @@ import MapTable from "./Map";
 import ExpandTable from "./Expand";
 import ActivityTable from "./Activity";
 import MarketTable from "./Market";
+import FactionsTable from "./Factions";
 
 export default function PanelTable() {
   const { ui: { selectedInv } } = useAppCtx();
@@ -33,6 +34,7 @@ export default function PanelTable() {
   if (selectedInv === "expand") return <ExpandTable />;
   if (selectedInv === "activity") return <ActivityTable />;
   if (selectedInv === "market") return <MarketTable />;
+  if (selectedInv === "factions") return <FactionsTable />;
 
   return null;
 }

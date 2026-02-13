@@ -7,7 +7,8 @@ import ModalDlvr from './fdelivery.js';
 import ModalOptions from './foptions.js';
 import Help from './fhelp.js';
 import Cadre from './animodal.js';
-import Tooltip from "./tooltip.js";
+import Tooltip from "./tooltip/Tooltip.jsx";
+import DList from "./dlist.jsx";
 //import DropdownCheckbox from './listcol.js';
 //import CounterInput from "./counterinput.js";
 import { FormControl, InputLabel, Select, MenuItem, Switch, FormControlLabel } from '@mui/material';
@@ -46,6 +47,7 @@ const imgflch = './icon/ui/flch.png';
 const imgrdy = './icon/ui/expression_alerted.png';
 const imgtrd = './icon/ui/sparkle2.gif';
 const imgpet = './icon/pet/dog.webp';
+const imgcrustacean = './icon/fish/dollocaris.webp';
 const imgshrine = './icon/shrine/boar.webp';
 const imgacorn = './icon/pet/acorn.webp';
 const imgexchng = './icon/ui/exchange.png';
@@ -75,6 +77,7 @@ function App() {
     selectedQuant: "unit",
     selectedQuantCook: "quant",
     selectedQuantFish: "quant",
+    selectedQuantCrusta: "unit",
     selectedCostCook: "trader",
     selectedQuantity: "farm",
     selectedQuantityCook: "farm",
@@ -90,6 +93,7 @@ function App() {
     selectedSeason: "all",
     selectedPChange: "3d",
     petView: "pets",
+    fishView: "fish",
     inputValue: "",
     inputKeep: 3,
     inputFromLvl: 1,
@@ -105,6 +109,8 @@ function App() {
     customQuantFetch: {},
     cstPrices: {},
     toCM: {},
+    selectedHomeBlocks: {},
+    selectedHomeItems: {},
     xListeCol: [['Hoard', 1],
     ['Item name', 0],
     ['Quantity', 1],
@@ -467,9 +473,11 @@ function App() {
         const itables = prev?.itables ?? {};
         const it = itables?.it ?? {};
         const food = itables?.food ?? {};
+        const pfood = itables?.pfood ?? {};
         let tableKey = null;
         if (it[item]) tableKey = "it";
         else if (food[item]) tableKey = "food";
+        else if (pfood[item]) tableKey = "pfood";
         else return prev;
         const table = itables[tableKey] ?? {};
         const current = table[item] ?? {};
@@ -526,13 +534,24 @@ function App() {
     let xvalue = 0;
     let name = "";
     if (eventOrValue?.target) {
-      if (eventOrValue?.target.value) {
-        xvalue = Number(eventOrValue.target.value.replace(/\D/g, ""));
+      const t = eventOrValue.target;
+      name = t.name;
+      if (t.type === "checkbox") {
+        xvalue = !!t.checked;
+      } else {
+        const raw = t.value;
+        if (raw === null || raw === undefined || raw === "") {
+          xvalue = 0;
+        } else if (typeof raw === "number") {
+          xvalue = raw;
+        } else {
+          if (name === "tradeTax") {
+            xvalue = Number(String(raw).replace(/[^0-9.]/g, ""));
+          } else {
+            xvalue = Number(String(raw).replace(/\D/g, ""));
+          }
+        }
       }
-      if (eventOrValue?.target.checked) {
-        xvalue = eventOrValue.target.checked;
-      }
-      name = eventOrValue.target.name;
     } else {
       xvalue = Number(eventOrValue);
       name = fieldName;
@@ -559,7 +578,6 @@ function App() {
     if (xvalue < 0) xvalue = 1;
     if (name.startsWith("animalLvl_")) {
       const animal = name.replace("animalLvl_", "");
-      // immutable update: avoid mutating dataSet.options in-place
       const newAnimalLvl = { ...(dataSet.options.animalLvl || {}), [animal]: xvalue };
       const newOptions = { ...dataSet.options, animalLvl: newAnimalLvl };
       dataSet.options = newOptions;
@@ -707,7 +725,7 @@ function App() {
             getFromToExpand(fromexpand || 1, toexpand || 10, responseData.frmData.expandData.type);
             //setanimalData(responseData.Animals);
             refreshDataSet(responseData);
-            const { frmData, expandData, fishingDetails, taxFreeSFL } = responseData;
+            const { frmData, expandData, Fish, taxFreeSFL } = responseData;
             dataSet.balance = frmData.balance;
             dataSet.coins = frmData.coins;
             const balance = frmData.balance;
@@ -720,10 +738,10 @@ function App() {
             const withdrawSflNotFreeTaxed = (withdrawsflNotFree > 0) ? (withdrawsflNotFree - (withdrawsflNotFree * (withdrawtax / 100))) : 0;
             const sflwithdraw = frmtNb(withdrawsflFree + withdrawSflNotFreeTaxed);
             dataSet.sflwithdraw = sflwithdraw;
-            const xfishcastmax = fishingDetails && (!TryChecked ? fishingDetails.CastMax : fishingDetails.CastMaxtry);
-            const xfishcost = fishingDetails && ((!TryChecked ? fishingDetails.CastCost : fishingDetails.CastCosttry) / dataSet.options.coinsRatio);
-            dataSet.fishcasts = fishingDetails && (fishingDetails.casts + "/" + xfishcastmax);
-            dataSet.fishcosts = fishingDetails && (parseFloat(fishingDetails.casts * xfishcost).toFixed(3) + "/" + parseFloat(xfishcastmax * xfishcost).toFixed(3));
+            const xfishcastmax = Fish && (!TryChecked ? Fish.CastMax : Fish.CastMaxtry);
+            const xfishcost = Fish && ((!TryChecked ? Fish.CastCost : Fish.CastCosttry) / dataSet.options.coinsRatio);
+            dataSet.fishcasts = Fish && (Fish.casts + "/" + xfishcastmax);
+            dataSet.fishcosts = Fish && (parseFloat(Fish.casts * xfishcost).toFixed(3) + "/" + parseFloat(xfishcastmax * xfishcost).toFixed(3));
             setdataSetFarm({ ...responseData });
             dataSet.updated = formatUpdated(frmData?.updated);
             if (dataSet.options.firstLoad) {
@@ -918,6 +936,7 @@ function App() {
     imgflowerbed,
     imgchkn,
     imgpet,
+    imgcrustacean,
     imgexchng,
     imgExchng,
     imgbuyit,
@@ -943,6 +962,7 @@ function App() {
     imgflowerbed,
     imgchkn,
     imgpet,
+    imgcrustacean,
     imgexchng,
     imgExchng,
     imgbuyit,
@@ -996,11 +1016,13 @@ function App() {
       );
       const table = (
         <>
-          <table className="tabletrades">
-            <tbody>
-              {tableContent}
-            </tbody>
-          </table>
+          <div className="table-container">
+            <table className="tabletradesTable">
+              <tbody>
+                {tableContent}
+              </tbody>
+            </table>
+          </div>
         </>
       );
       setftradesData(table);
@@ -1062,7 +1084,7 @@ function App() {
         dataSet.taxFreeSFL = frmtNb(respData.frmData.taxFreeSFL);
         dataSet.bumpkin = respData.Bumpkin[0];
         setBumpkinData(respData.Bumpkin);
-        const { frmData, expandData, fishingDetails, taxFreeSFL } = respData;
+        const { frmData, expandData, Fish, taxFreeSFL } = respData;
         dataSet.balance = frmData.balance;
         dataSet.coins = frmData.coins;
         const balance = frmData.balance;
@@ -1096,10 +1118,10 @@ function App() {
         const withdrawSflNotFreeTaxed = (withdrawsflNotFree > 0) ? (withdrawsflNotFree - (withdrawsflNotFree * (withdrawtax / 100))) : 0;
         const sflwithdraw = frmtNb(withdrawsflFree + withdrawSflNotFreeTaxed);
         dataSet.sflwithdraw = sflwithdraw;
-        const xfishcastmax = fishingDetails && (!TryChecked ? fishingDetails.CastMax : fishingDetails.CastMaxtry);
-        const xfishcost = fishingDetails && ((!TryChecked ? fishingDetails.CastCost : fishingDetails.CastCosttry) / dataSet.options.coinsRatio);
-        dataSet.fishcasts = fishingDetails && (fishingDetails.casts + "/" + xfishcastmax);
-        dataSet.fishcosts = fishingDetails && (parseFloat(fishingDetails.casts * xfishcost).toFixed(3) + "/" + parseFloat(xfishcastmax * xfishcost).toFixed(3));
+        const xfishcastmax = Fish && (!TryChecked ? Fish.CastMax : Fish.CastMaxtry);
+        const xfishcost = Fish && ((!TryChecked ? Fish.CastCost : Fish.CastCosttry) / dataSet.options.coinsRatio);
+        dataSet.fishcasts = Fish && (Fish.casts + "/" + xfishcastmax);
+        dataSet.fishcosts = Fish && (parseFloat(Fish.casts * xfishcost).toFixed(3) + "/" + parseFloat(xfishcastmax * xfishcost).toFixed(3));
         setdataSetFarm({ ...respData });
         setdeliveriesData(respData.orderstable);
         setfTrades(respData);
@@ -1292,6 +1314,26 @@ function App() {
     }));
   }, [dataSetFarm]);
 
+  const pageOptions = [
+    { value: "home", label: "Home", iconSrc: "./icon/ui/playercount.png" },
+    { value: "inv", label: "Farm", iconSrc: "./icon/tools/shovel.png" },
+    { value: "cook", label: "Cook", iconSrc: "./icon/food/chef_hat.png" },
+    { value: "fish", label: "Fish", iconSrc: "./icon/fish/anchovy.png" },
+    { value: "flower", label: "Flower", iconSrc: "./icon/flower/red_pansy.webp" },
+    { value: "bounty", label: "Dig", iconSrc: "./icon/tools/sand_shovel.png" },
+    { value: "animal", label: "Animals", iconSrc: imgchkn },
+    { value: "pet", label: "Pets", iconSrc: "./icon/ui/petegg.png" },
+    { value: "craft", label: "Craft", iconSrc: "./icon/craft/bee_box.webp" },
+    { value: "cropmachine", label: "Crop Machine", iconSrc: "./icon/skillr/efficiency_ext_module.png" },
+    { value: "map", label: "Map", iconSrc: "./icon/ui/world.png" },
+    { value: "expand", label: "Expand", iconSrc: "./icon/tools/hammer.png" },
+    { value: "factions", label: "Factions", iconSrc: "./icon/ui/factions.webp" },
+    { value: "market", label: "Market", iconSrc: imgexchng },
+    ...(dataSet.options.isAbo
+      ? [{ value: "activity", label: "Activity", iconSrc: "./icon/ui/stopwatch.png" }]
+      : []),
+  ];
+
   return (
     <>
       <div className="App">
@@ -1316,7 +1358,7 @@ function App() {
                   }}
                   style={{ width: '65px' }}
                 />
-                <div style={{ position: "relative", left: -4, top: -2 }}>
+                <div style={{ position: "relative", left: -4, top: 0 }}>
                   <button
                     name="getFarm"
                     onClick={(e) => {
@@ -1368,7 +1410,6 @@ function App() {
               </div>
               <div style={{
                 pointerEvents: 'none',
-                transform: 'translateY(-4px)',
                 fontSize: '9px',
                 color: 'gray',
               }}>{dataSet?.updated || ""}</div>
@@ -1402,7 +1443,7 @@ function App() {
                       }}
                     />
                   </div>
-                  <button onClick={handleButtonfDlvrClick} title="Deliveries" class="button"><img src="./icon/ui/chores.webp" alt="" className="itico" /></button>
+                  <button style={{ top: '3px' }} onClick={handleButtonfDlvrClick} title="Deliveries" class="button"><img src="./icon/ui/chores.webp" alt="" className="itico" /></button>
                 </div>
               ) : ""}
             </div>
@@ -1410,19 +1451,7 @@ function App() {
             {farmData.balance ? (
               <div className="currencies">
                 <div className="currency-controls">
-                  {/* {selectedInv === "inv" ? <div className="selectcol" size="small"><DropdownCheckbox options={xListeCol} onChange={handleDropdownCookChange} /></div> : ""}
-                  {selectedInv === "cook" ? <div className="selectcol" size="small"><DropdownCheckbox options={xListeColCook} onChange={handleDropdownCookChange} /></div> : ""}
-                  {selectedInv === "fish" ? <div className="selectcol" size="small"><DropdownCheckbox options={xListeColFish} onChange={handleDropdownFishChange} /></div> : ""}
-                  {selectedInv === "flower" ? <div className="selectcol" size="small"><DropdownCheckbox options={xListeColFlower} onChange={handleDropdownFlowerChange} /></div> : ""}
-                  {selectedInv === "bounty" ? <div className="selectcol" size="small"><DropdownCheckbox options={xListeColBounty} onChange={handleDropdownBountyChange} /></div> : ""}
-                  {selectedInv === "animal" ? <div className="selectcol" size="small"><DropdownCheckbox options={xListeColAnimals} onChange={handleDropdownAnimalsChange} /></div> : ""}
-                  {selectedInv === "map" ? <div className="selectcol" size="small"><DropdownCheckbox options={xListeColAnimals} onChange={handleDropdownAnimalsChange} /></div> : ""}
-                  {selectedInv === "expand" ? <div className="selectcol" size="small"><DropdownCheckbox options={xListeColExpand} onChange={handleDropdownExpandChange} /></div> : ""}
-                  {selectedInv === "activity" && activityDisplay === "day" ? <div className="selectcol" size="small"><DropdownCheckbox options={xListeColActivity} onChange={handleDropdownActivityChange} /></div> : ""}
-                  {selectedInv === "activity" && activityDisplay === "item" ? <div className="selectcol" size="small"><DropdownCheckbox options={xListeColActivityItem} onChange={handleDropdownActivityItemChange} /></div> : ""}
-                  {selectedInv === "activity" && activityDisplay === "quest" ? <div className="selectcol" size="small"><DropdownCheckbox options={xListeColActivityQuest} onChange={handleDropdownActivityQuestChange} /></div> : ""}
-                   */}
-                  <div className="selectcurrback">
+                  {/* <div className="selectcurrback">
                     <FormControl id="formselectcurr" className="selectcurr" size="small">
                       <InputLabel>Currency</InputLabel>
                       <Select name={"selectedCurr"} value={ui.selectedCurr} onChange={handleUIChange}>
@@ -1437,7 +1466,19 @@ function App() {
                         </MenuItem>
                       </Select>
                     </FormControl>
-                  </div>
+                  </div> */}
+                  <DList
+                    name="selectedCurr"
+                    options={[
+                      { value: "SFL", label: "Flower", iconSrc: imgsfl },
+                      { value: "MATIC", label: "POL", iconSrc: "./matic.png" },
+                      { value: "USDC", label: "USDC", iconSrc: "./usdc.png" },
+                    ]}
+                    value={ui.selectedCurr}
+                    onChange={handleUIChange}
+                    iconOnly={true}
+                    height={38}
+                  />
                   <div className="horizontal" style={{ margin: "0", padding: "0" }}>
                     <button onClick={handleButtonOptionsClick} title="Options" class="button"><img src="./options.png" alt="" className="itico" /></button>
                     <button onClick={handleButtonHelpClick} title="Help" class="button"><img src="./icon/nft/na.png" alt="" className="itico" /></button>
@@ -1453,7 +1494,7 @@ function App() {
               </div>
             ) : ("")}
           </h1>
-          <div style={{ transform: 'translate(0px, -20px)', margin: "0", padding: "0" }}>
+          <div style={{ marginTop: 0, margin: 0, padding: 0 }}>
             <div class="horizontal" style={{ margin: "0", padding: "0" }}>
               {farmData.balance ? (<>
                 <div class="horizontal" onClick={(e) => handleTooltip("", "balance", "", e)} style={{ margin: "0", padding: "0" }}>
@@ -1467,59 +1508,53 @@ function App() {
               <div className="tabletrades" onClick={(e) => handleTooltip("", "trades", "", e)} style={{ margin: "0", padding: "0" }}>
                 {<>{ftradesData ? ftradesData : ""}</>}
               </div>
-              <div style={{ position: 'relative', display: 'flex', alignItems: 'left', height: '20px', width: '180px', top: '1px', overflow: 'hidden', margin: "0", padding: "0" }}>
-                <div className="selectinvback" style={{ display: 'flex', alignItems: 'left', height: '20px', width: '110px', overflow: 'hidden', margin: "0", padding: "0" }}>
-                  <FormControl variant="standard" id="formselectinv" className="selectinv" size="small" style={{ width: '100px', margin: "0", padding: "0" }}>
-                    <InputLabel></InputLabel>
-                    <Select name="selectedInv" value={ui.selectedInv} onChange={handleUIChange}
-                      MenuProps={{
-                        PaperProps: {
-                          sx: {
-                            '& .MuiMenuItem-root': {
-                              color: 'black',
-                            },
-                          },
-                        },
-                      }}>
-                      <MenuItem value="home"><img src="./icon/ui/playercount.png" alt="" className="itico" />Home</MenuItem>
-                      <MenuItem value="inv"><img src="./icon/tools/shovel.png" alt="" className="itico" />Farm</MenuItem>
-                      <MenuItem value="cook"><img src="./icon/food/chef_hat.png" alt="" className="itico" />Cook</MenuItem>
-                      <MenuItem value="fish"><img src="./icon/fish/anchovy.png" alt="" className="itico" />Fish</MenuItem>
-                      <MenuItem value="flower"><img src="./icon/flower/red_pansy.webp" alt="" className="itico" />Flower</MenuItem>
-                      <MenuItem value="bounty"><img src="./icon/tools/sand_shovel.png" alt="" className="itico" />Dig</MenuItem>
-                      <MenuItem value="animal"><img src={imgchkn} alt="" className="itico" />Animals</MenuItem>
-                      <MenuItem value="pet"><img src="./icon/ui/petegg.png" alt="" className="itico" />Pets</MenuItem>
-                      <MenuItem value="craft"><img src="./icon/craft/bee_box.webp" alt="" className="itico" />Craft</MenuItem>
-                      <MenuItem value="cropmachine"><img src="./icon/skillr/efficiency_ext_module.png" alt="" className="itico" />Crop Machine</MenuItem>
-                      <MenuItem value="map"><img src="./icon/ui/world.png" alt="" className="itico" />Map</MenuItem>
-                      <MenuItem value="expand"><img src="./icon/tools/hammer.png" alt="" className="itico" />Expand</MenuItem>
-                      <MenuItem value="market"><img src={imgexchng} alt="" className="itico" />Market</MenuItem>
-                      {dataSet.options.isAbo ? <MenuItem value="activity"><img src="./icon/ui/stopwatch.png" alt="" className="itico" />Activity</MenuItem> : null}
-                    </Select>
-                  </FormControl>
-                </div>
-                {selectedInv === "activity" ? (
-                  <div className="selectinvback" style={{ display: 'flex', alignItems: 'left', height: '20px', width: '75px', margin: "0", padding: "0" }}>
-                    <FormControl variant="standard" id="formselectinv" className="selectinv" size="small">
-                      <InputLabel></InputLabel>
-                      <Select name="activityDisplay" value={ui.activityDisplay} onChange={handleUIChange}>
-                        <MenuItem value="day">/Day</MenuItem>
-                        <MenuItem value="item">/Item</MenuItem>
-                        <MenuItem value="quest">/Quest</MenuItem>
-                      </Select>
-                    </FormControl>
-                  </div>) : null}
-                {selectedInv === "pet" ? (
-                  <div className="selectpetback" style={{ display: 'flex', alignItems: 'left', height: '20px', margin: "0", padding: "0" }}>
-                    <FormControl variant="standard" id="formselectinv" className="selectinv" size="small" sx={{ width: 125 }}>
-                      <InputLabel></InputLabel>
-                      <Select name="petView" value={ui.petView} onChange={handleUIChange}>
-                        <MenuItem value="pets"><img src={imgpet} alt="" className="itico" />Pets</MenuItem>
-                        <MenuItem value="shrines"><img src={imgshrine} alt="" className="itico" />Shrines</MenuItem>
-                        <MenuItem value="components"><img src={imgacorn} alt="" className="itico" />Fetch</MenuItem>
-                      </Select>
-                    </FormControl>
-                  </div>) : null}
+              <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                <DList
+                  name="selectedInv"
+                  options={pageOptions}
+                  value={ui.selectedInv}
+                  onChange={handleUIChange}
+                  width={130}
+                  height={25}
+                />
+                {selectedInv === "activity" && (
+                  <DList
+                    name="activityDisplay"
+                    options={[
+                      { value: "day", label: "Day" },
+                      { value: "item", label: "Item" },
+                      { value: "quest", label: "Quest" },
+                    ]}
+                    value={ui.activityDisplay}
+                    onChange={handleUIChange}
+                    height={20}
+                  />
+                )}
+                {selectedInv === "pet" && (
+                  <DList
+                    name="petView"
+                    options={[
+                      { value: "pets", label: "Pets", iconSrc: imgpet },
+                      { value: "shrines", label: "Shrines", iconSrc: imgshrine },
+                      { value: "components", label: "Fetch", iconSrc: imgacorn },
+                    ]}
+                    value={ui.petView}
+                    onChange={handleUIChange}
+                    height={20}
+                  />
+                )}
+                {selectedInv === "fish" && (
+                  <DList
+                    name="fishView"
+                    options={[
+                      { value: "fish", label: "Fish", iconSrc: "./icon/fish/anchovy.png" },
+                      { value: "crustacean", label: "Crustaceans", iconSrc: imgcrustacean },
+                    ]}
+                    value={ui.fishView}
+                    onChange={handleUIChange}
+                    height={20}
+                  />
+                )}
               </div>
             </>) : null}
           </div>
@@ -1824,6 +1859,9 @@ function App() {
       }
       if (!dataSet.options.notifList.some(([key]) => key === 'Animal needs love')) {
         dataSet.options.notifList.push(['Animal needs love', 1]);
+      }
+      if (!dataSet.options.notifList.some(([key]) => key === 'Crustaceans')) {
+        dataSet.options.notifList.push(['Crustaceans', 1]);
       }
     }
   }

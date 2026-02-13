@@ -331,11 +331,15 @@ function ModalDlvr({ onClose, tableData, imgtkt, coinsRatio }) {
     settableChores(choreContent);
     const bounties = tableData.bounties;
     const bountyEntries = Object.entries(bounties);
+    let bntyTktTot = 0;
+    let bntyTktTotDone = 0;
     const bountyItems = bountyEntries.map((item, index) => {
       //const costp2p = selectedCost === "shop" ? frmtNb(item[1].costs) : selectedCost === "trader" ? frmtNb(item[1].costt) : selectedCost === "nifty" ? frmtNb(item[1].costn) : selectedCost === "opensea" ? frmtNb(item[1].costo) : 0;
       const imgRew = <img src={item[1].rewardimg} alt="" title={item[1].rewarditem} style={{ width: '15px', height: '15px' }} />;
       const imgitem = item[1].itemimg !== imgna && <img src={item[1].itemimg} alt="" title={item[1].item} style={{ width: '20px', height: '20px' }} />;
       const bColor = item[1].completed ? 'rgb(0, 129, 39)' : (item[1].instock || 0) > 0 ? 'rgb(148, 118, 35)' : 'rgba(148, 52, 35, 1)';
+      bntyTktTot += (item[1].rewardimg === imgtkt) ? item[1][key("reward")] : 0;
+      bntyTktTotDone += item[1].completed && (item[1].rewardimg === imgtkt) ? item[1][key("reward")] : 0;
       /* return (
         <tr key={index}>
           <td className="tdcenter">{imgitem ? imgitem : item[1].item}</td>
@@ -404,6 +408,7 @@ function ModalDlvr({ onClose, tableData, imgtkt, coinsRatio }) {
             {bountyItems}
           </tbody>
         </table> */}
+        <span>TOTAL : {bntyTktTotDone}/{bntyTktTot}{imgbtkt}{" (+50 when all done)"}</span>
         <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'flex-start' }}>
           {bountyItems}
         </div>
