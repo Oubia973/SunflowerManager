@@ -14,6 +14,7 @@ export default function AnimalTable() {
         },
         actions: {
             handleUIChange,
+            handleTooltip,
         },
         img: {
             imgsfl,
@@ -41,6 +42,7 @@ export default function AnimalTable() {
         const imgtrade = <img src={imgexchng} alt={''} className="itico" title={"Marketplace price"} />;
         const ximgsfl = <img src={imgsfl} alt={''} className="itico" title={"SFL"} />;
         const showTotal = selectedAnimalLvl === "farm";
+        const tradeTaxMul = (100 - dataSet.options.tradeTax) / 100;
         const AnimalsTable = selectedAnimalLvl === "farm" ? Animals : animalsAllLvl;
         for (let key in AnimalsTable) {
             const animalKeys = Object.values(AnimalsTable[key]);
@@ -81,26 +83,34 @@ export default function AnimalTable() {
                 const foodname = !TryChecked ? cobj.food : cobj.foodtry;
                 const xfoodimg = it[foodname] ? it[foodname].img : (foodname === "Mix" ? imgmix : (foodname === "Omnifeed" ? imgomni : imgna));
                 const foodimg = <img src={xfoodimg} alt={''} className="itico" title={foodname} />;
-                const foodcost = frmtNb((!TryChecked ? cobj.costFood : cobj.costFoodtry) / dataSet.options.coinsRatio) || 0;
-                const foodcostp2p = frmtNb(!TryChecked ? cobj.costFoodp2p : cobj.costFoodp2ptry) || 0;
+                const foodcostRaw = ((!TryChecked ? cobj.costFood : cobj.costFoodtry) / dataSet.options.coinsRatio) || 0;
+                const foodcostp2pRaw = (!TryChecked ? cobj.costFoodp2p : cobj.costFoodp2ptry) || 0;
+                const foodcost = frmtNb(foodcostRaw) || 0;
+                const foodcostp2p = frmtNb(foodcostp2pRaw) || 0;
                 const prod1 = Number(parseFloat(!TryChecked ? cobj.yield1 : cobj.yield1try).toFixed(2)) || 0;
-                const prod1cost = frmtNb((!TryChecked ? cobj.costyield1 : cobj.costyield1try) / dataSet.options.coinsRatio) || 0;
-                const prod1costp2p = it[prod1name].costp2pt || 0;
+                const prod1costRaw = ((!TryChecked ? cobj.costyield1 : cobj.costyield1try) / dataSet.options.coinsRatio) || 0;
+                const prod1cost = frmtNb(prod1costRaw) || 0;
+                const prod1costp2pRaw = (it[prod1name].costp2pt || 0) * tradeTaxMul;
+                const prod1costp2p = frmtNb(prod1costp2pRaw) || 0;
                 const prod2 = Number(parseFloat(!TryChecked ? cobj.yield2 : cobj.yield2try).toFixed(2)) || 0;
-                const prod2cost = frmtNb((!TryChecked ? cobj.costyield2 : cobj.costyield2try) / dataSet.options.coinsRatio) || 0;
-                const prod2costp2p = it[prod2name].costp2pt || 0;
-                const prod1costuwithfoodp2p = frmtNb(foodcostp2p / prod1);
-                const coefprod1p2p = frmtNb(prod1costp2p / prod1cost);
+                const prod2costRaw = ((!TryChecked ? cobj.costyield2 : cobj.costyield2try) / dataSet.options.coinsRatio) || 0;
+                const prod2cost = frmtNb(prod2costRaw) || 0;
+                const prod2costp2pRaw = (it[prod2name].costp2pt || 0) * tradeTaxMul;
+                const prod2costp2p = frmtNb(prod2costp2pRaw) || 0;
+                const prod1costuwithfoodp2pRaw = prod1 > 0 ? (foodcostp2pRaw / prod1) : 0;
+                const prod1costuwithfoodp2p = frmtNb(prod1costuwithfoodp2pRaw);
+                const coefprod1p2p = frmtNb(prod1costp2pRaw / prod1costRaw);
                 const coefprod1p2pPercentTxt = (Math.ceil(coefprod1p2p * 100) - 100) === Infinity ? "ꝏ" : (Math.ceil(coefprod1p2p * 100) - 100);
                 const coefprod1p2pPercent = coefprod1p2pPercentTxt || 0;
-                const coefprod1costuwithfoodp2p = frmtNb(prod1costp2p / prod1costuwithfoodp2p);
+                const coefprod1costuwithfoodp2p = frmtNb(prod1costp2pRaw / prod1costuwithfoodp2pRaw);
                 const coefprod1costuwithfoodp2pPercentTxt = (Math.ceil(coefprod1costuwithfoodp2p * 100) - 100) === Infinity ? "ꝏ" : (Math.ceil(coefprod1costuwithfoodp2p * 100) - 100);
                 const coefprod1costuwithfoodp2pPercent = coefprod1costuwithfoodp2pPercentTxt || 0;
-                const prod2costuwithfoodp2p = frmtNb(foodcostp2p / prod2);
-                const coefprod2p2p = frmtNb(prod2costp2p / prod2cost);
+                const prod2costuwithfoodp2pRaw = prod2 > 0 ? (foodcostp2pRaw / prod2) : 0;
+                const prod2costuwithfoodp2p = frmtNb(prod2costuwithfoodp2pRaw);
+                const coefprod2p2p = frmtNb(prod2costp2pRaw / prod2costRaw);
                 const coefprod2p2pPercentTxt = (Math.ceil(coefprod2p2p * 100) - 100) === Infinity ? "ꝏ" : (Math.ceil(coefprod2p2p * 100) - 100);
                 const coefprod2p2pPercent = coefprod2p2pPercentTxt || 0;
-                const coefprod2costuwithfoodp2p = frmtNb(prod2costp2p / prod2costuwithfoodp2p);
+                const coefprod2costuwithfoodp2p = frmtNb(prod2costp2pRaw / prod2costuwithfoodp2pRaw);
                 const coefprod2costuwithfoodp2pPercentTxt = (Math.ceil(coefprod2costuwithfoodp2p * 100) - 100) === Infinity ? "ꝏ" : (Math.ceil(coefprod2costuwithfoodp2p * 100) - 100);
                 const coefprod2costuwithfoodp2pPercent = coefprod2costuwithfoodp2pPercentTxt || 0;
                 const color1 = ColorValue(coefprod1p2p);
@@ -134,9 +144,9 @@ export default function AnimalTable() {
                         foodTotal.barley += food;
                     }
                     prod1costTotal += Number(prod1cost);
-                    prod1costp2pTotal += Number(prod1costp2p) * prod1;
+                    prod1costp2pTotal += Number(prod1costp2pRaw) * prod1;
                     prod2costTotal += Number(prod2cost);
-                    prod2costp2pTotal += Number(prod2costp2p) * prod2;
+                    prod2costp2pTotal += Number(prod2costp2pRaw) * prod2;
                     foodcostTotal += Number(foodcost);
                     foodcostp2pTotal += Number(foodcostp2p);
                     //love1Total += Number(love1);
@@ -161,12 +171,48 @@ export default function AnimalTable() {
                         {xListeColAnimals[4][1] === 1 ? <td className="tdcenter">{food}{foodimg}</td> : null}
                         {xListeColAnimals[5][1] === 1 ? <td className="tdcenter">{foodcost}</td> : null}
                         {xListeColAnimals[6][1] === 1 ? <td className="tdcenter">{foodcostp2p}</td> : null}
-                        {xListeColAnimals[7][1] === 1 ? <td className="tdcenterbrdleft">{prod1cost}</td> : null}
+                        {xListeColAnimals[7][1] === 1 ? (
+                            <td
+                                className="tdcenterbrdleft tooltipcell"
+                                onClick={(e) => handleTooltip(prod1name, "animalcostu", {
+                                    animal: itemName,
+                                    product: prod1name,
+                                    displayedCost: prod1costRaw,
+                                    yieldPerCycle: prod1,
+                                    foodQty: food,
+                                    foodName: foodname,
+                                    currentLvl: xlvl,
+                                    buyCropsCostU: prod1costuwithfoodp2pRaw,
+                                    marketCostU: prod1costp2pRaw,
+                                    tradeTax: dataSet.options.tradeTax,
+                                }, e)}
+                            >
+                                {prod1cost}
+                            </td>
+                        ) : null}
                         {xListeColAnimals[8][1] === 1 ? (<td style={{ ...cellStyle, color: color1, textAlign: 'center', fontSize: '10px' }}>{coefprod1p2pPercent}</td>) : ("")}
                         {xListeColAnimals[8][1] === 1 ? <td className="tdcenter">{prod1costuwithfoodp2p}</td> : null}
                         {xListeColAnimals[8][1] === 1 ? (<td style={{ ...cellStyle, color: color1costufoodp2p, textAlign: 'center', fontSize: '10px' }}>{coefprod1costuwithfoodp2pPercent}</td>) : ("")}
                         {xListeColAnimals[8][1] === 1 ? <td className="tdcenter">{prod1costp2p}</td> : null}
-                        {xListeColAnimals[9][1] === 1 ? <td className="tdcenterbrdleft">{prod2cost}</td> : null}
+                        {xListeColAnimals[9][1] === 1 ? (
+                            <td
+                                className="tdcenterbrdleft tooltipcell"
+                                onClick={(e) => handleTooltip(prod2name, "animalcostu", {
+                                    animal: itemName,
+                                    product: prod2name,
+                                    displayedCost: prod2costRaw,
+                                    yieldPerCycle: prod2,
+                                    foodQty: food,
+                                    foodName: foodname,
+                                    currentLvl: xlvl,
+                                    buyCropsCostU: prod2costuwithfoodp2pRaw,
+                                    marketCostU: prod2costp2pRaw,
+                                    tradeTax: dataSet.options.tradeTax,
+                                }, e)}
+                            >
+                                {prod2cost}
+                            </td>
+                        ) : null}
                         {xListeColAnimals[10][1] === 1 ? (<td style={{ ...cellStyle, color: color2, textAlign: 'center', fontSize: '10px' }}>{coefprod2p2pPercent}</td>) : ("")}
                         {xListeColAnimals[10][1] === 1 ? <td className="tdcenter">{prod2costuwithfoodp2p}</td> : null}
                         {xListeColAnimals[10][1] === 1 ? (<td style={{ ...cellStyle, color: color2costufoodp2p, textAlign: 'center', fontSize: '10px' }}>{coefprod2costuwithfoodp2pPercent}</td>) : ("")}

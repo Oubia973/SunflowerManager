@@ -1,11 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import Graph from './graph.js';
-import { FormControl, InputLabel, Select, MenuItem } from '@mui/material';
 import DList from "./dlist.jsx";
 
 function ModalGraph({ onClose, graphtype, frmid, dataSetFarm, API_URL, username }) {
+  const GRAPH_CATEGORY_KEYS = ["all", "crops", "wood minerals", "fruits honey", "animals", "pets"];
   const [chartData, setChartData] = useState([]);
   const [Graphstartdate, setGraphstartdate] = useState('31d');
+  const [selectedCategory, setSelectedCategory] = useState('crops');
+  const [legendResetToken, setLegendResetToken] = useState(0);
   const closeModal = () => {
     onClose();
   };
@@ -84,10 +86,37 @@ function ModalGraph({ onClose, graphtype, frmid, dataSetFarm, API_URL, username 
   return (
     <div className="modalgraph">
       <div className="modalgraph-buttons">
-        <h2>{graphtype}</h2>
-        <button onClick={closeModal} class="button"><img src="./icon/ui/cancel.png" alt="" className="resico" /></button>
-        <button onClick={handlePriceClick}>Prices</button>
-        <button onClick={handleSupplyClick}>Supply</button>
+        <div className="modalgraph-header-left">
+          <button onClick={closeModal} class="button"><img src="./icon/ui/cancel.png" alt="" className="resico" /></button>
+          <button onClick={handlePriceClick}>Prices</button>
+          <button onClick={handleSupplyClick}>Supply</button>
+          <DList
+            name="Graphstartdate"
+            title="Graph period"
+            options={[
+              { value: "24h", label: "24h" },
+              { value: "7d", label: "7 days" },
+              { value: "31d", label: "1 month" },
+              { value: "3m", label: "3 month" },
+            ]}
+            value={Graphstartdate}
+            onChange={handleChangeGraphdate}
+            height={22}
+          />
+          <button type="button" onClick={() => setLegendResetToken((prev) => prev + 1)}>Reset</button>
+        </div>
+        <div className="modalgraph-header-right">
+          {GRAPH_CATEGORY_KEYS.map((category) => (
+            <button
+              key={category}
+              type="button"
+              className={`graph-tab-btn ${selectedCategory === category ? "is-active" : ""}`}
+              onClick={() => setSelectedCategory(category)}
+            >
+              {category}
+            </button>
+          ))}
+        </div>
         {/* <button onClick={handlePriceClick}>Prices</button>
         {(graphtype === "OpenSea") && <button onClick={handleSupplyClick}>Supply</button>}
         {(graphtype === "Trader" || graphtype === "OpenSea") && <button onClick={handleTradesClick}>Trades number</button>} */}
@@ -102,22 +131,15 @@ function ModalGraph({ onClose, graphtype, frmid, dataSetFarm, API_URL, username 
             </Select>
           </FormControl>
         </div> */}
-        <DList
-          name="Graphstartdate"
-          title="Graph period"
-          options={[
-            { value: "24h", label: "24h" },
-            { value: "7d", label: "7 days" },
-            { value: "31d", label: "1 month" },
-            { value: "3m", label: "3 month" },
-          ]}
-          value={Graphstartdate}
-          onChange={handleChangeGraphdate}
-          height={25}
-        />
       </div>
-      <div className="modalgraph-content" style={{ width: '100%', height: '100%' }}>
-        <Graph data={chartData} vals={vals} dataSetFarm={dataSetFarm} />
+      <div className="modalgraph-content" style={{ width: '100%', flex: 1, minHeight: 0 }}>
+        <Graph
+          data={chartData}
+          vals={vals}
+          dataSetFarm={dataSetFarm}
+          selectedCategory={selectedCategory}
+          legendResetToken={legendResetToken}
+        />
       </div>
     </div>
   );

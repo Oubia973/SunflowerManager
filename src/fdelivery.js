@@ -34,7 +34,7 @@ function ModalDlvr({ onClose, tableData, imgtkt, coinsRatio }) {
       imgna,
     }
   } = useAppCtx();
-  const { it, food, fish } = dataSetFarm.itables;
+  const { it, food, fish, pfood, bounty, crustacean, craft, petit, flower, tool, mutant, compost } = dataSetFarm.itables;
   const [Delivery, setDelivery] = useState(tableData);
   const [selectedCost, setSelectedCost] = useState('trader');
   const [tableDeliveries, settableDeliveries] = useState([]);
@@ -54,6 +54,104 @@ function ModalDlvr({ onClose, tableData, imgtkt, coinsRatio }) {
     if (name === "active") { return TryChecked ? "tryit" : "isactive"; }
     return TryChecked ? name + "try" : name;
   }
+  const decodeHtmlEntities = (txt) => String(txt || "")
+    .replace(/&nbsp;/g, " ")
+    .replace(/&amp;/g, "&")
+    .replace(/&quot;/g, "\"")
+    .replace(/&#39;|&apos;/g, "'")
+    .replace(/&lt;/g, "<")
+    .replace(/&gt;/g, ">");
+  const normalizeItemName = (txt) => decodeHtmlEntities(txt).replace(/\s+/g, " ").trim();
+  const getItemBase = (name) => (
+    it?.[name] || food?.[name] || pfood?.[name] || fish?.[name] || bounty?.[name] || crustacean?.[name] || craft?.[name] || petit?.[name] || flower?.[name] || tool?.[name] || mutant?.[name] || compost?.[name] || null
+  );
+  const parseOrderItems = (rawItems) => {
+    const parsed = {};
+    const add = (rawName, rawQty) => {
+      const name = normalizeItemName(rawName);
+      if (!name) { return; }
+      const qtyNum = Number(String(rawQty || 1).replace(",", "."));
+      const qty = Number.isFinite(qtyNum) && qtyNum > 0 ? qtyNum : 1;
+      parsed[name] = (parsed[name] || 0) + qty;
+    };
+    if (Array.isArray(rawItems)) {
+      rawItems.forEach((entry) => {
+        if (!entry) { return; }
+        if (typeof entry === "string") { add(entry, 1); return; }
+        add(entry.name, entry.qty ?? entry.quantity ?? 1);
+      });
+      return parsed;
+    }
+    if (rawItems && typeof rawItems === "object" && !Array.isArray(rawItems)) {
+      Object.entries(rawItems).forEach(([name, qty]) => add(name, qty));
+      return parsed;
+    }
+    return parsed;
+  };
+  const getOrderItemMarketUnit = (itemBase) => {
+    const prodUnit = Number(itemBase?.[key("cost")] ?? itemBase?.cost ?? 0) / coinsRatio;
+    const marketTrader = Number(itemBase?.[key("costp2pt")] ?? itemBase?.costp2pt ?? 0);
+    const marketNifty = Number(itemBase?.[key("costp2pn")] ?? itemBase?.costp2pn ?? 0);
+    const marketOpenSea = Number(itemBase?.[key("costp2po")] ?? itemBase?.costp2po ?? 0);
+    const marketShop = Number(itemBase?.costshop || 0) / coinsRatio;
+    let marketUnit = 0;
+    if (selectedCost === "shop") { marketUnit = marketShop; }
+    if (selectedCost === "trader") { marketUnit = marketTrader; }
+    if (selectedCost === "nifty") { marketUnit = marketNifty; }
+    if (selectedCost === "opensea") { marketUnit = marketOpenSea; }
+    return marketUnit > 0 ? marketUnit : prodUnit;
+  };
+  const computeOrderItemsCosts = (itemsMap) => {
+    let totalCost = 0;
+    let totalMarket = 0;
+    Object.entries(itemsMap || {}).forEach(([itemName, qty]) => {
+      const low = String(itemName).toLowerCase();
+      const qtyNum = Number(qty || 0);
+      if (low === "coins") {
+        const coinValue = (1 / coinsRatio) * qtyNum;
+        totalCost += coinValue;
+        totalMarket += coinValue;
+        return;
+      }
+      const itemBase = getItemBase(itemName);
+      if (!itemBase) { return; }
+      const unitCost = Number(itemBase?.[key("cost")] ?? itemBase?.cost ?? 0) / coinsRatio;
+      const unitMarket = getOrderItemMarketUnit(itemBase);
+      totalCost += unitCost * qtyNum;
+      totalMarket += unitMarket * qtyNum;
+    });
+    return { totalCost, totalMarket };
+  };
+  const renderOrderItems = (itemsMap) => {
+    const entries = Object.entries(itemsMap || {});
+    if (entries.length === 0) { return ""; }
+    return (
+      <span style={{ display: "inline-flex", gap: 0, flexWrap: "wrap", justifyContent: "center" }}>
+        {entries.map(([itemName, qty]) => {
+          const low = String(itemName).toLowerCase();
+          const itemBase = getItemBase(itemName);
+          const itemImg = low === "coins" ? imgcoins : (itemBase?.img || imgna);
+          const itemLabel = low === "coins" ? "Coins" : itemName;
+            return (
+            <span key={itemName} style={{ display: "inline-flex", alignItems: "center", gap: 1, whiteSpace: "nowrap" }}>
+                <span style={{ fontSize: "12px", lineHeight: 1 }}>{frmtNb(qty)}</span>
+                <img src={itemImg} alt="" title={itemLabel} style={{ width: "15px", height: "15px" }} />
+              </span>
+            );
+        })}
+      </span>
+    );
+  };
+  const getOrderRewardData = (orderItem) => {
+    const rewardImg = orderItem?.[key("rewardimg")] || orderItem?.rewardimg || imgna;
+    const rewardQtyRaw = orderItem?.[key("rewardqty")] ?? orderItem?.rewardqty ?? 0;
+    const rewardQtyNum = Number(rewardQtyRaw);
+    const istkt = rewardImg === imgtkt || String(rewardImg).includes(imgtktname) || String(rewardImg).includes("ticket");
+    const issfl = rewardImg === imgsfl || String(rewardImg).includes("flowertoken.webp");
+    const iscoins = rewardImg === imgcoins || String(rewardImg).includes("coins.png");
+    const isgems = rewardImg === imggems || String(rewardImg).includes("gem");
+    return { rewardImg, quantreward: Number.isFinite(rewardQtyNum) ? rewardQtyNum : 0, istkt, issfl, iscoins, isgems };
+  };
   const handleChangeCost = (event) => {
     const selectedValue = event.target.value;
     setSelectedCost(selectedValue);
@@ -94,43 +192,41 @@ function ModalDlvr({ onClose, tableData, imgtkt, coinsRatio }) {
       //const xtentacle = ofrom === "shelly" ? " (" + tableData.wklcth + "/8)" : "";
       xfrom = "./icon/pnj/" + ofrom + ".png";
       if (ofrom === "pumpkin' pete") { xfrom = "./icon/pnj/pumpkinpete.png" }
-      let patterntkn = /res\/(.*?)\ alt=/g;
-      let correspondancetkn = patterntkn.exec(OrderItem.reward);
-      let pattern = /(.*?)<img/g;
-      let correspondance = pattern.exec(OrderItem[key("reward")]);
-      const istkt = correspondancetkn && correspondancetkn[1] === imgtktname;
-      const issfl = correspondancetkn && correspondancetkn[1] === "flowertoken.webp";
-      const iscoins = correspondancetkn && correspondancetkn[1] === "coins.png";
-      const isgems = correspondancetkn && correspondancetkn[1] === "gems.png";
-      const quantreward = correspondance && Number(correspondance[1]);
+      const { quantreward, istkt, issfl, iscoins } = getOrderRewardData(OrderItem);
+      const rewardQty = Number(quantreward || 0);
       const imgComplete = OrderItem.completed ? ximgyes : (OrderItem.instock || 0) > 0 ? ximgheart : ximgno;
       //const coinrewardconvertsfl = iscoins && quantreward + imgbcoins + '(' + quantreward / 320 + imgbsfl + ')';
       //const textReward = iscoins ? coinrewardconvertsfl : issfl ? quantreward + imgbsfl : quantreward + imgbtkt;
-      const txtcoinsconv = '(' + frmtNb(quantreward / coinsRatio);
+      const txtcoinsconv = '(' + frmtNb(rewardQty / coinsRatio);
       const txtendcoinsconv = ')';
       const textReward = iscoins ?
-        (<>{quantreward}{imgbcoins}{txtcoinsconv}{imgbsfl}{txtendcoinsconv}</>) :
+        (<>{rewardQty}{imgbcoins}{txtcoinsconv}{imgbsfl}{txtendcoinsconv}</>) :
         issfl ?
-          (<>{quantreward}{imgbsfl}</>) :
-          (<>{quantreward}{imgbtkt}</>);
-      const costp2p = selectedCost === "shop" ? frmtNb(OrderItem.costs) : selectedCost === "trader" ? frmtNb(OrderItem.costt) : selectedCost === "nifty" ? frmtNb(OrderItem.costn) : selectedCost === "opensea" ? frmtNb(OrderItem.costo) : 0;
-      const addRatio = iscoins && (OrderItem[key("cost")] / coinsRatio) > 0;
-      const ratioCoins = addRatio ? frmtNb(quantreward / (OrderItem[key("cost")] / coinsRatio)) : "";
-      const convRewardSfl = iscoins ? quantreward / coinsRatio : issfl ? quantreward : 0;
-      totCostR += addRatio ? (OrderItem[key("cost")] / coinsRatio) : 0;
-      totCostp2pR += addRatio ? Number(costp2p) : 0;
-      totCoinsR += addRatio ? quantreward : 0;
+          (<>{rewardQty}{imgbsfl}</>) :
+          (<>{rewardQty}{imgbtkt}</>);
+      const rawOrderItems = OrderItem[key("itemsList")] ?? OrderItem.itemsList ?? OrderItem[key("itemsMap")] ?? OrderItem.itemsMap;
+      const orderItemsMap = parseOrderItems(rawOrderItems);
+      const computedCosts = computeOrderItemsCosts(orderItemsMap);
+      const costProd = computedCosts.totalCost;
+      const costp2pNum = computedCosts.totalMarket;
+      const costp2p = frmtNb(costp2pNum);
+      const addRatio = iscoins && costProd > 0;
+      const ratioCoins = addRatio ? frmtNb(rewardQty / costProd) : "";
+      const convRewardSfl = iscoins ? rewardQty / coinsRatio : issfl ? rewardQty : 0;
+      const addRatioDone = addRatio && OrderItem.completed;
+      totCostR += addRatioDone ? costProd : 0;
+      totCostp2pR += addRatioDone ? costp2pNum : 0;
+      totCoinsR += addRatioDone ? rewardQty : 0;
       if (OrderItem.completed) {
-        totCost += (OrderItem[key("cost")] / coinsRatio);
-        totCostp2p += Number(costp2p);
-        if (istkt) { totTKT += quantreward }
-        if (issfl) { totSFL += quantreward }
-        if (iscoins) { totCoins += quantreward }
+        totCost += costProd;
+        totCostp2p += costp2pNum;
+        if (istkt) { totTKT += rewardQty }
+        if (issfl) { totSFL += rewardQty }
+        if (iscoins) { totCoins += rewardQty }
       }
       if (OrderItem.nbcompleted > 0) { totCmp += OrderItem.nbcompleted }
       if (OrderItem.nbskipped > 0) { totSkp += OrderItem.nbskipped }
-      const costTkt = OrderItem[key("costtkt")] > 0 ? frmtNb(OrderItem[key("costtkt")] / coinsRatio) : "";
-      const costProd = OrderItem[key("cost")] / coinsRatio;
+      const costTkt = (istkt && rewardQty > 0) ? frmtNb(costProd / rewardQty) : "";
       const bakcGreen = 'rgba(10, 54, 18, 0.71)';
       const bakcRed = 'rgba(54, 10, 10, 0.71)';
       const bakcYellow = 'rgba(66, 70, 12, 0.71)';
@@ -155,13 +251,27 @@ function ModalDlvr({ onClose, tableData, imgtkt, coinsRatio }) {
       return (
         <tr key={index}>
           <td id="iccolumn" className="tdcenter"><img src={xfrom} alt="" title={ofrom} style={{ width: '25px', height: '25px' }} /></td>
-          <td className="tdcenter" dangerouslySetInnerHTML={{ __html: OrderItem.items }}></td>
+          <td className="tdcenter tooltipcell" onClick={(e) => handleTooltip(ofrom, "deliverycost", { items: orderItemsMap, market: selectedCost }, e)}>{renderOrderItems(orderItemsMap)}</td>
           <td className="tdcenter">{imgComplete}</td>
           {/* <td className="tdcenter" dangerouslySetInnerHTML={{ __html: OrderItem.reward }}>{coinrewardconvertsfl}</td> */}
           <td className="tdcenter" style={cellRewardStyle}>{textReward}</td>
-          <td className="tdcenter" style={cellCostStyle}>{frmtNb(costProd)}</td>
-          <td className="tdcenter" style={cellMarketStyle}>{costp2p}</td>
-          <td className="tdcenter">{ratioCoins}</td>
+          <td className="tdcenter tooltipcell" style={cellCostStyle} onClick={(e) => handleTooltip(ofrom, "deliverycost", { items: orderItemsMap, market: selectedCost }, e)}>{frmtNb(costProd)}</td>
+          <td className="tdcenter tooltipcell" style={cellMarketStyle} onClick={(e) => handleTooltip(ofrom, "deliverycost", { items: orderItemsMap, market: selectedCost }, e)}>{costp2p}</td>
+          <td
+            className={`tdcenter${iscoins ? " tooltipcell" : ""}`}
+            onClick={iscoins ? (e) => handleTooltip(ofrom, "deliveryratio", {
+              type: "row",
+              from: ofrom,
+              isCoinsReward: true,
+              rewardCoins: rewardQty,
+              rewardSfl: convRewardSfl,
+              cost: costProd,
+              market: costp2pNum,
+              ratio: addRatio ? (rewardQty / costProd) : 0
+            }, e) : undefined}
+          >
+            {ratioCoins}
+          </td>
           <td className="tdcenter">{costTkt}</td>
           <td className="date">{OrderItem.readyAt}</td>
           <td className="tdcenter">{OrderItem.nbcompleted}</td>
@@ -205,7 +315,21 @@ function ModalDlvr({ onClose, tableData, imgtkt, coinsRatio }) {
               <td className="tdcenter">{frmtNb(totSFL)}{imgbsfl} {totTKT}{imgbtkt} {frmtNb(totCoins)}{imgbcoins}</td>
               <td className="tdcenter">{frmtNb(totCost)}</td>
               <td className="tdcenter">{frmtNb(totCostp2p)}</td>
-              <td className="tdcenter">{frmtNb(ratioCoins)}</td>
+              <td
+                className="tdcenter tooltipcell"
+                onClick={(e) => handleTooltip("total", "deliveryratio", {
+                  type: "total",
+                  from: "TOTAL",
+                  isCoinsReward: true,
+                  rewardCoins: totCoinsR,
+                  rewardSfl: (totCoinsR / coinsRatio),
+                  cost: totCostR,
+                  market: totCostp2pR,
+                  ratio: (totCostR > 0 ? (totCoinsR / totCostR) : 0)
+                }, e)}
+              >
+                {frmtNb(ratioCoins)}
+              </td>
               <td></td>
               <td></td>
               <td className="tdcenter">{totCmp}</td>
@@ -333,21 +457,28 @@ function ModalDlvr({ onClose, tableData, imgtkt, coinsRatio }) {
     const bountyEntries = Object.entries(bounties);
     let bntyTktTot = 0;
     let bntyTktTotDone = 0;
-    const bountyItems = bountyEntries.map((item, index) => {
-      //const costp2p = selectedCost === "shop" ? frmtNb(item[1].costs) : selectedCost === "trader" ? frmtNb(item[1].costt) : selectedCost === "nifty" ? frmtNb(item[1].costn) : selectedCost === "opensea" ? frmtNb(item[1].costo) : 0;
-      const imgRew = <img src={item[1].rewardimg} alt="" title={item[1].rewarditem} style={{ width: '15px', height: '15px' }} />;
-      const imgitem = item[1].itemimg !== imgna && <img src={item[1].itemimg} alt="" title={item[1].item} style={{ width: '20px', height: '20px' }} />;
-      const bColor = item[1].completed ? 'rgb(0, 129, 39)' : (item[1].instock || 0) > 0 ? 'rgb(148, 118, 35)' : 'rgba(148, 52, 35, 1)';
-      bntyTktTot += (item[1].rewardimg === imgtkt) ? item[1][key("reward")] : 0;
-      bntyTktTotDone += item[1].completed && (item[1].rewardimg === imgtkt) ? item[1][key("reward")] : 0;
-      /* return (
-        <tr key={index}>
-          <td className="tdcenter">{imgitem ? imgitem : item[1].item}</td>
-          <td className="tdcenter">{item[1].lvl}</td>
-          <td className="tdcenter">{item[1][key("reward")]}{imgRew}</td>
-          <td className="tdcenter">{item[1].completed ? item[1].completedAt === 0 ? ximgrdy : ximgyes : ximgno}</td>
-        </tr>
-      ) */
+    const getBountyCategory = (bountyName, bountyItem) => {
+      const itemName = bountyItem?.item || bountyName || "";
+      const itemMeta = it[itemName] || {};
+      const animal = String(itemMeta?.animal || "").toLowerCase();
+      const lowName = String(itemName).toLowerCase();
+      if (animal === "chicken" || lowName === "chicken" || lowName === "chickens") { return "Chickens"; }
+      if (animal === "cow" || animal === "sheep" || lowName === "cow" || lowName === "cows" || lowName === "sheep") { return "Barn"; }
+      return "Poppy";
+    };
+    const groupedBounties = bountyEntries.reduce((acc, entry) => {
+      const category = getBountyCategory(entry[0], entry[1]);
+      if (!acc[category]) { acc[category] = []; }
+      acc[category].push(entry);
+      return acc;
+    }, {});
+    const orderedCategories = ["Chickens", "Barn", "Poppy"].filter((catName) => groupedBounties[catName]?.length > 0);
+    const renderBountyCard = (bountyName, bountyItem, bountyKey) => {
+      const imgRew = <img src={bountyItem.rewardimg} alt="" title={bountyItem.rewarditem} style={{ width: '15px', height: '15px' }} />;
+      const imgitem = bountyItem.itemimg !== imgna && <img src={bountyItem.itemimg} alt="" title={bountyItem.item} style={{ width: '20px', height: '20px' }} />;
+      const bColor = bountyItem.completed ? 'rgb(0, 129, 39)' : (bountyItem.instock || 0) > 0 ? 'rgb(148, 118, 35)' : 'rgba(148, 52, 35, 1)';
+      bntyTktTot += (bountyItem.rewardimg === imgtkt) ? Number(bountyItem[key("reward")] || 0) : 0;
+      bntyTktTotDone += bountyItem.completed && (bountyItem.rewardimg === imgtkt) ? Number(bountyItem[key("reward")] || 0) : 0;
       const rewardStyle = {
         backgroundColor: bColor,
         color: 'white',
@@ -375,7 +506,7 @@ function ModalDlvr({ onClose, tableData, imgtkt, coinsRatio }) {
       };
       return (
         <div
-          key={index}
+          key={bountyKey}
           style={{
             display: 'inline-block',
             width: '55px',
@@ -386,10 +517,51 @@ function ModalDlvr({ onClose, tableData, imgtkt, coinsRatio }) {
             padding: '5px',
             boxShadow: '0 2px 5px rgba(0, 0, 0, 0.1)',
           }}
+          title={bountyName}
         >
-          <div style={lvlStyle}>{item[1].lvl}</div>
+          <div style={lvlStyle}>{bountyItem.lvl}</div>
           {imgitem}
-          <div style={rewardStyle}>{item[1][key("reward")]}{imgRew}</div>
+          <div style={rewardStyle}>{bountyItem[key("reward")]}{imgRew}</div>
+        </div>
+      );
+    };
+    const bountyItemsByCategory = orderedCategories.map((categoryName) => {
+      const categoryItems = groupedBounties[categoryName];
+      let categoryDone = 0;
+      const isPoppyCategory = categoryName === "Poppy";
+      const rewardTotals = {};
+      categoryItems.forEach(([bountyName, bountyItem]) => {
+        const rewardKey = `${bountyItem.rewarditem || "Reward"}|${bountyItem.rewardimg || ""}`;
+        if (!rewardTotals[rewardKey]) {
+          rewardTotals[rewardKey] = {
+            total: 0,
+            done: 0,
+            rewardimg: bountyItem.rewardimg,
+            rewarditem: bountyItem.rewarditem || "Reward",
+          };
+        }
+        const rewardValue = Number(bountyItem[key("reward")] || 0);
+        rewardTotals[rewardKey].total += rewardValue;
+        if (bountyItem.completed) {
+          categoryDone += 1;
+          rewardTotals[rewardKey].done += rewardValue;
+        }
+      });
+      const categoryRewardTotals = Object.entries(rewardTotals).map(([rewardKey, rewardData]) => (
+        <span key={rewardKey} style={{ marginRight: '10px' }}>
+          {frmtNb(rewardData.done)}/{frmtNb(rewardData.total)}
+          <img src={rewardData.rewardimg} alt="" title={rewardData.rewarditem} style={{ width: '14px', height: '14px', marginLeft: '3px' }} />
+        </span>
+      ));
+      const showPoppyBonusHint = isPoppyCategory && categoryItems.length > 0 && categoryDone < categoryItems.length;
+      return (
+        <div key={categoryName} style={{ marginBottom: '8px' }}>
+          <div style={{ marginBottom: '4px' }}>
+            <b>{categoryName}</b> ({categoryDone}/{categoryItems.length}) - {categoryRewardTotals}{showPoppyBonusHint ? <span> (+50 when all done)</span> : null}
+          </div>
+          <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'flex-start' }}>
+            {categoryItems.map(([bountyName, bountyItem], index) => renderBountyCard(bountyName, bountyItem, `${categoryName}-${bountyName}-${index}`))}
+          </div>
         </div>
       );
     });
@@ -408,9 +580,9 @@ function ModalDlvr({ onClose, tableData, imgtkt, coinsRatio }) {
             {bountyItems}
           </tbody>
         </table> */}
-        <span>TOTAL : {bntyTktTotDone}/{bntyTktTot}{imgbtkt}{" (+50 when all done)"}</span>
-        <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'flex-start' }}>
-          {bountyItems}
+        <span><b>TOTAL</b> : {bntyTktTotDone}/{bntyTktTot}{imgbtkt}</span>
+        <div style={{ marginTop: '8px' }}>
+          {bountyItemsByCategory}
         </div>
       </>
     )

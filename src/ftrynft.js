@@ -2,20 +2,67 @@ import React, { useEffect, useState } from 'react';
 import { useAppCtx } from "./context/AppCtx";
 import { FormControl, Select, MenuItem, Switch, FormControlLabel } from '@mui/material';
 import CounterInput from "./counterinput.js";
+import DList from "./dlist.jsx";
 import { frmtNb, ColorValue, filterTryit } from './fct.js';
 import Help from './fhelp.js';
-
-let showNFT = true;
-let showNFTW = false;
-let showCraft = false;
-let showBud = false;
-let showSkill = false;
-let showShrine = false;
 
 let helpImage = "./image/helptrynft.jpg";
 
 const imgsfl = './icon/res/flowertoken.webp';
 const imgSFL = <img src={imgsfl} alt={''} className="itico" title="Flower" />;
+const BOOST_TAB_KEYS = ["collectibles", "wearables", "craft", "buds", "skills", "shrines"];
+const BOOST_CATEGORY_LABELS = {
+  collectibles: "Collectibles",
+  wearables: "Wearables",
+  craft: "Craft",
+  buds: "Buds",
+  skills: "Skills",
+  shrines: "Shrines",
+};
+const BOOST_TYPE_ALIASES = {
+  harvest: "yield",
+  production: "yield",
+  output: "yield",
+  speed: "time",
+  duration: "time",
+  cooldown: "time",
+  discount: "cost",
+  price: "cost",
+  experience: "xp",
+};
+const BOOST_ITEM_CATEGORY_ALIASES = {
+  crop: "crop",
+  crops: "crop",
+  fruit: "fruit",
+  fruits: "fruit",
+  flower: "flower",
+  flowers: "flower",
+  fish: "fish",
+  fishing: "fish",
+  wood: "wood",
+  tree: "wood",
+  trees: "wood",
+  stone: "mineral",
+  mineral: "mineral",
+  minerals: "mineral",
+  mining: "mineral",
+  animal: "animal",
+  animals: "animal",
+  barn: "animal",
+  building: "building",
+  buildings: "building",
+  craft: "building",
+  greenhouse: "greenhouse",
+  cook: "cook",
+  cooking: "cook",
+  food: "cook",
+  bees: "bees",
+  compost: "compost",
+  bud: "bud",
+  buds: "bud",
+  shrine: "shrine",
+  shrines: "shrine",
+};
 
 function ModalTNFT({ onClose }) {
   const {
@@ -41,6 +88,9 @@ function ModalTNFT({ onClose }) {
   const [showHelp, setShowHelp] = useState(false);
   const [cdButton, setcdButton] = useState(false);
   const [iTotBuyCheck, setTotBuyCheck] = useState(false);
+  const [selectedBoostTab, setSelectedBoostTab] = useState("collectibles");
+  const [boostTypeFilters, setBoostTypeFilters] = useState([]);
+  const [boostCategoryFilters, setBoostCategoryFilters] = useState([]);
   function key(name) {
     if (name === "active") { return TryChecked ? "tryit" : "isactive"; }
     return TryChecked ? name + "try" : name;
@@ -153,6 +203,9 @@ function ModalTNFT({ onClose }) {
           bud: Object.fromEntries(
             Object.entries(dataSetLocal.boostables.bud).map(([key, value]) => [key, { ...value, tryit: 0 }])
           ),
+          shrine: Object.fromEntries(
+            Object.entries(dataSetLocal.boostables.shrine).map(([key, value]) => [key, { ...value, tryit: 0 }])
+          ),
         }
       };
       setdataSetLocal(newDataSet);
@@ -162,83 +215,182 @@ function ModalTNFT({ onClose }) {
       console.log(`Error : ${error}`);
     }
   };
-  const setCollectibles = () => {
-    try {
-      showNFT = true;
-      showNFTW = false;
-      showCraft = false;
-      showBud = false;
-      showSkill = false;
-      showShrine = false;
-      setNFT(dataSetLocal);
-    } catch (error) {
-      console.log(`Error : ${error}`);
+  const getTabEntries = (xboostables, tabKey) => {
+    if (!xboostables) { return []; }
+    if (tabKey === "collectibles") { return Object.entries(xboostables.nft || {}); }
+    if (tabKey === "wearables") { return Object.entries(xboostables.nftw || {}); }
+    if (tabKey === "craft") { return Object.entries(xboostables.buildng || {}); }
+    if (tabKey === "buds") { return Object.entries(xboostables.bud || {}); }
+    if (tabKey === "skills") {
+      return [...Object.entries(xboostables.skill || {}), ...Object.entries(xboostables.skilllgc || {})];
     }
+    if (tabKey === "shrines") { return Object.entries(xboostables.shrine || {}); }
+    return [];
   };
-  const setWearables = () => {
-    try {
-      showNFT = false;
-      showNFTW = true;
-      showCraft = false;
-      showBud = false;
-      showSkill = false;
-      showShrine = false;
-      setNFT(dataSetLocal);
-    } catch (error) {
-      console.log(`Error : ${error}`);
-    }
+  const getBoostTokenList = (value) => {
+    if (value === null || value === undefined) { return []; }
+    const arr = Array.isArray(value) ? value : [value];
+    return arr
+      .map((v) => String(v || "").trim())
+      .filter(Boolean);
   };
-  const setCraft = () => {
-    try {
-      showNFT = false;
-      showNFTW = false;
-      showCraft = true;
-      showBud = false;
-      showSkill = false;
-      showShrine = false;
-      setNFT(dataSetLocal);
-    } catch (error) {
-      console.log(`Error : ${error}`);
-    }
+  const normalizeToken = (token, aliasMap = {}) => {
+    const txt = String(token || "")
+      .toLowerCase()
+      .replace(/[_-]/g, " ")
+      .replace(/\s+/g, " ")
+      .trim();
+    if (!txt) { return ""; }
+    const singular = txt.endsWith("s") && txt.length > 3 ? txt.slice(0, -1) : txt;
+    return aliasMap[singular] || aliasMap[txt] || singular;
   };
-  const setBuds = () => {
-    try {
-      showNFT = false;
-      showNFTW = false;
-      showCraft = false;
-      showBud = true;
-      showSkill = false;
-      showShrine = false;
-      setNFT(dataSetLocal);
-    } catch (error) {
-      console.log(`Error : ${error}`);
-    }
+  const formatTokenLabel = (token) => {
+    if (!token) { return ""; }
+    if (token.toLowerCase() === "xp") { return "XP"; }
+    return token
+      .split(" ")
+      .map((part) => part ? part.charAt(0).toUpperCase() + part.slice(1) : part)
+      .join(" ");
   };
-  const setSkills = () => {
-    try {
-      showNFT = false;
-      showNFTW = false;
-      showCraft = false;
-      showBud = false;
-      showSkill = true;
-      showShrine = false;
-      setNFT(dataSetLocal);
-    } catch (error) {
-      console.log(`Error : ${error}`);
-    }
+  const inferTypeTokens = (boostText) => {
+    const txt = String(boostText || "").toLowerCase();
+    const inferred = [];
+    if (/xp|experience/.test(txt)) { inferred.push("xp"); }
+    if (/yield|harvest|production|produce|output/.test(txt)) { inferred.push("yield"); }
+    if (/time|faster|speed|cooldown|duration/.test(txt)) { inferred.push("time"); }
+    if (/cost|discount|price|cheaper/.test(txt)) { inferred.push("cost"); }
+    return inferred;
   };
-  const setShrine = () => {
-    try {
-      showNFT = false;
-      showNFTW = false;
-      showCraft = false;
-      showBud = false;
-      showSkill = false;
-      showShrine = true;
-      setNFT(dataSetLocal);
-    } catch (error) {
-      console.log(`Error : ${error}`);
+  const resolveItemCategoryTokens = (boostItemTokens) => {
+    const itables = dataSetLocal?.itables?.it || {};
+    const itemCategoryIndex = {};
+    for (const [itemName, itemData] of Object.entries(itables)) {
+      const normName = normalizeToken(itemName);
+      const cat = normalizeToken(itemData?.cat || itemData?.scat || itemData?.matcat || "");
+      if (normName && cat && !itemCategoryIndex[normName]) {
+        itemCategoryIndex[normName] = cat;
+      }
     }
+    return Array.from(new Set(
+      boostItemTokens
+        .map((token) => normalizeToken(token))
+        .map((token) => BOOST_ITEM_CATEGORY_ALIASES[token] || itemCategoryIndex[token] || "")
+        .filter(Boolean)
+    ));
+  };
+  const getBoostMeta = (value) => {
+    const typeRaw = [
+      ...getBoostTokenList(value?.boosttype),
+      ...inferTypeTokens(value?.boost),
+    ];
+    const categoryRaw = [
+      ...getBoostTokenList(value?.boostit),
+      ...getBoostTokenList(value?.cat),
+      ...getBoostTokenList(value?.scat),
+    ];
+    const typeTokens = Array.from(new Set(typeRaw
+      .map((token) => normalizeToken(token, BOOST_TYPE_ALIASES))
+      .filter(Boolean)));
+    const categoryTokens = resolveItemCategoryTokens(categoryRaw);
+    return { typeTokens, categoryTokens };
+  };
+  const matchesTokenFilter = (selectedSet, tokens) => {
+    if (selectedSet.size === 0) { return { wanted: false, match: true }; }
+    if (!tokens.length) { return { wanted: true, match: null }; }
+    return { wanted: true, match: tokens.some((token) => selectedSet.has(token)) };
+  };
+  const currentTabEntries = getTabEntries(dataSetLocal?.boostables, selectedBoostTab);
+  const boostTypeTokens = Array.from(new Set(
+    currentTabEntries.flatMap(([, value]) => getBoostMeta(value).typeTokens)
+  )).sort((a, b) => a.localeCompare(b));
+  const boostCategoryTokens = Array.from(new Set(
+    currentTabEntries.flatMap(([, value]) => getBoostMeta(value).categoryTokens)
+  )).sort((a, b) => a.localeCompare(b));
+  const boostTypeOptions = boostTypeTokens.map((value) => ({ value, label: formatTokenLabel(value) }));
+  const boostCategoryOptions = boostCategoryTokens.map((value) => ({ value, label: formatTokenLabel(value) }));
+  const handleTabChange = (tabKey) => {
+    setSelectedBoostTab(tabKey);
+    setBoostTypeFilters([]);
+    setBoostCategoryFilters([]);
+  };
+  const applyBoostFilters = (itemName, value) => {
+    const { typeTokens, categoryTokens } = getBoostMeta(value);
+    const selectedTypeSet = new Set((boostTypeFilters || []).map((v) => String(v).toLowerCase()));
+    const selectedCategorySet = new Set((boostCategoryFilters || []).map((v) => String(v).toLowerCase()));
+    const typeEval = matchesTokenFilter(selectedTypeSet, typeTokens);
+    const categoryEval = matchesTokenFilter(selectedCategorySet, categoryTokens);
+    if (typeEval.wanted && typeEval.match !== true) { return false; }
+    if (categoryEval.wanted && categoryEval.match !== true) { return false; }
+    return true;
+  };
+  const filterPanelStyle = {
+    display: 'flex',
+    justifyContent: 'flex-end',
+    flexWrap: 'wrap',
+    alignItems: 'center',
+    gap: 6,
+    flex: '1 1 320px',
+    maxWidth: '100%',
+    overflowX: 'visible',
+    overflowY: 'visible',
+    paddingBottom: 2,
+  };
+  const actionBarStyle = {
+    display: 'flex',
+    alignItems: 'center',
+    gap: 4,
+    flexWrap: 'wrap',
+    flex: '1 1 320px',
+  };
+  const viewBarStyle = {
+    display: 'flex',
+    gap: 0,
+    justifyContent: 'center',
+    alignItems: 'center',
+    flexWrap: 'nowrap',
+    flex: '0 0 auto',
+  };
+  const headerRowStyle = {
+    display: 'flex',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    flexWrap: 'wrap',
+    columnGap: 8,
+    rowGap: 6,
+  };
+  const categoryButtonStyle = (isActive) => ({
+    opacity: 1,
+    border: isActive ? "1px solid rgba(123, 193, 125, 0.9)" : "1px solid rgba(255, 255, 255, 0.12)",
+    flex: '0 0 auto',
+    borderRadius: 999,
+    padding: '4px 10px',
+    color: 'var(--text-color)',
+    background: isActive
+      ? 'linear-gradient(180deg, rgba(123, 193, 125, 0.25) 0%, rgba(123, 193, 125, 0.08) 100%)'
+      : 'linear-gradient(180deg, rgba(255, 255, 255, 0.08) 0%, rgba(255, 255, 255, 0.03) 100%)',
+    boxShadow: isActive
+      ? '0 0 0 1px rgba(123, 193, 125, 0.12), 0 6px 14px rgba(0, 0, 0, 0.2)'
+      : '0 2px 8px rgba(0, 0, 0, 0.15)',
+    fontWeight: isActive ? 600 : 500,
+    fontSize: 12,
+    transition: 'all 120ms ease',
+    whiteSpace: 'nowrap',
+  });
+  const switchWrapStyle = {
+    marginLeft: 14,
+    paddingLeft: 10,
+    borderLeft: '1px solid rgba(255, 255, 255, 0.15)',
+    display: 'inline-flex',
+    alignItems: 'center',
+  };
+  const dlistMinWidth = 140;
+  const handleBoostTypeChange = (selectedValues) => {
+    const values = (selectedValues || []).map((v) => String(v).toLowerCase());
+    setBoostTypeFilters(Array.from(new Set(values)));
+  };
+  const handleBoostCategoryChange = (selectedValues) => {
+    const values = (selectedValues || []).map((v) => String(v).toLowerCase());
+    setBoostCategoryFilters(Array.from(new Set(values)));
   };
   const handleTryitChange = (item, base, baseName) => {
     const boostables = dataSetLocal?.boostables ?? {};
@@ -466,6 +618,12 @@ function ModalTNFT({ onClose }) {
   }
   function setNFT(xdataSetFarm) {
     const { nft, nftw, buildng, skill, skilllgc, bud, shrine } = xdataSetFarm.boostables;
+    const showNFT = selectedBoostTab === "collectibles";
+    const showNFTW = selectedBoostTab === "wearables";
+    const showCraft = selectedBoostTab === "craft";
+    const showBud = selectedBoostTab === "buds";
+    const showSkill = selectedBoostTab === "skills";
+    const showShrine = selectedBoostTab === "shrines";
     let totalCost = 0;
     let totalCostM = 0;
     let totalCostactiv = 0;
@@ -480,19 +638,49 @@ function ModalTNFT({ onClose }) {
     const imgOS = <img src='./icon/ui/openseaico.png' alt={''} className="nftico" />;
     const imgexchng = <img src='./icon/ui/exchange.png' alt={''} className="nftico" />;
     const showTotal = (showNFTW || showNFT);
+    const toNum = (v) => Number(v) || 0;
+    const isOn = (v) => v === 1 || v === true;
+
+    const addTotalsFromEntries = (entries, mode) => {
+      if (!entries) { return; }
+      for (const [, value] of entries) {
+        if (!value) { continue; }
+        if (mode === "price") {
+          if (isOn(value.tryit)) {
+            totalCost += toNum(value.price);
+            totalCostM += toNum(value.pricem);
+          }
+          if (isOn(value.isactive)) {
+            totalCostactiv += toNum(value.price);
+            totalCostactivM += toNum(value.pricem);
+          }
+          continue;
+        }
+        if (mode === "points") {
+          if (isOn(value.tryit)) {
+            totalCost += toNum(value.points);
+            totalCostM += toNum(value.pricem);
+          }
+          if (isOn(value.isactive)) {
+            totalCostactiv += toNum(value.points);
+            totalCostactivM += toNum(value.pricem);
+          }
+        }
+      }
+    };
+
+    if (showNFT) { addTotalsFromEntries(nftEntries, "price"); }
+    if (showNFTW) { addTotalsFromEntries(nftwEntries, "price"); }
+    if (showCraft) { addTotalsFromEntries(buildEntries, "price"); }
+    if (showBud) { addTotalsFromEntries(budEntries, "price"); }
+    if (showShrine) { addTotalsFromEntries(shrineEntries, "price"); }
+    if (showSkill) { addTotalsFromEntries(skillEntries, "points"); }
 
     var NFT = [];
     //settableNFT("");
     if (nftEntries && showNFT) {
       for (const [item, value] of nftEntries) {
-        if (value.tryit) {
-          totalCost += Number(value.price);
-          totalCostM += Number(value.pricem) || 0;
-        }
-        if (value.isactive) {
-          totalCostactiv += Number(value.price);
-          totalCostactivM += Number(value.pricem) || 0;
-        }
+        if (!applyBoostFilters(item, value)) { continue; }
         let isupply = 0;
         if (value.supply) { isupply = value.supply };
         NFT.push(
@@ -515,14 +703,7 @@ function ModalTNFT({ onClose }) {
     }
     if (nftwEntries && showNFTW) {
       for (const [itemw, valuew] of nftwEntries) {
-        if (valuew.tryit) {
-          totalCost += Number(valuew.price);
-          totalCostM += Number(valuew.pricem) || 0;
-        }
-        if (valuew.isactive) {
-          totalCostactiv += Number(valuew.price);
-          totalCostactivM += Number(valuew.pricem) || 0;
-        }
+        if (!applyBoostFilters(itemw, valuew)) { continue; }
         let isupplyw = 0;
         if (valuew.supply) { isupplyw = valuew.supply };
         NFT.push(
@@ -545,8 +726,7 @@ function ModalTNFT({ onClose }) {
     }
     if (buildEntries && showCraft) {
       for (const [itemb, valueb] of buildEntries) {
-        if (valueb.tryit) { totalCost += Number(valueb.price) };
-        if (valueb.isactive) { totalCostactiv += Number(valueb.price) };
+        if (!applyBoostFilters(itemb, valueb)) { continue; }
         let isupplyb = 0;
         if (valueb.supply) { isupplyb = valueb.supply };
         NFT.push(
@@ -580,35 +760,36 @@ function ModalTNFT({ onClose }) {
         Machinery: { 2: 2, 3: 5 },
         Compost: { 2: 3, 3: 7 }
       };
+      // Prerequisite check must use all selected skills, even if some are hidden by filters.
+      for (const [items, values] of skillEntries) {
+        const cat = skill?.[items]?.cat;
+        const tier = skill?.[items]?.tier;
+        if (!cat || !tier) { continue; }
+        if (!tierPoints[cat]) { tierPoints[cat] = {}; }
+        if (!tierPoints[cat][tier]) { tierPoints[cat][tier] = 0; }
+        if (isOn(values?.tryit)) {
+          tierPoints[cat][tier] += toNum(values?.points);
+        }
+      }
       let currentCategory = null;
       for (const [items, values] of skillEntries) {
+        if (!applyBoostFilters(items, values)) { continue; }
         if (values.cat !== currentCategory) {
           currentCategory = values.cat;
           NFT.push(
-            <tr>
+            <tr key={`skill-cat-${currentCategory}`}>
               <td colSpan={5} style={{ textAlign: "center", fontWeight: "bold" }}>
                 {currentCategory}
               </td>
             </tr>
           );
         }
-        if (!tierPoints[skill[items].cat]) { tierPoints[skill[items].cat] = {}; }
-        if (!tierPoints[skill[items].cat][skill[items].tier]) { tierPoints[skill[items].cat][skill[items].tier] = 0; }
-        if (values.tryit) {
-          totalCost += Number(values.points);
-          totalCostM += Number(values.pricem) || 0;
-          tierPoints[skill[items].cat][skill[items].tier] += Number(values.points);
-        }
-        if (values.isactive) {
-          totalCostactiv += Number(values.points);
-          totalCostactivM += Number(values.pricem) || 0;
-        }
         const cellStyle = {};
         cellStyle.backgroundColor = skill[items].tier === 1 ? `rgba(0, 116, 25, 0.63)` : skill[items].tier === 2 ? `rgba(0, 2, 116, 0.63)` : `rgba(114, 116, 0, 0.63)`;
-        if (skill[items].tier === 2 && (catPoints[skill[items].cat][2] > tierPoints[skill[items].cat][1] || 0)) {
+        if (skill[items].tier === 2 && ((catPoints[skill[items].cat]?.[2] || 0) > (tierPoints[skill[items].cat]?.[1] || 0))) {
           cellStyle.backgroundColor = `rgba(255, 94, 94, 0.63)`;
         }
-        if (skill[items].tier === 3 && (catPoints[skill[items].cat][3] > ((tierPoints[skill[items].cat][1] || 0) + (tierPoints[skill[items].cat][2] || 0)))) {
+        if (skill[items].tier === 3 && ((catPoints[skill[items].cat]?.[3] || 0) > ((tierPoints[skill[items].cat]?.[1] || 0) + (tierPoints[skill[items].cat]?.[2] || 0)))) {
           cellStyle.backgroundColor = `rgba(255, 94, 94, 0.63)`;
         }
         NFT.push(
@@ -627,14 +808,17 @@ function ModalTNFT({ onClose }) {
       }
     }
     if (skilllgcEntries && showSkill) {
-      NFT.push(
-        <tr>
-          <td colSpan={5} style={{ textAlign: "center", fontWeight: "bold" }}>
-            Badges (Legacy skills not obtainable anymore)
-          </td>
-        </tr>
-      );
-      for (const [items, values] of skilllgcEntries) {
+      const visibleSkilllgcEntries = skilllgcEntries.filter(([items, values]) => applyBoostFilters(items, values));
+      if (visibleSkilllgcEntries.length > 0) {
+        NFT.push(
+          <tr key="skill-legacy-title">
+            <td colSpan={5} style={{ textAlign: "center", fontWeight: "bold" }}>
+              Badges (Legacy skills not obtainable anymore)
+            </td>
+          </tr>
+        );
+      }
+      for (const [items, values] of visibleSkilllgcEntries) {
         /* if (values.tryit) {
           totalCost += Number(values.points);
           totalCostM += Number(values.pricem) || 0;
@@ -662,8 +846,7 @@ function ModalTNFT({ onClose }) {
     }
     if (budEntries && showBud) {
       for (const [itembd, valuebd] of budEntries) {
-        if (valuebd.tryit) { totalCost += Number(valuebd.price) };
-        if (valuebd.isactive) { totalCostactiv += Number(valuebd.price) };
+        if (!applyBoostFilters(itembd, valuebd)) { continue; }
         NFT.push(
           <tr key={itembd}>
             <td className="tditemright">{itembd}</td>
@@ -681,8 +864,7 @@ function ModalTNFT({ onClose }) {
     }
     if (shrineEntries && showShrine) {
       for (const [itemb, valueb] of shrineEntries) {
-        if (valueb.tryit) { totalCost += Number(valueb.price) || 0 };
-        if (valueb.isactive) { totalCostactiv += Number(valueb.price) || 0 };
+        if (!applyBoostFilters(itemb, valueb)) { continue; }
         let isupplyb = 0;
         if (valueb.supply) { isupplyb = valueb.supply || 0 };
         NFT.push(
@@ -762,7 +944,7 @@ function ModalTNFT({ onClose }) {
   useEffect(() => {
     setNFT(dataSetLocal);
     setContent(dataSetLocal.itables.it);
-  }, [dataSetLocal, TotalCostDisplay, TryChecked]);
+  }, [dataSetLocal, TotalCostDisplay, TryChecked, selectedBoostTab, boostTypeFilters, boostCategoryFilters]);
 
   const tableStyle = {
     flexDirection: tableFlexDirection,
@@ -787,12 +969,8 @@ function ModalTNFT({ onClose }) {
         maxHeight: '100vh'
       }}>
         {/* <h2>Try NFT</h2> */}
-        <div style={{
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'center',
-        }}>
-          <div>
+        <div style={headerRowStyle}>
+          <div style={actionBarStyle}>
             <button onClick={closeModal} class="button"><img src="./icon/ui/cancel.png" alt="" className="resico" /></button>
             <button
               onPointerDown={(e) => {
@@ -821,35 +999,41 @@ function ModalTNFT({ onClose }) {
               disabled={cdButton}>
               <img src="./icon/ui/refresh.png" alt="" className="resico" />
             </button>
+            <button onClick={Reset} title="Reset to active set" class="button">
+              <img src="./icon/ui/resettry.png" alt="" className="resico" />
+            </button>
+            <button onClick={SetZero} title="Disable all NFT/Skill boosts" class="button">
+              <img src="./icon/ui/noboosttry.png" alt="" className="resico" />
+            </button>
             <button onClick={handleButtonHelpClick} title="Help" class="button"><img src="./icon/nft/na.png" alt="" className="itico" /></button>
-            <button onClick={Reset}>Reset</button>
-            <button onClick={SetZero}>No NFT/Skill</button>
-            <FormControlLabel
-              control={
-                <Switch
-                  name="TryChecked"
-                  checked={TryChecked}
-                  onChange={handleUIChange}
-                  color="primary"
-                  size="small"
-                  sx={{
-                    '& .MuiSwitch-track': {
-                      backgroundColor: 'gray',
-                    },
-                    transform: 'translate(15%, 15%)',
-                  }}
-                />
-              }
-              label={TryChecked ? 'Tryset' : 'Activeset'}
-              sx={{
-                '& .MuiFormControlLabel-label': {
-                  fontSize: '10px',
-                  transform: 'translate(-70%, -70%)',
+            <div style={switchWrapStyle}>
+              <FormControlLabel
+                control={
+                  <Switch
+                    name="TryChecked"
+                    checked={TryChecked}
+                    onChange={handleUIChange}
+                    color="primary"
+                    size="small"
+                    sx={{
+                      '& .MuiSwitch-track': {
+                        backgroundColor: 'rgba(140, 140, 140, 0.7)',
+                      },
+                    }}
+                  />
                 }
-              }}
-            />
+                label={TryChecked ? 'Tryset' : 'Activeset'}
+                sx={{
+                  marginRight: 0,
+                  '& .MuiFormControlLabel-label': {
+                    fontSize: '11px',
+                    lineHeight: 1,
+                  }
+                }}
+              />
+            </div>
           </div>
-          <div style={{ display: 'flex', gap: 0, justifyContent: 'center', alignItems: 'center' }}>
+          <div style={viewBarStyle}>
             <button class="button"
               onClick={() => setTableFlexDirection(dir => dir === 'row' ? 'column' : 'row')}
             >
@@ -864,17 +1048,41 @@ function ModalTNFT({ onClose }) {
                 : <img src="./icon/ui/cropslightning.png" alt="" className="resico" />}
             </button>
           </div>
-          <div style={{
-            display: 'flex',
-            justifyContent: 'flex-end',
-            flexWrap: 'wrap',
-          }}>
-            <button onClick={setCollectibles}>Collectibles</button>
-            <button onClick={setWearables}>Wearables</button>
-            <button onClick={setCraft}>Craft</button>
-            <button onClick={setBuds}>Buds</button>
-            <button onClick={setSkills}>Skills</button>
-            <button onClick={setShrine}>Shrines</button>
+          <div style={filterPanelStyle}>
+            {BOOST_TAB_KEYS.map((category) => (
+              <button
+                key={category}
+                onClick={() => handleTabChange(category)}
+                style={categoryButtonStyle(selectedBoostTab === category)}
+                title="Select tab"
+              >
+                {BOOST_CATEGORY_LABELS[category]}
+              </button>
+            ))}
+            <DList
+              placeholder="Type"
+              options={boostTypeOptions}
+              value={boostTypeFilters}
+              multiple={true}
+              closeOnSelect={false}
+              emitEvent={false}
+              onChange={handleBoostTypeChange}
+              //width={115}
+              height={20}
+              menuMinWidth={dlistMinWidth}
+            />
+            <DList
+              placeholder="Category"
+              options={boostCategoryOptions}
+              value={boostCategoryFilters}
+              multiple={true}
+              closeOnSelect={false}
+              emitEvent={false}
+              onChange={handleBoostCategoryChange}
+              //width={115}
+              height={20}
+              menuMinWidth={dlistMinWidth}
+            />
           </div>
         </div>
         <div style={tableStyle}>

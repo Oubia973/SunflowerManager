@@ -631,8 +631,16 @@ function setActivityQuest(activityData, dataSetFarm, ui) {
         xListeColActivityQuest
     } = ui;
     if (activityData[0]) {
+        const toNumber = (value) => {
+            if (typeof value === "number") return Number.isFinite(value) ? value : 0;
+            if (typeof value === "string") {
+                const n = Number(value.replace(",", "."));
+                return Number.isFinite(n) ? n : 0;
+            }
+            return 0;
+        };
         //const { it, food, fish, flower, nft, nftw } = dataSetFarm;
-        const tot = setActivityTotQuest(activityData);
+        const tot = setActivityTotQuest(activityData, dataSetFarm);
         const Quest = tot.Quest;
         const questKeys = Object.keys(Quest);
         const dayKeys = Object.keys(activityData);
@@ -647,7 +655,7 @@ function setActivityQuest(activityData, dataSetFarm, ui) {
             uniqueQuests.add(JSON.stringify({
                 from: cobj.from,
                 description: cobj.description,
-                reward: Number(cobj.reward),
+                reward: toNumber(cobj.reward),
                 istkt: cobj.istkt,
             }));
             if (!completionsByDate[qxdate]) {
@@ -656,7 +664,7 @@ function setActivityQuest(activityData, dataSetFarm, ui) {
             completionsByDate[qxdate][JSON.stringify({
                 from: cobj.from,
                 description: cobj.description,
-                reward: Number(cobj.reward),
+                reward: toNumber(cobj.reward),
                 istkt: cobj.istkt,
             })] = cobj.completed ? "X" : qxdate === dToday ? "." : "-";
         });
@@ -679,7 +687,7 @@ function setActivityQuest(activityData, dataSetFarm, ui) {
             const ofrom = uniqueQuest.from;
             xfrom = "./icon/pnj/" + ofrom + ".png";
             if (ofrom === "pumpkin' pete") { xfrom = "./icon/pnj/pumpkinpete.png" }
-            const ximgfrom = <img src={xfrom} alt="" title={ofrom} style={{ width: '20px', height: '20px' }} />;
+            const ximgfrom = <img src={xfrom} alt="" title={ofrom} onError={(e) => { e.currentTarget.onerror = null; e.currentTarget.src = "./icon/nft/na.png"; }} style={{ width: '20px', height: '20px' }} />;
             //const ximgrew = <img src={imgtkt} alt="" title={ofrom} style={{ width: '25px', height: '25px' }} />;
             return (
                 <tr>
@@ -719,7 +727,7 @@ function setActivityQuest(activityData, dataSetFarm, ui) {
     }
 }
 function setActivityTot(activityData, xContext, dataSetFarm, dataSet) {
-    const { it, food, fish, flower } = dataSetFarm.itables;
+    const { it, food, pfood, fish, flower, bounty, craft, tool, compost, petit, mutant, crustacean } = dataSetFarm.itables;
     const { nft, nftw } = dataSetFarm.boostables;
     const dateSeasonConst = dataSetFarm.constants.dateSeason;
     let compoHarvested = [];
@@ -917,39 +925,55 @@ function setActivityTot(activityData, xContext, dataSetFarm, dataSet) {
                 //const isShelly = Shelly.some(valeur => new RegExp(valeur).test(totDelivEntries[item][1].from));
                 //if (isToday) {
                 const isShelly = item === "shelly";
-                let patterntkn = /res\/(.*?)\ alt=/g;
-                let correspondancetkn = patterntkn.exec(OrderItem.reward);
-                let pattern = /(.*?)<img/g;
-                let correspondance = pattern.exec(OrderItem.reward);
-                let correspondancetktname = OrderItem.reward.includes(dataSet.imgtkt);
-                const istkt = correspondancetktname;
-                const issfl = correspondancetkn && correspondancetkn[1] === "flowertoken.webp";
-                const iscoins = correspondancetkn && correspondancetkn[1] === "coins.png";
+                const rewardImg = String(OrderItem?.rewardimg || "");
+                const rewardItem = String(OrderItem?.rewarditem || "");
+                const rewardItemLower = rewardItem.toLowerCase();
+                const rewardQty = Number(OrderItem?.rewardqty || 0);
+                const istkt = rewardImg === dataSet.imgtkt
+                    || rewardImg.includes("ticket")
+                    || rewardItem === dataSet.tktName
+                    || rewardItemLower.includes("ticket");
+                const issfl = rewardImg.includes("flowertoken.webp")
+                    || rewardItemLower === "sfl"
+                    || rewardItemLower.includes("flower token");
+                const iscoins = rewardImg.includes("coins.png")
+                    || rewardItemLower === "coins"
+                    || rewardItemLower === "coin";
                 const isPreSeason = OrderItem.preSeason && OrderItem.preSeason;
+                const itemsMap = (OrderItem?.itemsMap && typeof OrderItem.itemsMap === "object")
+                    ? OrderItem.itemsMap
+                    : Array.isArray(OrderItem?.itemsList)
+                        ? OrderItem.itemsList.reduce((acc, x) => {
+                            const name = x?.name;
+                            const qty = Number(x?.qty ?? x?.quantity ?? 0);
+                            if (!name || qty <= 0) return acc;
+                            acc[name] = (acc[name] || 0) + qty;
+                            return acc;
+                        }, {})
+                        : {};
+                const getItemBase = (name) => (
+                    it?.[name] || food?.[name] || pfood?.[name] || fish?.[name] || flower?.[name] || bounty?.[name] || craft?.[name] || tool?.[name] || compost?.[name] || petit?.[name] || mutant?.[name] || crustacean?.[name] || null
+                );
                 if (OrderItem.completed) {
                     delivBurn[item] = [];
-                    //"items": "1<img src=./icon/food/fermented_carrots.png alt=\"\" title=\"Fermented Carrots\" style=\"width: 17px; height: 17px\"/>",
-                    var regex = /(\d+)<img[^>]+title="([^"]+)"[^>]*\/>/g;
-                    var match;
-                    while ((match = regex.exec(OrderItem.items)) !== null) {
-                        var value = match[1];
-                        const ivalue = Number(value);
-                        var title = match[2];
+                    Object.entries(itemsMap).forEach(([title, rawValue]) => {
+                        const ivalue = Number(rawValue || 0);
+                        if (ivalue <= 0) return;
                         if (food[title]) {
                             const foodCompo = flattenCompoit(food[title].compoit);
                             //for (let i = 1; i < 5; i++) {
                             for (let compofood in foodCompo) {
                                 const compo = compofood;
                                 const quant = foodCompo[compofood];
-                                if (it[compo] || fish[compo]) {
+                                const xcompo = getItemBase(compo);
+                                if (xcompo) {
                                     compoBurn[compo] = compoBurn[compo] || 0;
                                     compoBurn[compo] += quant * ivalue;
                                     delivBurn[item][compo] = delivBurn[item][compo] || 0;
                                     delivBurn[item][compo] += quant * ivalue;
                                     delivBurn["total"][compo] = delivBurn["total"][compo] || 0;
                                     delivBurn["total"][compo] += quant * ivalue;
-                                    const xcompo = it[compo] ? it[compo] : fish[compo] ? fish[compo] : null;
-                                    const icost = (xcompo.cost / dataSet.options.coinsRatio) * (quant * ivalue);
+                                    const icost = ((Number(xcompo.cost || 0)) / dataSet.options.coinsRatio) * (quant * ivalue);
                                     const icostt = xcompo.costp2pt ? xcompo.costp2pt : 0 * (quant * ivalue);
                                     const icostn = xcompo.costp2pn ? xcompo.costp2pn : 0 * (quant * ivalue);
                                     const icosto = xcompo.costp2po ? xcompo.costp2po : 0 * (quant * ivalue);
@@ -963,18 +987,19 @@ function setActivityTot(activityData, xContext, dataSetFarm, dataSet) {
                             }
                             //tot.XP += Number(food[title].xp) * ivalue;
                         }
-                        if (it[title] || fish[title]) {
+                        const low = String(title).toLowerCase();
+                        if (low === "coins" || low === "sfl" || getItemBase(title)) {
                             compoBurn[title] = compoBurn[title] || 0;
                             compoBurn[title] += ivalue;
                             delivBurn[item][title] = delivBurn[item][title] || 0;
                             delivBurn[item][title] += ivalue;
                             delivBurn["total"][title] = delivBurn["total"][title] || 0;
                             delivBurn["total"][title] += ivalue;
-                            const xcompo = it[title] ? it[title] : fish[title] ? fish[title] : null;
-                            const icost = (xcompo.cost / dataSet.options.coinsRatio) * ivalue;
-                            const icostt = xcompo.costp2pt ? xcompo.costp2pt : 0 * ivalue;
-                            const icostn = xcompo.costp2pn ? xcompo.costp2pn : 0 * ivalue;
-                            const icosto = xcompo.costp2po ? xcompo.costp2po : 0 * ivalue;
+                            const xcompo = getItemBase(title);
+                            const icost = (low === "coins" ? (1 / dataSet.options.coinsRatio) : low === "sfl" ? 1 : ((Number(xcompo?.cost || 0)) / dataSet.options.coinsRatio)) * ivalue;
+                            const icostt = (low === "coins" ? (1 / dataSet.options.coinsRatio) : low === "sfl" ? 1 : (xcompo?.costp2pt || 0)) * ivalue;
+                            const icostn = (low === "coins" ? (1 / dataSet.options.coinsRatio) : low === "sfl" ? 1 : (xcompo?.costp2pn || 0)) * ivalue;
+                            const icosto = (low === "coins" ? (1 / dataSet.options.coinsRatio) : low === "sfl" ? 1 : (xcompo?.costp2po || 0)) * ivalue;
                             tot.deliveriescost += icost;
                             tot.deliveriescostp2pt += Number(icostt);
                             tot.deliveriescostp2pn += Number(icostn);
@@ -982,18 +1007,18 @@ function setActivityTot(activityData, xContext, dataSetFarm, dataSet) {
                             tot.deliveriestktcost += istkt ? icost : 0
                             //console.log(item + ":" + compoValues[compo]);
                         }
-                    }
+                    });
                     //"reward": "1.42<img src=./icon/res/sfltoken.png alt=\"\" style=\"width: 20px; height: 20px\"/>",
                     //"reward": "4<img src=./icon/res/mermaid_scale.webp alt=\"\" style=\"width: 20px; height: 20px\"/>",
                     const itm = istkt ? "TKT" : (issfl ? "SFL" : "COINS");
-                    if (correspondance || istkt) {
-                        compoHarvested[itm] += Number(correspondance[1]) || 0;
-                        tot.deliveriestkt += !isPreSeason && istkt && (Number(correspondance[1]) || 0);
-                        tot.deliveriessfl += issfl && (Number(correspondance[1]) || 0);
-                        tot.deliveriescoins += iscoins && (Number(correspondance[1]) || 0);
+                    if (rewardQty > 0 || istkt) {
+                        compoHarvested[itm] += rewardQty || 0;
+                        tot.deliveriestkt += !isPreSeason && istkt && (rewardQty || 0);
+                        tot.deliveriessfl += issfl && (rewardQty || 0);
+                        tot.deliveriescoins += iscoins && (rewardQty || 0);
                     }
                 }
-                tot.tktMax += !isShelly && istkt && (correspondance && (Number(correspondance[1]) || 0));
+                tot.tktMax += !isShelly && istkt && (rewardQty || 0);
                 //if (istkt) { console.log("tktMax +deliv: " + item + "-> " + Number(correspondance[1])) }
                 //}
             });
@@ -1083,6 +1108,52 @@ function setActivityTot(activityData, xContext, dataSetFarm, dataSet) {
     return result;
 }
 function setActivityTotQuest(activityData, dataSetFarm) {
+    const tktName = dataSetFarm?.constants?.tktName || "Mermaid Scale";
+    const itables = dataSetFarm?.itables || {};
+    const imgna = "./icon/nft/na.png";
+    const toNumber = (value) => {
+        if (typeof value === "number") return Number.isFinite(value) ? value : 0;
+        if (typeof value === "string") {
+            const n = Number(value.replace(",", "."));
+            return Number.isFinite(n) ? n : 0;
+        }
+        return 0;
+    };
+    const parseLegacyDeliveryItemsMap = (legacyItems) => {
+        const result = {};
+        if (!legacyItems || typeof legacyItems !== "string") return result;
+        const htmlRegex = /(\d+(?:[.,]\d+)?)\s*x?\s*<img[^>]*title=['"]([^'"]+)['"][^>]*>/gi;
+        let match = null;
+        while ((match = htmlRegex.exec(legacyItems)) !== null) {
+            const qty = toNumber(match[1]);
+            const name = String(match[2] || "").trim();
+            if (!name || qty <= 0) continue;
+            result[name] = (result[name] || 0) + qty;
+        }
+        if (Object.keys(result).length > 0) return result;
+        const text = legacyItems.replace(/<br\s*\/?>/gi, ", ").replace(/<[^>]+>/g, " ");
+        const txtRegex = /(\d+(?:[.,]\d+)?)\s*x?\s*([A-Za-z][A-Za-z0-9' -]+)/g;
+        while ((match = txtRegex.exec(text)) !== null) {
+            const qty = toNumber(match[1]);
+            const name = String(match[2] || "").trim().replace(/\s+/g, " ");
+            if (!name || qty <= 0) continue;
+            result[name] = (result[name] || 0) + qty;
+        }
+        return result;
+    };
+    const getDeliveryItemImg = (name) => {
+        const key = String(name || "").trim();
+        const lower = key.toLowerCase();
+        if (lower === "coins" || lower === "coin") return "./icon/res/coins.png";
+        if (lower === "sfl") return "./icon/res/flowertoken.webp";
+        const tables = ["it", "food", "pfood", "fish", "flower", "bounty", "craft", "tool", "compost", "petit", "mutant", "crustacean"];
+        for (const tableName of tables) {
+            const table = itables?.[tableName];
+            const hit = table?.[key];
+            if (hit?.img) return hit.img;
+        }
+        return imgna;
+    };
     let Quest = [];
     let i = 0;
     //const dataEntries = Object.entries(activityData);
@@ -1114,15 +1185,31 @@ function setActivityTotQuest(activityData, dataSetFarm) {
             if (!isShelly) {
                 const delivItem = activityData[index].data.deliveries[item];
                 const delivFrom = item;
-                const delivDesc = delivItem.items;
+                const delivItemsMap = (delivItem?.itemsMap && typeof delivItem.itemsMap === "object")
+                    ? delivItem.itemsMap
+                    : Array.isArray(delivItem?.itemsList)
+                        ? delivItem.itemsList.reduce((acc, x) => {
+                            const name = x?.name;
+                            const qty = Number(x?.qty ?? x?.quantity ?? 0);
+                            if (!name || qty <= 0) return acc;
+                            acc[name] = (acc[name] || 0) + qty;
+                            return acc;
+                        }, {})
+                        : parseLegacyDeliveryItemsMap(delivItem?.items);
+                const delivDesc = Object.entries(delivItemsMap).map(([name, qty]) => {
+                    const icon = getDeliveryItemImg(name);
+                    return `${qty}<img src="${icon}" alt="" title="${name}" style="width:14px;height:14px;vertical-align:middle;margin:0 2px 1px 1px;" />`;
+                }).join(" ");
                 const delivDate = formatDate(activityData[index].date);
                 const delivCompleted = delivItem.completed;
-                let patterntkn = /res\/(.*?)\ alt=/g;
-                let correspondancetkn = patterntkn.exec(delivItem.reward);
-                let pattern = /(.*?)<img/g;
-                let correspondance = pattern.exec(delivItem.reward);
-                const istkt = correspondancetkn && correspondancetkn[1] !== "flowertoken.webp";
-                const delivRew = correspondance && correspondance[1];
+                const rewardImg = String(delivItem?.rewardimg || "");
+                const rewardItem = String(delivItem?.rewarditem || "");
+                const rewardItemLower = rewardItem.toLowerCase();
+                const istkt = rewardImg.includes("ticket")
+                    || rewardItem === tktName
+                    || rewardItemLower.includes("ticket");
+                const delivRew = toNumber(delivItem?.rewardqty || 0);
+                if (Object.keys(delivItemsMap).length === 0) return;
                 Quest[i] = {
                     from: delivFrom,
                     description: delivDesc,

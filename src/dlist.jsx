@@ -19,6 +19,7 @@ export default function DList({
     emitEvent = true,
     clearable = false,
     iconOnly = false,
+    menuMinWidth = null,
 }) {
     const rootRef = useRef(null);
     const btnRef = useRef(null);
@@ -53,8 +54,10 @@ export default function DList({
 
     const effectiveValue = useMemo(() => {
         if (!tupleMode) return value;
-        if (Array.isArray(value)) return value;
-        return (Array.isArray(options) ? options : [])
+        const tupleSource = isTupleList(value)
+            ? value
+            : (Array.isArray(options) ? options : []);
+        return tupleSource
             .filter((t) => Array.isArray(t) && !!t[1])
             .map((t) => t[0]);
     }, [tupleMode, value, options]);
@@ -108,8 +111,15 @@ export default function DList({
         const openDown = spaceBelow >= 180 || spaceBelow >= spaceAbove;
         const maxListH = Math.max(120, Math.min(MAX_LIST, openDown ? spaceBelow : spaceAbove));
 
+        const minWidthPx =
+            menuMinWidth == null
+                ? 0
+                : (typeof menuMinWidth === "number" ? menuMinWidth : Number.parseFloat(String(menuMinWidth)) || 0);
+        const popupWidth = Math.max(Math.round(r.width), Math.round(minWidthPx));
+        const maxLeft = Math.max(PAD, window.innerWidth - popupWidth - PAD);
+        const clampedLeft = Math.min(Math.max(Math.round(r.left), PAD), maxLeft);
         const base = {
-            left: Math.round(r.left),
+            left: clampedLeft,
             width: Math.round(r.width),
             maxListH,
         };
@@ -234,21 +244,29 @@ export default function DList({
 
     const popStyle = useMemo(() => {
         if (!pos) return undefined;
+        const resolvedMinWidth = menuMinWidth != null
+            ? (typeof menuMinWidth === "number" ? `${menuMinWidth}px` : menuMinWidth)
+            : null;
+        const viewportMaxWidth = "calc(100vw - 16px)";
 
         const base = {
             left: pos.left,
             width: pos.width,
+            maxWidth: viewportMaxWidth,
             ...(pos.top != null ? { top: pos.top } : {}),
             ...(pos.bottom != null ? { bottom: pos.bottom } : {}),
             "--cd-list-maxh": `${pos.maxListH ?? 450}px`,
         };
 
         if (width == null) {
-            return { ...base, minWidth: pos.width, width: "max-content" };
+            return { ...base, minWidth: resolvedMinWidth ?? pos.width, width: "max-content" };
         }
 
+        if (resolvedMinWidth) {
+            return { ...base, minWidth: resolvedMinWidth };
+        }
         return base;
-    }, [pos, width]);
+    }, [pos, width, menuMinWidth]);
 
 
     const menu =
@@ -296,9 +314,7 @@ export default function DList({
                                         ) : (
                                             <span />
                                         )}
-                                        {!iconOnly && (
-                                            <span className="cd-label">{o.label}</span>
-                                        )}
+                                        <span className="cd-label">{o.label}</span>
                                     </button>
                                 );
                             })

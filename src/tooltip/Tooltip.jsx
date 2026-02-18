@@ -7,7 +7,7 @@ import createSetCompoTable from './compoTable.js';
 
 const Tooltip = ({ onClose, item, context, value, clickPosition, dataSet, dataSetFarm, bdrag = true, forTry }) => {
     const { Animals } = dataSetFarm || {};
-    const { it, food, pfood, flower, fish, buildng, craft, tool, bounty, petit, compost, crustacean } = dataSetFarm.itables || {};
+    const { it, food, pfood, flower, fish, buildng, craft, tool, bounty, petit, compost, crustacean, mutant } = dataSetFarm.itables || {};
     const { nft, nftw, skill, skilllgc, bud, shrine } = dataSetFarm.boostables || {};
     const { coinsRatio } = dataSet.options;
     const ForTry = forTry;
@@ -46,7 +46,19 @@ const Tooltip = ({ onClose, item, context, value, clickPosition, dataSet, dataSe
     const imgspring = <img src="./icon/ui/spring.webp" alt={''} className="resico" title="Spring" />;
     const imgsummer = <img src="./icon/ui/summer.webp" alt={''} className="resico" title="Summer" />;
     const imgautumn = <img src="./icon/ui/autumn.webp" alt={''} className="resico" title="Autumn" />;
-    const Item = it?.[item] || {};
+    const Item =
+        it?.[item] ||
+        food?.[item] ||
+        pfood?.[item] ||
+        fish?.[item] ||
+        flower?.[item] ||
+        bounty?.[item] ||
+        crustacean?.[item] ||
+        craft?.[item] ||
+        tool?.[item] ||
+        compost?.[item] ||
+        petit?.[item] ||
+        {};
     const tradeTax = (100 - dataSet.options.tradeTax) / 100;
     let txt = "";
     const [isOpen, setIsOpen] = useState(false);
@@ -908,6 +920,58 @@ const Tooltip = ({ onClose, item, context, value, clickPosition, dataSet, dataSe
             txt = <><div>{itemImg}{item} {txtQuant}</div>
                 <div>{txtCost}</div></>;
         }
+        if (context === "animalcostu") {
+            const productName = value?.product || item;
+            const itemimg = it?.[productName]?.img || imgna;
+            const itemImg = <img src={itemimg} style={{ width: "20px", height: "20px" }} />;
+            const displayedCost = value?.displayedCost ?? "";
+            const yieldPerCycle = value?.yieldPerCycle;
+            const foodQty = value?.foodQty;
+            const foodName = value?.foodName;
+            const animalName = value?.animal || "";
+            const currentLvl = value?.currentLvl;
+            const buyCropsCostU = value?.buyCropsCostU;
+            const marketCostU = value?.marketCostU;
+            const tradeTax = value?.tradeTax ?? dataSet.options.tradeTax;
+            const marketAfterTax = marketCostU || 0;
+            const profit = marketAfterTax - (displayedCost || 0);
+            const profitMul = marketAfterTax / (displayedCost || 0);
+            const profiPercent = (Math.ceil(profitMul * 100) - 100) || 0;
+            const colorProfit = ColorValue(profitMul);
+            const foodIconSrc = foodName === "Mix"
+                ? imgmix
+                : foodName === "Omnifeed"
+                    ? imgomni
+                    : (it?.[foodName]?.img || imgna);
+            const foodIcon = <img src={foodIconSrc} style={{ width: "16px", height: "16px" }} />;
+            const isMixFood = foodName === "Mix" || foodName === "Mix Food";
+            const mixFoodCompo = isMixFood ? setCompoTable("Mix Food", Number(foodQty || 0)) : null;
+            const mixFoodTable = mixFoodCompo?.table || null;
+            const animalIconSrc = animalName === "Chicken"
+                ? "./icon/res/chkn.png"
+                : animalName === "Cow"
+                    ? "./icon/res/cow.webp"
+                    : animalName === "Sheep"
+                        ? "./icon/res/sheep.webp"
+                        : imgna;
+            const animalIcon = <img src={animalIconSrc} style={{ width: "16px", height: "16px" }} />;
+            txt = (
+                <>
+                    <div>{itemImg} {productName} cost</div>
+                    {(currentLvl !== undefined && currentLvl !== null) ? <div>for a lvl{currentLvl} {animalIcon}</div> : null}
+                    {(foodQty !== undefined && foodQty !== null) ? (
+                        isMixFood
+                            ? <div>{mixFoodTable}</div>
+                            : <div>{frmtNb(foodQty)} {foodIcon}</div>
+                    ) : null}
+                    {(yieldPerCycle !== undefined && yieldPerCycle !== null) ? <div>{itemImg}x{frmtNb(yieldPerCycle)} per {animalIcon}</div> : null}
+                    {(displayedCost !== undefined && displayedCost !== null) ? <div>Your production cost {frmtNb(displayedCost)}{imgsfl}</div> : null}
+                    {(buyCropsCostU !== undefined && buyCropsCostU !== null) ? <div>(Buying crops {imgmp}{frmtNb(buyCropsCostU)}{imgsfl})</div> : null}
+                    {(marketCostU !== undefined && marketCostU !== null) ? <div>Marketplace-{tradeTax}% tax {frmtNb(marketAfterTax)}{imgsfl}</div> : null}
+                    <div>Profit {frmtNb(profit)}{imgsfl} <span style={{ color: colorProfit }}>{profiPercent}%</span></div>
+                </>
+            );
+        }
         if (context === "buildcraft") {
             const buildName = item.name;
             const buildImg = item.img;
@@ -1153,6 +1217,103 @@ const Tooltip = ({ onClose, item, context, value, clickPosition, dataSet, dataSe
                     <div>{txtItemImg}ratio: {ratioC}{imgcoins} for 1{imgsfl}</div>
                 </>
             }
+        }
+        if (context === "deliverycost") {
+            const itemsMap = (value && typeof value === "object" && value.items && typeof value.items === "object") ? value.items : {};
+            const marketMode = value?.market || "trader";
+            const getItemImg = (name) => {
+                if (!name) return null;
+                const low = String(name).toLowerCase();
+                if (low === "coins") { return "./icon/res/coins.png"; }
+                return (it?.[name]?.img ?? food?.[name]?.img ?? pfood?.[name]?.img ?? fish?.[name]?.img ?? bounty?.[name]?.img ?? crustacean?.[name]?.img ?? craft?.[name]?.img ?? petit?.[name]?.img ?? flower?.[name]?.img ?? tool?.[name]?.img ?? compost?.[name]?.img ?? mutant?.[name]?.img ?? imgna);
+            };
+            const getItemBase = (name) => (
+                it?.[name] || food?.[name] || pfood?.[name] || fish?.[name] || bounty?.[name] || crustacean?.[name] || craft?.[name] || petit?.[name] || flower?.[name] || tool?.[name] || compost?.[name] || mutant?.[name] || null
+            );
+            const getMarketUnit = (base) => {
+                if (!base) return 0;
+                const prodUnit = Number(base?.[key("cost")] ?? base?.cost ?? 0) / coinsRatio;
+                const trader = Number(base?.[key("costp2pt")] ?? base?.costp2pt ?? 0);
+                const nifty = Number(base?.[key("costp2pn")] ?? base?.costp2pn ?? 0);
+                const opensea = Number(base?.[key("costp2po")] ?? base?.costp2po ?? 0);
+                const shop = Number(base?.costshop || 0) / coinsRatio;
+                let market = 0;
+                if (marketMode === "shop") { market = shop; }
+                if (marketMode === "trader") { market = trader; }
+                if (marketMode === "nifty") { market = nifty; }
+                if (marketMode === "opensea") { market = opensea; }
+                return market > 0 ? market : prodUnit;
+            };
+            let totCost = 0;
+            let totMarket = 0;
+            const rows = Object.entries(itemsMap).map(([name, rawQty]) => {
+                const qty = Number(rawQty || 0);
+                const low = String(name).toLowerCase();
+                const displayName = low === "coins" ? "Coins" : name;
+                const img = getItemImg(name);
+                const base = getItemBase(name);
+                const unitCost = low === "coins" ? (1 / coinsRatio) : (Number(base?.[key("cost")] ?? base?.cost ?? 0) / coinsRatio);
+                const unitMarket = low === "coins" ? (1 / coinsRatio) : getMarketUnit(base);
+                const lineCost = unitCost * qty;
+                const lineMarket = unitMarket * qty;
+                totCost += lineCost;
+                totMarket += lineMarket;
+                return (
+                    <tr key={name}>
+                        <td style={{ padding: "2px 8px 2px 0" }}>
+                            <span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
+                                <img src={img} alt="" title={name} style={{ width: 18, height: 18 }} />
+                                <span>{displayName}</span>
+                            </span>
+                        </td>
+                        <td style={{ textAlign: "center", paddingRight: 8 }}>{frmtNb(qty)}</td>
+                        <td style={{ textAlign: "center", paddingRight: 8 }}>{frmtNb(lineCost)}</td>
+                        <td style={{ textAlign: "center" }}>{frmtNb(lineMarket)}</td>
+                    </tr>
+                );
+            });
+            txt = (
+                <table style={{ borderCollapse: "collapse" }}>
+                    <thead>
+                        <tr>
+                            <th style={{ textAlign: "left", paddingRight: 8 }}>Item</th>
+                            <th style={{ textAlign: "center", paddingRight: 8 }}>Qty</th>
+                            <th style={{ textAlign: "center", paddingRight: 8 }}>Cost</th>
+                            <th style={{ textAlign: "center" }}>{imgExchng}</th>
+                        </tr>
+                        <tr>
+                            <th style={{ textAlign: "left", paddingRight: 8 }}></th>
+                            <th style={{ textAlign: "center", paddingRight: 8 }}></th>
+                            <td style={{ textAlign: "center", paddingRight: 8 }}>{frmtNb(totCost)}</td>
+                            <td style={{ textAlign: "center" }}>{frmtNb(totMarket)}</td>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {rows}
+                    </tbody>
+                </table>
+            );
+        }
+        if (context === "deliveryratio") {
+            const v = (value && typeof value === "object") ? value : {};
+            const fromName = v?.from || item || "";
+            const isCoinsReward = !!v?.isCoinsReward;
+            const rewardCoins = Number(v?.rewardCoins || 0);
+            const rewardSfl = Number(v?.rewardSfl || 0);
+            const cost = Number(v?.cost || 0);
+            const market = Number(v?.market || 0);
+            const ratio = Number(v?.ratio || 0);
+            const ratioMarket = market > 0 ? (rewardCoins / market) : 0;
+            const isTotal = v?.type === "total";
+            txt = (
+                <>
+                    <div><b>{isTotal ? "Deliveries Ratio (Total)" : `Delivery Ratio (${fromName})`}</b></div>
+                    <div>Coins to SFL conversion: {frmtNb(rewardCoins)}{imgcoins} = {frmtNb(rewardSfl)}{imgsfl}</div>
+                    <div>{frmtNb(rewardCoins)}{imgcoins} / {frmtNb(cost)}{imgsfl} = <b>{cost > 0 ? frmtNb(ratio) : "0"}</b> {imgcoins} for 1{imgsfl}</div>
+                    <div>{frmtNb(rewardCoins)}{imgcoins} / {frmtNb(market)}{imgExchng} = <b>{market > 0 ? frmtNb(ratioMarket) : "0"}</b> {imgcoins} for 1{imgsfl}</div>
+                    {!isCoinsReward ? <div>Note: ratio applies to deliveries with Coins reward.</div> : null}
+                </>
+            );
         }
         if (context === "username") {
             const username = dataSet?.options?.username || "No Name";

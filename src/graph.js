@@ -1,106 +1,199 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { Chart, registerables } from 'chart.js';
 import 'chartjs-adapter-date-fns';
 import { format, parseISO } from 'date-fns';
-//import { frmtNb } from './fct.js';
 
 Chart.register(...registerables);
-const idName = {};
-var logarithmicScale = true;
-//var lastIndexClicked = 0;
-var clickedIndex = [];
 
-function Graph({ data, vals, dataSetFarm }) {
+const categoryGroups = {
+  "crops": ["crop"],
+  "wood minerals": ["wood", "mineral", "gem"],
+  "fruits honey": ["fruit", "honey", "mushroom"],
+  "animals": ["animal"],
+  "pets": ["pet"],
+};
+
+function Graph({ data, vals, dataSetFarm, selectedCategory = 'all', legendResetToken = 0 }) {
   const { it, petit } = dataSetFarm.itables;
   const chartRef = useRef(null);
-  const [selectedCategory, setSelectedCategory] = useState('all');
+  const canvasRef = useRef(null);
+
+  const [hiddenLabels, setHiddenLabels] = useState(new Set());
+  const [soloLabel, setSoloLabel] = useState(null);
+
+  const idName = useMemo(() => {
+    const map = {};
+
+    for (const item in it) {
+      if (!map[it[item].id]) {
+        map[it[item].id] = {};
+      }
+      if (it[item].color) {
+        map[it[item].id].name = item;
+        map[it[item].id].color = it[item].color;
+        map[it[item].id].cat = it[item].cat;
+        map[it[item].id].img = it[item].img;
+        map[it[item].id].active = Number(it[item].supply || 0);
+        map[it[item].id].inactive = Number(it[item].inactive || 0);
+        map[it[item].id].listed = Number(it[item].listed || 0);
+      }
+    }
+
+    for (const item in petit) {
+      if (!map[petit[item].id]) {
+        map[petit[item].id] = {};
+      }
+      if (petit[item].color) {
+        map[petit[item].id].name = item;
+        map[petit[item].id].color = petit[item].color;
+        map[petit[item].id].cat = petit[item].cat;
+        map[petit[item].id].img = petit[item].img;
+        map[petit[item].id].active = Number(petit[item].supply || 0);
+        map[petit[item].id].inactive = Number(petit[item].inactive || 0);
+        map[petit[item].id].listed = Number(petit[item].listed || 0);
+      }
+    }
+
+    return map;
+  }, [it, petit]);
+
+  const datasets = useMemo(() => {
+    if (!Array.isArray(data) || data.length === 0) {
+      return [];
+    }
+
+    const grouped = {};
+    const sortedData = [...data].sort((a, b) => parseISO(a.date) - parseISO(b.date));
+
+    sortedData.forEach((entry) => {
+      const info = idName[entry.id];
+      if (!info) return;
+
+      if (selectedCategory !== 'all' && !categoryGroups[selectedCategory]?.includes(info.cat)) {
+        return;
+      }
+
+      if (!grouped[entry.id]) {
+        grouped[entry.id] = {
+          label: info.name,
+          icon: info.img || "./icon/nft/na.png",
+          active: Number(info.active || 0),
+          inactive: Number(info.inactive || 0),
+          listed: Number(info.listed || 0),
+          data: [],
+          borderColor: info.color,
+          backgroundColor: info.color,
+          borderWidth: 2,
+          pointRadius: 0.8,
+          pointHitRadius: 8,
+          fill: false,
+          cubicInterpolationMode: 'monotone',
+          tension: 0.35,
+        };
+      }
+
+      const date = parseISO(entry.date);
+      const dateLabel = format(date, 'yyyy-MM-dd HH:mm:ss');
+
+      let unitValue = null;
+      let pointActive = null;
+      let pointInactive = null;
+      let pointListed = null;
+      if (vals === 'price') {
+        unitValue = Number(entry.unit);
+      } else if (vals === 'supply') {
+        if (entry.supply) {
+          const formattedNumber = parseFloat(entry.supply).toFixed(2);
+          unitValue =
+            formattedNumber > 1000000000000
+              ? Math.round(Number(formattedNumber) / Math.pow(10, 18))
+                : Number(formattedNumber);
+        }
+        pointActive = Number(entry.supply ?? 0);
+        pointInactive = Number(entry.supplyInactive ?? 0);
+        pointListed = Number(entry.supplyListed ?? 0);
+      } else if (vals === 'ntrade') {
+        unitValue = entry.ntrade;
+      }
+
+      grouped[entry.id].data.push({
+        x: dateLabel,
+        y: unitValue,
+        active: pointActive,
+        inactive: pointInactive,
+        listed: pointListed,
+      });
+    });
+
+    return Object.values(grouped).sort((a, b) => a.label.localeCompare(b.label));
+  }, [data, idName, selectedCategory, vals]);
+
+  const isLogarithmicScale = vals === 'price';
+  const tooltipTitle = (context) => {
+    const dateLabel = context[0].parsed.x;
+    return format(dateLabel, 'yyyy-MM-dd HH:mm:ss');
+  };
+  const tooltipLabel = (context) => {
+    const datasetLabel = context.dataset.label;
+    const value = context.parsed.y;
+    if (vals === 'price') {
+      return `${datasetLabel}: ${frmtNb(value)}`;
+    }
+    if (vals === 'supply') {
+      const corrNumber =
+        value > 1000000000000
+          ? Math.round(Number(value) / Math.pow(10, 18))
+          : Number(value);
+      const active = Number(context.raw?.active ?? value ?? 0);
+      const inactive = Number(context.raw?.inactive ?? 0);
+      const listed = Number(context.raw?.listed ?? 0);
+      const total = active + inactive;
+      const listedPct = active > 0 ? ((listed / active) * 100).toFixed(2) : "0.00";
+      return `${datasetLabel}: Active ${corrNumber.toLocaleString()} | Total ${total.toLocaleString()} | Listed ${listedPct}%`;
+    }
+    return `${datasetLabel}: ${frmtNb(value)}`;
+  };
 
   useEffect(() => {
-    if (Array.isArray(data) && data.length > 0) {
-      for (let item in it) {
-        if (!idName[it[item].id]) { idName[it[item].id] = {} }
-        if (it[item].color) {
-          idName[it[item].id].name = item;
-          idName[it[item].id].color = it[item].color;
-          idName[it[item].id].cat = it[item].cat;
-        }
-      }
-      for (let item in petit) {
-        if (!idName[petit[item].id]) { idName[petit[item].id] = {} }
-        if (petit[item].color) {
-          idName[petit[item].id].name = item;
-          idName[petit[item].id].color = petit[item].color;
-          idName[petit[item].id].cat = petit[item].cat;
-        }
-      }
-      const datasets = {};
-      data.sort((a, b) => parseISO(a.date) - parseISO(b.date));
-      data.forEach(entry => {
-        const date = parseISO(entry.date);
-        const dateLabel = format(date, 'yyyy-MM-dd HH:mm:ss');
-        const id = entry.id;
-        if (idName[id] && (selectedCategory === 'all' || categoryGroups[selectedCategory].includes(idName[id].cat))) {
-          const xname = idName[id].name;
-          if (!datasets[id]) {
-            datasets[id] = {
-              //label: `${idName[id].name}`,
-              label: xname,
-              data: [],
-              borderColor: idName[id].color,
-              backgroundColor: idName[id].color,
-              borderWidth: 2,
-              pointRadius: 1,
-              fill: false,
-              cubicInterpolationMode: 'monotone',
-              tension: 0.4,
-              //spanGaps: true
-            };
-          }
-          let unitValue;
-          if (vals === "price") {
-            logarithmicScale = true;
-            //unitValue = frmtNb(entry.unit);
+    const existingLabels = new Set(datasets.map((dataset) => dataset.label));
+    setHiddenLabels((prev) => {
+      const next = new Set([...prev].filter((label) => existingLabels.has(label)));
+      if (next.size === prev.size) return prev;
+      return next;
+    });
+  }, [datasets]);
 
-            unitValue = Number(entry.unit);
-          }
-          if (vals === "supply") {
-            logarithmicScale = false;
-            //if (entry.supply > 0) { unitValue = frmtNb(entry.supply / Math.pow(10, 18)) };
-            if (entry.supply) {
-              //const parsFloatNumber = Math.floor(entry.supply * 1000000000) / 1000000000;
-              //const toStringNumber = parsFloatNumber.toString();
-              //const formattedNumber = toStringNumber.replace(/\B(?=(\d{3})+(?!\d))/g, " ");
-              //const formattedNumber = entry.supply.toLocaleString();
-              const formattedNumber = parseFloat(entry.supply).toFixed(2);
-              const corrNumber = formattedNumber > 1000000000000 ?
-                Math.round(Number(formattedNumber) / Math.pow(10, 18)) : Number(formattedNumber);
-              unitValue = corrNumber;
-            };
-          }
-          if (vals === "ntrade") {
-            logarithmicScale = false;
-            unitValue = entry.ntrade;
-          }
-          datasets[id].data.push({ x: dateLabel, y: unitValue });
-        }
-        else {
-          //console.log(id + " no name");
-        }
-      });
+  useEffect(() => {
+    if (!soloLabel) return;
+    const labelExists = datasets.some((dataset) => dataset.label === soloLabel);
+    if (!labelExists) {
+      setSoloLabel(null);
+    }
+  }, [datasets, soloLabel]);
 
-      if (chartRef.current) {
-        chartRef.current.destroy();
-      }
+  useEffect(() => {
+    setHiddenLabels(new Set());
+    setSoloLabel(null);
+  }, [legendResetToken]);
 
-      const ctx = document.getElementById('myChart').getContext('2d');
+  useEffect(() => {
+    if (!canvasRef.current) return;
+
+    if (!chartRef.current) {
+      const ctx = canvasRef.current.getContext('2d');
       chartRef.current = new Chart(ctx, {
         type: 'line',
         data: {
-          datasets: Object.values(datasets),
+          datasets,
         },
         options: {
           responsive: true,
           maintainAspectRatio: false,
+          normalized: true,
+          animation: {
+            duration: 680,
+            easing: 'easeOutQuart',
+          },
           scales: {
             x: {
               type: 'time',
@@ -115,10 +208,9 @@ function Graph({ data, vals, dataSetFarm }) {
                 display: true,
                 color: 'rgba(61, 61, 61, 0.27)',
               },
-              //autoSkip: true,
             },
             y: {
-              type: logarithmicScale ? 'logarithmic' : 'linear',
+              type: isLogarithmicScale ? 'logarithmic' : 'linear',
               ticks: {
                 callback: (v) => frmtNb(v),
               },
@@ -133,162 +225,134 @@ function Graph({ data, vals, dataSetFarm }) {
             },
           },
           interaction: {
-            //mode: 'nearest',
-            //axis: 'x',
-            //intersect: false
+            mode: 'nearest',
+            axis: 'x',
+            intersect: false,
           },
           plugins: {
-            /*decimation: {
-              enabled: true,
-              algorithm: 'lttb',
-              samples: 50,
-            }, */
             legend: {
-              position: 'left', // Déplacer la légende à gauche
-              labels: {
-                boxWidth: 20,
-                boxHeight: 20,
-                padding: 10,
-                usePointStyle: true,
-              },
-              onHover: handleHover,
-              onLeave: handleLeave,
-              onClick: handleClic,
-              maxHeight: 400, // Limiter la hauteur de la légende
-              overflowY: 'auto', // Ajouter une barre de défilement
-              //display: false,
+              display: false,
             },
             tooltip: {
               mode: 'index',
               intersect: false,
               itemSort: (a, b) => b.parsed.y - a.parsed.y,
               callbacks: {
-                title: (context) => {
-                  const dateLabel = context[0].parsed.x;
-                  return format(dateLabel, 'yyyy-MM-dd HH:mm:ss');
-                },
-                label: (context) => {
-                  const datasetLabel = context.dataset.label;
-                  const value = context.parsed.y;
-                  //return `${datasetLabel}: ${value}`;
-                  //const formattedNumber = parseFloat(value).toFixed(2);
-                  if (vals === "price") {
-                    return `${datasetLabel}: ${frmtNb(value)}`;
-                  } else if (vals === "supply") {
-                    const formattedNumber = value;
-                    const corrNumber = formattedNumber > 1000000000000 ?
-                      Math.round(Number(formattedNumber) / Math.pow(10, 18)) : Number(formattedNumber);
-                    return `${datasetLabel}: ${corrNumber.toLocaleString()}`;
-                  }
-                  //return `${datasetLabel}: ${frmtNb(value)}`;
-                },
+                title: tooltipTitle,
+                label: tooltipLabel,
               },
             },
           },
         },
       });
+      return;
     }
-  }, [data, vals, selectedCategory]);
-  const categoryGroups = {
-    "crops": ["crop"],
-    "wood minerals": ["wood", "mineral", "gem"],
-    "fruits honey": ["fruit", "honey", "mushroom"],
-    "animals": ["animal"],
-    "pets": ["pet"]
+
+    chartRef.current.data.datasets = datasets;
+    chartRef.current.options.scales.y.type = isLogarithmicScale ? 'logarithmic' : 'linear';
+    chartRef.current.options.scales.y.min = undefined;
+    chartRef.current.options.scales.y.max = undefined;
+    chartRef.current.options.plugins.tooltip.callbacks.title = tooltipTitle;
+    chartRef.current.options.plugins.tooltip.callbacks.label = tooltipLabel;
+    chartRef.current.data.datasets.forEach((dataset, index) => {
+      chartRef.current.setDatasetVisibility(index, !hiddenLabels.has(dataset.label));
+    });
+    chartRef.current.update();
+  }, [datasets, isLogarithmicScale, vals, hiddenLabels]);
+
+  useEffect(() => {
+    return () => {
+      if (chartRef.current) {
+        chartRef.current.destroy();
+        chartRef.current = null;
+      }
+    };
+  }, []);
+
+  const toggleLegendItem = (label) => {
+    setSoloLabel(null);
+    setHiddenLabels((prev) => {
+      const next = new Set(prev);
+      if (next.has(label)) {
+        next.delete(label);
+      } else {
+        next.add(label);
+      }
+      return next;
+    });
   };
+
+  const soloLegendItem = (label) => {
+    const allLabels = datasets.map((dataset) => dataset.label);
+    const isAlreadySolo =
+      soloLabel === label &&
+      hiddenLabels.size === Math.max(allLabels.length - 1, 0) &&
+      !hiddenLabels.has(label);
+
+    if (isAlreadySolo) {
+      setSoloLabel(null);
+      setHiddenLabels(new Set());
+      return;
+    }
+
+    setSoloLabel(label);
+    setHiddenLabels(new Set(allLabels.filter((itemLabel) => itemLabel !== label)));
+  };
+
   return (
-    <div style={{ width: '100%', height: '100%' }}>
-      <div style={{ position: 'absolute', top: 10, right: 10 }}>
-        <button onClick={() => setSelectedCategory('all')}>All</button>
-        {Object.keys(categoryGroups).map(group => (
-          <button key={group} onClick={() => setSelectedCategory(group)}>{group}</button>
-        ))}
+    <div className="graph-root">
+      <div className="graph-legend-grid">
+        {datasets.map((dataset) => {
+          const isHidden = hiddenLabels.has(dataset.label);
+          const isSoloActive = soloLabel === dataset.label && hiddenLabels.size > 0;
+          return (
+            <div
+              key={dataset.label}
+              className={`graph-legend-item ${isHidden ? 'is-hidden' : ''} ${isSoloActive ? 'is-solo-active' : ''}`}
+              style={{ borderColor: dataset.borderColor }}
+            >
+              <button
+                type="button"
+                className="graph-legend-main"
+                title="Afficher / masquer"
+                onClick={() => toggleLegendItem(dataset.label)}
+              >
+                <img src={dataset.icon || "./icon/nft/na.png"} alt="" className="graph-legend-item-icon" />
+                <span className="graph-legend-label">{dataset.label}</span>
+              </button>
+              <button
+                type="button"
+                className="graph-legend-solo"
+                title="N'afficher que cet objet"
+                aria-label={`Solo ${dataset.label}`}
+                onClick={() => soloLegendItem(dataset.label)}
+              >
+                <img src="./icon/ui/lightning.png" alt="" className="graph-legend-solo-icon" />
+              </button>
+            </div>
+          );
+        })}
       </div>
-      <canvas id="myChart"></canvas>
+
+      <div className="graph-canvas-wrap">
+        <canvas ref={canvasRef}></canvas>
+      </div>
     </div>
   );
 }
-const hexToRgba = (hex, alpha) => {
-  const r = parseInt(hex.slice(1, 3), 16);
-  const g = parseInt(hex.slice(3, 5), 16);
-  const b = parseInt(hex.slice(5, 7), 16);
-  return `rgba(${r}, ${g}, ${b}, ${alpha})`;
-};
-const rgbToHex = (rgb) => {
-  const result = rgb.match(/\d+/g).map((num) => {
-    const hex = parseInt(num).toString(16);
-    return hex.length === 1 ? '0' + hex : hex;
-  });
-  return `#${result.join('')}`;
-};
-const darkenColor = (hex, amount) => {
-  let r = parseInt(hex.slice(1, 3), 16);
-  let g = parseInt(hex.slice(3, 5), 16);
-  let b = parseInt(hex.slice(5, 7), 16);
-  r = Math.max(0, r - amount);
-  g = Math.max(0, g - amount);
-  b = Math.max(0, b - amount);
-  return `#${r.toString(16).padStart(2, '0')}${g.toString(16).padStart(2, '0')}${b.toString(16).padStart(2, '0')}`;
-};
-const handleHover = (evt, item, legend) => {
-  const activeDataset = legend.chart.data.datasets[item.datasetIndex];
-  const label = activeDataset.label;
-  legend.chart.data.datasets.forEach(dataset => {
-    const idInfo = Object.keys(idName).find(id => idName[id].name === dataset.label);
-    const hexColor = rgbToHex(idName[idInfo].color);
-    if (dataset.label === label) {
-      dataset.borderColor = idName[idInfo].color;
-      dataset.backgroundColor = idName[idInfo].color;
-      dataset.borderWidth = 4;
-    } else {
-      dataset.borderColor = darkenColor(hexColor, 200);
-      dataset.backgroundColor = darkenColor(hexColor, 200);
-      dataset.borderWidth = 1;
-    }
-  });
-  legend.chart.update();
-};
-const handleLeave = (evt, item, legend) => {
-  legend.chart.data.datasets.forEach(dataset => {
-    const idInfo = Object.keys(idName).find(id => idName[id].name === dataset.label);
-    dataset.borderColor = idName[idInfo].color;
-    dataset.backgroundColor = idName[idInfo].color;
-    dataset.borderWidth = 2;
-  });
-  legend.chart.update();
-};
-const handleClic = (event, legendItem, legend) => {
-  const datasetIndex = legendItem.datasetIndex;
-  const clickedDataset = legend.chart.data.datasets[datasetIndex];
-  if (clickedIndex.length === 0) {
-    legend.chart.data.datasets.forEach((dataset, index) => {
-      dataset.hidden = true;
-    });
-  }
-  clickedDataset.hidden = false;
-  if (clickedIndex.includes(datasetIndex)) {
-    legend.chart.data.datasets.forEach((dataset, index) => {
-      dataset.hidden = false;
-    });
-    clickedIndex = [];
-  } else {
-    clickedIndex.push(datasetIndex);
-  }
-  //clickedDataset.hidden = !clickedDataset.hidden;
-  legend.chart.update();
-}
+
 function frmtNb(nombre) {
   const nombreNumerique = parseFloat(nombre);
-  var nombreStr = nombreNumerique.toString();
-  const positionE = nombreStr.indexOf("e");
+  let nombreStr = nombreNumerique.toString();
+  const positionE = nombreStr.indexOf('e');
   if (positionE !== -1) {
     const nombreNumeriqueCorr = Number(nombreStr).toFixed(20);
     nombreStr = nombreNumeriqueCorr.toString();
   }
   if (isNaN(nombreNumerique)) {
-    return "0";
+    return '0';
   }
-  const positionVirgule = nombreStr.indexOf(".");
+  const positionVirgule = nombreStr.indexOf('.');
   if (positionVirgule !== -1) {
     let chiffreSupZero = null;
     for (let i = positionVirgule + 1; i < nombreStr.length; i++) {
@@ -299,12 +363,10 @@ function frmtNb(nombre) {
     }
     if (chiffreSupZero === null) {
       return nombreNumerique.toFixed(2);
-    } else {
-      return nombreStr.slice(0, chiffreSupZero + 2);
     }
-  } else {
-    return nombreStr;
+    return nombreStr.slice(0, chiffreSupZero + 2);
   }
+  return nombreStr;
 }
 
 export default Graph;

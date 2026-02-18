@@ -3,12 +3,15 @@ import { frmtNb } from "../fct.js";
 
 const EMPTY_TOTAL = { soldPrice: 0, price: 0, marketPrice: 0, count: 0 };
 
-function getTradeType(itemName, nft, nftw) {
+function getTradeType(itemName, tables, boostables) {
     const safeName = String(itemName || "");
+    const { it, petit } = tables || {};
+    const { nft, nftw } = boostables || {};
     if (/\bbud\b/i.test(safeName)) return "bud";
     if (/\bpet\b/i.test(safeName)) return "pet";
     if (nft?.[itemName] || nftw?.[itemName]) return "nft";
-    return "resources";
+    if (it?.[itemName] || petit?.[itemName]) return "resources";
+    return "other";
 }
 
 function resolveMarketData(itemName, quantity, sources) {
@@ -50,10 +53,11 @@ const TradesTooltip = ({ trades, itables, boostables }) => {
     const { nft, nftw } = boostables || {};
     const { it, fish, flower, petit } = itables || {};
     const totalsByType = {
-        resources: { ...EMPTY_TOTAL, label: "Total Resources" },
-        nft: { ...EMPTY_TOTAL, label: "Total NFT/Wearables" },
-        bud: { ...EMPTY_TOTAL, label: "Total Bud" },
-        pet: { ...EMPTY_TOTAL, label: "Total Pet" },
+        resources: { ...EMPTY_TOTAL, label: "Resources" },
+        nft: { ...EMPTY_TOTAL, label: "Boosts" },
+        bud: { ...EMPTY_TOTAL, label: "Buds" },
+        pet: { ...EMPTY_TOTAL, label: "Pets" },
+        other: { ...EMPTY_TOTAL, label: "Other" },
     };
 
     const rows = Object.keys(trades).map((_, index) => {
@@ -80,7 +84,7 @@ const TradesTooltip = ({ trades, itables, boostables }) => {
         const marketDiffPct = marketPrice ? ((price - marketPrice) / marketPrice) * 100 : null;
         const marketDiff = marketDiffPct !== null ? `${marketDiffPct.toFixed(2)}%` : "N/A";
         const marketDiffStyle = marketDiffPct !== null && marketDiffPct > 20 ? { color: "red" } : {};
-        const tradeType = getTradeType(itemName, nft, nftw);
+        const tradeType = getTradeType(itemName, { it, petit }, { nft, nftw });
         const totalsTarget = totalsByType[tradeType];
         totalsTarget.count += 1;
         totalsTarget.price += price;
@@ -103,9 +107,10 @@ const TradesTooltip = ({ trades, itables, boostables }) => {
     const totalRows = [
         totalsByType.resources,
         totalsByType.nft,
-        ...(totalsByType.bud.count > 0 ? [totalsByType.bud] : []),
-        ...(totalsByType.pet.count > 0 ? [totalsByType.pet] : []),
-    ];
+        totalsByType.bud,
+        totalsByType.pet,
+        totalsByType.other,
+    ].filter((row) => row.count > 0);
 
     return (
         <table className="tooltip-trades-table">

@@ -99,7 +99,8 @@ const createSetCompoTable = ({
     return function setCompoTable(item, quant) {
         let itemTable = {};
         let itemImgName = imgna;
-        let itemQuant = quant || 1;
+        const parsedQuant = Number(quant);
+        let itemQuant = Number.isFinite(parsedQuant) ? parsedQuant : 1;
 
         if (craft[item]?.compo) {
             itemTable = craft[item]?.compo;

@@ -17,6 +17,9 @@ export default function InvTable() {
             selectedSeason,
             selectedPChange,
             selectedReady,
+            invSortBy,
+            invSortDir,
+            invCategories,
             TryChecked,
             CostChecked,
             xHrvst,
@@ -27,6 +30,8 @@ export default function InvTable() {
             handleUIChange,
             handleSetHrvMax,
             handleTraderClick,
+            handleNiftyClick,
+            handleOSClick,
             handleTooltip,
         },
         img: {
@@ -69,10 +74,36 @@ export default function InvTable() {
         xBurning[burnortry]["Iron"] = (goldSpot * tool[it["Gold"].tool]["Iron"]) + (oilSpot * tool[it["Oil"].tool]["Iron"] * !oilToolfree);
         xBurning[burnortry]["Gold"] = (crimestoneSpot * tool[it["Crimstone"].tool]["Gold"] * !crimstoneToolfree) + (sunstoneSpot * tool[it["Sunstone"].tool]["Gold"]);
         //}
-        const sortedInventoryItems = itemOrder.map(item => {
+        const baseInventoryItems = itemOrder.map(item => {
             const quantity = inventoryEntries.find(([entryItem]) => entryItem === item)?.[1] || 0;
             return [item, quantity];
         });
+        const sortedInventoryItems = (!invSortBy || invSortBy === "none")
+            ? baseInventoryItems
+            : [...baseInventoryItems].sort((a, b) => {
+                const [itemA, qtyA] = a;
+                const [itemB, qtyB] = b;
+                const bucketA = getInvCategoryBucket(itemA, it);
+                const bucketB = getInvCategoryBucket(itemB, it);
+                if (bucketA !== bucketB) return bucketA - bucketB;
+                const valueA = getInvSortValue(invSortBy, itemA, qtyA, it, TryChecked, selectedPChange);
+                const valueB = getInvSortValue(invSortBy, itemB, qtyB, it, TryChecked, selectedPChange);
+                const direction = invSortDir === "desc" ? -1 : 1;
+                if (typeof valueA === "string" || typeof valueB === "string") {
+                    const cmp = String(valueA ?? "").localeCompare(String(valueB ?? ""));
+                    return cmp * direction;
+                }
+                const aNum = Number.isFinite(Number(valueA)) ? Number(valueA) : -Infinity;
+                const bNum = Number.isFinite(Number(valueB)) ? Number(valueB) : -Infinity;
+                if (aNum === bNum) return itemA.localeCompare(itemB);
+                return (aNum - bNum) * direction;
+            });
+        const activeCategories = new Set(invCategories || ["crop", "resources", "animals", "fruit", "buildings"]);
+        const showCrop = activeCategories.has("crop");
+        const showResources = activeCategories.has("resources");
+        const showAnimals = activeCategories.has("animals");
+        const showFruit = activeCategories.has("fruit");
+        const showBuildings = activeCategories.has("buildings");
         var totTimeCrp = 0;
         var totTimeRs = 0;
         var totCost = 0;
@@ -93,38 +124,19 @@ export default function InvTable() {
         var tprctcO = 0;
         tprctcN = inventoryItemsCrop.totcTrader > 0 ? parseFloat(((inventoryItemsCrop.totcNifty - inventoryItemsCrop.totcTrader) / inventoryItemsCrop.totcTrader) * 100).toFixed(0) : "";
         tprctcO = inventoryItemsCrop.totcTrader > 0 ? parseFloat(((inventoryItemsCrop.totcOS - inventoryItemsCrop.totcTrader) / inventoryItemsCrop.totcTrader) * 100).toFixed(0) : "";
-        const totCrop = selectedQuant !== "unit" ?
-            (<>
-                {xListeCol[0][1] === 1 ? (<td className="ttcenter" >TOTAL</td>) : ("")}
-                <td className="td-icon">   </td>
-                <td></td>
-                <td style={{ display: 'none' }}>ID</td>
-                {xListeCol[1][1] === 1 ? (<td className="ttcenter"></td>) : ("")}
-                {selectedQuantity === "daily" ? (<td className="ttcenter"></td>) : ("")}
-                {selectedQuantity === "daily" ? (<td className="ttcenter"></td>) : ("")}
-                {selectedQuantity === "daily" ? (<td className="ttcenter"></td>) : ("")}
-                {xListeCol[2][1] === 1 ? (<td className="ttcenter" style={{ color: `rgb(160, 160, 160)` }}></td>) : ("")}
-                {xListeCol[3][1] === 1 ? (<td className="ttcenter"></td>) : ("")}
-                {xListeCol[4][1] === 1 ? (<td className="ttcenter">{parseFloat(inventoryItemsCrop.totcCost).toFixed(2)}</td>) : ("")}
-                {xListeCol[5][1] === 1 ? (<td className="ttcenter">{parseFloat(inventoryItemsCrop.totcShop).toFixed(2)}</td>) : ("")}
-                {xListeCol[6][1] === 1 ? (<td className="ttcenterbrd"></td>) : ("")}
-                {xListeCol[7][1] === 1 ? (<td className="ttcenterbrd">{parseFloat(inventoryItemsCrop.totcTrader).toFixed(2)}</td>) : ("")}
-                {xListeCol[18][1] === 1 && xListeCol[6][1] === 1 ? (<td className="ttcenter"></td>) : ("")}
-                {xListeCol[8][1] === 1 ? (<td className="ttcenter" style={{ color: `rgb(160, 160, 160)` }}></td>) : ("")}
-                {xListeCol[11][1] === 1 && xListeCol[14][1] === 1 ? (<td className={tprctcN > -20 ? 'tdpdiffgrn' : 'tdpdiff'}>{tprctcN}{inventoryItemsCrop.totcTrader > 0 ? "%" : ""}</td>) : ("")}
-                {xListeCol[9][1] === 1 ? (<td className="ttcenterbrd">{parseFloat(inventoryItemsCrop.totcNifty).toFixed(2)}</td>) : ("")}
-                {xListeCol[18][1] === 1 && xListeCol[8][1] === 1 ? (<td className="ttcenter"></td>) : ("")}
-                {xListeCol[11][1] === 1 && xListeCol[14][1] === 1 ? (<td className={tprctcO > -20 ? 'tdpdiffgrn' : 'tdpdiff'}>{tprctcO}{inventoryItemsCrop.totcTrader > 0 ? "%" : ""}</td>) : ("")}
-                {xListeCol[10][1] === 1 ? (<td className="ttcenterbrd">{parseFloat(inventoryItemsCrop.totcOS).toFixed(2)}</td>) : ("")}
-                {xListeCol[18][1] === 1 && xListeCol[9][1] === 1 ? (<td className="ttcenter"></td>) : ("")}
-                {xListeCol[12][1] === 1 ? (<td className="ttcenter"></td>) : ("")}
-                {xListeCol[13][1] === 1 ? (<td className="ttcenter"></td>) : ("")}
-                {xListeCol[14][1] === 1 ? (<td className="ttcenter"></td>) : ("")}
-                {xListeCol[19][1] === 1 ? (<td className="ttcenter"></td>) : ("")}
-                {xListeCol[15][1] === 1 ? (<td className="ttcenter" style={{ color: `rgb(160, 160, 160)` }}></td>) : ("")}
-                {xListeCol[16][1] === 1 ? (<td className="ttcenter"></td>) : ("")}
-                {xListeCol[17][1] === 1 ? (<td className="ttcenter" style={{ color: `rgb(160, 160, 160)` }}></td>) : ("")}
-            </>) : ("");
+        const totCrop = selectedQuant !== "unit" ? renderInvTotalCells({
+            xListeCol,
+            selectedQuantity,
+            totals: {
+                cost: inventoryItemsCrop.totcCost,
+                shop: inventoryItemsCrop.totcShop,
+                trader: inventoryItemsCrop.totcTrader,
+                nifty: inventoryItemsCrop.totcNifty,
+                opensea: inventoryItemsCrop.totcOS,
+            },
+            tprctN: tprctcN,
+            tprctO: tprctcO,
+        }) : ("");
         const inventoryItemsRes = setInvContent(pinventoryEntries, sortedInventoryItems, totCost, totShop, totTrader, totNifty, totOS, totTimeCrp, totTimeRs, invIndex, "mineral", "gem", "wood", "oil");
         totTimeRs = inventoryItemsCrop.totTimeRs;
         totCost = inventoryItemsRes.totCost;
@@ -135,38 +147,19 @@ export default function InvTable() {
         invIndex = inventoryItemsRes.invIndex;
         tprctcN = inventoryItemsRes.totcTrader > 0 ? parseFloat(((inventoryItemsRes.totcNifty - inventoryItemsRes.totcTrader) / inventoryItemsRes.totcTrader) * 100).toFixed(0) : "";
         tprctcO = inventoryItemsRes.totcTrader > 0 ? parseFloat(((inventoryItemsRes.totcOS - inventoryItemsRes.totcTrader) / inventoryItemsRes.totcTrader) * 100).toFixed(0) : "";
-        const totRes = selectedQuant !== "unit" ?
-            (<>
-                {xListeCol[0][1] === 1 ? (<td className="ttcenter" >TOTAL</td>) : ("")}
-                <td className="td-icon">   </td>
-                <td></td>
-                <td style={{ display: 'none' }}>ID</td>
-                {xListeCol[1][1] === 1 ? (<td className="ttcenter"></td>) : ("")}
-                {selectedQuantity === "daily" ? (<td className="ttcenter"></td>) : ("")}
-                {selectedQuantity === "daily" ? (<td className="ttcenter"></td>) : ("")}
-                {selectedQuantity === "daily" ? (<td className="ttcenter"></td>) : ("")}
-                {xListeCol[2][1] === 1 ? (<td className="ttcenter" style={{ color: `rgb(160, 160, 160)` }}></td>) : ("")}
-                {xListeCol[3][1] === 1 ? (<td className="ttcenter"></td>) : ("")}
-                {xListeCol[4][1] === 1 ? (<td className="ttcenter">{parseFloat(inventoryItemsRes.totcCost).toFixed(2)}</td>) : ("")}
-                {xListeCol[5][1] === 1 ? (<td className="ttcenter">{parseFloat(inventoryItemsRes.totcShop).toFixed(2)}</td>) : ("")}
-                {xListeCol[6][1] === 1 ? (<td className="ttcenterbrd"></td>) : ("")}
-                {xListeCol[7][1] === 1 ? (<td className="ttcenterbrd">{parseFloat(inventoryItemsRes.totcTrader).toFixed(2)}</td>) : ("")}
-                {xListeCol[18][1] === 1 && xListeCol[6][1] === 1 ? (<td className="ttcenter"></td>) : ("")}
-                {xListeCol[8][1] === 1 ? (<td className="ttcenter" style={{ color: `rgb(160, 160, 160)` }}></td>) : ("")}
-                {xListeCol[11][1] === 1 && xListeCol[14][1] === 1 ? (<td className={tprctcN > -20 ? 'tdpdiffgrn' : 'tdpdiff'}>{tprctcN}{inventoryItemsRes.totcTrader > 0 ? "%" : ""}</td>) : ("")}
-                {xListeCol[9][1] === 1 ? (<td className="ttcenterbrd">{parseFloat(inventoryItemsRes.totcNifty).toFixed(2)}</td>) : ("")}
-                {xListeCol[18][1] === 1 && xListeCol[8][1] === 1 ? (<td className="ttcenter"></td>) : ("")}
-                {xListeCol[11][1] === 1 && xListeCol[14][1] === 1 ? (<td className={tprctcO > -20 ? 'tdpdiffgrn' : 'tdpdiff'}>{tprctcO}{inventoryItemsRes.totcTrader > 0 ? "%" : ""}</td>) : ("")}
-                {xListeCol[10][1] === 1 ? (<td className="ttcenterbrd">{parseFloat(inventoryItemsRes.totcOS).toFixed(2)}</td>) : ("")}
-                {xListeCol[18][1] === 1 && xListeCol[9][1] === 1 ? (<td className="ttcenter"></td>) : ("")}
-                {xListeCol[12][1] === 1 ? (<td className="ttcenter"></td>) : ("")}
-                {xListeCol[13][1] === 1 ? (<td className="ttcenter"></td>) : ("")}
-                {xListeCol[14][1] === 1 ? (<td className="ttcenter"></td>) : ("")}
-                {xListeCol[19][1] === 1 ? (<td className="ttcenter"></td>) : ("")}
-                {xListeCol[15][1] === 1 ? (<td className="ttcenter" style={{ color: `rgb(160, 160, 160)` }}></td>) : ("")}
-                {xListeCol[16][1] === 1 ? (<td className="ttcenter"></td>) : ("")}
-                {xListeCol[17][1] === 1 ? (<td className="ttcenter" style={{ color: `rgb(160, 160, 160)` }}></td>) : ("")}
-            </>) : ("");
+        const totRes = selectedQuant !== "unit" ? renderInvTotalCells({
+            xListeCol,
+            selectedQuantity,
+            totals: {
+                cost: inventoryItemsRes.totcCost,
+                shop: inventoryItemsRes.totcShop,
+                trader: inventoryItemsRes.totcTrader,
+                nifty: inventoryItemsRes.totcNifty,
+                opensea: inventoryItemsRes.totcOS,
+            },
+            tprctN: tprctcN,
+            tprctO: tprctcO,
+        }) : ("");
         const inventoryItemsAnml = setInvContent(pinventoryEntries, sortedInventoryItems, totCost, totShop, totTrader, totNifty, totOS, totTimeCrp, totTimeRs, invIndex, "animal", "honey", "flower");
         //totTimeRs = inventoryItemsAnml.totTimeRs;
         totCost = inventoryItemsAnml.totCost;
@@ -177,38 +170,19 @@ export default function InvTable() {
         invIndex = inventoryItemsAnml.invIndex;
         tprctcN = inventoryItemsAnml.totcTrader > 0 ? parseFloat(((inventoryItemsAnml.totcNifty - inventoryItemsAnml.totcTrader) / inventoryItemsAnml.totcTrader) * 100).toFixed(0) : "";
         tprctcO = inventoryItemsAnml.totcTrader > 0 ? parseFloat(((inventoryItemsAnml.totcOS - inventoryItemsAnml.totcTrader) / inventoryItemsAnml.totcTrader) * 100).toFixed(0) : "";
-        const totAnml = selectedQuant !== "unit" ?
-            (<>
-                {xListeCol[0][1] === 1 ? (<td className="ttcenter" >TOTAL</td>) : ("")}
-                <td className="td-icon">   </td>
-                <td></td>
-                <td style={{ display: 'none' }}>ID</td>
-                {xListeCol[1][1] === 1 ? (<td className="ttcenter"></td>) : ("")}
-                {selectedQuantity === "daily" ? (<td className="ttcenter"></td>) : ("")}
-                {selectedQuantity === "daily" ? (<td className="ttcenter"></td>) : ("")}
-                {selectedQuantity === "daily" ? (<td className="ttcenter"></td>) : ("")}
-                {xListeCol[2][1] === 1 ? (<td className="ttcenter" style={{ color: `rgb(160, 160, 160)` }}></td>) : ("")}
-                {xListeCol[3][1] === 1 ? (<td className="ttcenter"></td>) : ("")}
-                {xListeCol[4][1] === 1 ? (<td className="ttcenter">{parseFloat(inventoryItemsAnml.totcCost).toFixed(2)}</td>) : ("")}
-                {xListeCol[5][1] === 1 ? (<td className="ttcenter">{parseFloat(inventoryItemsAnml.totcShop).toFixed(2)}</td>) : ("")}
-                {xListeCol[6][1] === 1 ? (<td className="ttcenterbrd"></td>) : ("")}
-                {xListeCol[7][1] === 1 ? (<td className="ttcenterbrd">{parseFloat(inventoryItemsAnml.totcTrader).toFixed(2)}</td>) : ("")}
-                {xListeCol[18][1] === 1 && xListeCol[6][1] === 1 ? (<td className="ttcenter"></td>) : ("")}
-                {xListeCol[8][1] === 1 ? (<td className="ttcenter" style={{ color: `rgb(160, 160, 160)` }}></td>) : ("")}
-                {xListeCol[11][1] === 1 && xListeCol[14][1] === 1 ? (<td className={tprctcN > -20 ? 'tdpdiffgrn' : 'tdpdiff'}>{tprctcN}{inventoryItemsAnml.totcTrader > 0 ? "%" : ""}</td>) : ("")}
-                {xListeCol[9][1] === 1 ? (<td className="ttcenterbrd">{parseFloat(inventoryItemsAnml.totcNifty).toFixed(2)}</td>) : ("")}
-                {xListeCol[18][1] === 1 && xListeCol[8][1] === 1 ? (<td className="ttcenter"></td>) : ("")}
-                {xListeCol[11][1] === 1 && xListeCol[14][1] === 1 ? (<td className={tprctcO > -20 ? 'tdpdiffgrn' : 'tdpdiff'}>{tprctcO}{inventoryItemsAnml.totcTrader > 0 ? "%" : ""}</td>) : ("")}
-                {xListeCol[10][1] === 1 ? (<td className="ttcenterbrd">{parseFloat(inventoryItemsAnml.totcOS).toFixed(2)}</td>) : ("")}
-                {xListeCol[18][1] === 1 && xListeCol[9][1] === 1 ? (<td className="ttcenter"></td>) : ("")}
-                {xListeCol[12][1] === 1 ? (<td className="ttcenter"></td>) : ("")}
-                {xListeCol[13][1] === 1 ? (<td className="ttcenter"></td>) : ("")}
-                {xListeCol[14][1] === 1 ? (<td className="ttcenter"></td>) : ("")}
-                {xListeCol[19][1] === 1 ? (<td className="ttcenter"></td>) : ("")}
-                {xListeCol[15][1] === 1 ? (<td className="ttcenter" style={{ color: `rgb(160, 160, 160)` }}></td>) : ("")}
-                {xListeCol[16][1] === 1 ? (<td className="ttcenter"></td>) : ("")}
-                {xListeCol[17][1] === 1 ? (<td className="ttcenter" style={{ color: `rgb(160, 160, 160)` }}></td>) : ("")}
-            </>) : ("");
+        const totAnml = selectedQuant !== "unit" ? renderInvTotalCells({
+            xListeCol,
+            selectedQuantity,
+            totals: {
+                cost: inventoryItemsAnml.totcCost,
+                shop: inventoryItemsAnml.totcShop,
+                trader: inventoryItemsAnml.totcTrader,
+                nifty: inventoryItemsAnml.totcNifty,
+                opensea: inventoryItemsAnml.totcOS,
+            },
+            tprctN: tprctcN,
+            tprctO: tprctcO,
+        }) : ("");
         const inventoryItemsFruit = setInvContent(pinventoryEntries, sortedInventoryItems, totCost, totShop, totTrader, totNifty, totOS, totTimeCrp, totTimeRs, invIndex, "fruit", "mushroom");
         totCost = inventoryItemsFruit.totCost;
         totShop = inventoryItemsFruit.totShop;
@@ -220,38 +194,19 @@ export default function InvTable() {
         const tprctO = totTrader > 0 ? parseFloat(((totOS - totTrader) / totTrader) * 100).toFixed(0) : "";
         tprctcN = inventoryItemsFruit.totcTrader > 0 ? parseFloat(((inventoryItemsFruit.totcNifty - inventoryItemsFruit.totcTrader) / inventoryItemsFruit.totcTrader) * 100).toFixed(0) : "";
         tprctcO = inventoryItemsFruit.totcTrader > 0 ? parseFloat(((inventoryItemsFruit.totcOS - inventoryItemsFruit.totcTrader) / inventoryItemsFruit.totcTrader) * 100).toFixed(0) : "";
-        const totFruit = selectedQuant !== "unit" ?
-            (<>
-                {xListeCol[0][1] === 1 ? (<td className="ttcenter" >TOTAL</td>) : ("")}
-                <td className="td-icon">   </td>
-                <td></td>
-                <td style={{ display: 'none' }}>ID</td>
-                {xListeCol[1][1] === 1 ? (<td className="ttcenter"></td>) : ("")}
-                {selectedQuantity === "daily" ? (<td className="ttcenter"></td>) : ("")}
-                {selectedQuantity === "daily" ? (<td className="ttcenter"></td>) : ("")}
-                {selectedQuantity === "daily" ? (<td className="ttcenter"></td>) : ("")}
-                {xListeCol[2][1] === 1 ? (<td className="ttcenter" style={{ color: `rgb(160, 160, 160)` }}></td>) : ("")}
-                {xListeCol[3][1] === 1 ? (<td className="ttcenter"></td>) : ("")}
-                {xListeCol[4][1] === 1 ? (<td className="ttcenter">{parseFloat(inventoryItemsFruit.totcCost).toFixed(2)}</td>) : ("")}
-                {xListeCol[5][1] === 1 ? (<td className="ttcenter">{parseFloat(inventoryItemsFruit.totcShop).toFixed(2)}</td>) : ("")}
-                {xListeCol[6][1] === 1 ? (<td className="ttcenterbrd"></td>) : ("")}
-                {xListeCol[7][1] === 1 ? (<td className="ttcenterbrd">{parseFloat(inventoryItemsFruit.totcTrader).toFixed(2)}</td>) : ("")}
-                {xListeCol[18][1] === 1 && xListeCol[6][1] === 1 ? (<td className="ttcenter"></td>) : ("")}
-                {xListeCol[8][1] === 1 ? (<td className="ttcenter" style={{ color: `rgb(160, 160, 160)` }}></td>) : ("")}
-                {xListeCol[11][1] === 1 && xListeCol[14][1] === 1 ? (<td className={tprctcN > -20 ? 'tdpdiffgrn' : 'tdpdiff'}>{tprctcN}{inventoryItemsFruit.totcTrader > 0 ? "%" : ""}</td>) : ("")}
-                {xListeCol[9][1] === 1 ? (<td className="ttcenterbrd">{parseFloat(inventoryItemsFruit.totcNifty).toFixed(2)}</td>) : ("")}
-                {xListeCol[18][1] === 1 && xListeCol[8][1] === 1 ? (<td className="ttcenter"></td>) : ("")}
-                {xListeCol[11][1] === 1 && xListeCol[14][1] === 1 ? (<td className={tprctcO > -20 ? 'tdpdiffgrn' : 'tdpdiff'}>{tprctcO}{inventoryItemsFruit.totcTrader > 0 ? "%" : ""}</td>) : ("")}
-                {xListeCol[10][1] === 1 ? (<td className="ttcenterbrd">{parseFloat(inventoryItemsFruit.totcOS).toFixed(2)}</td>) : ("")}
-                {xListeCol[18][1] === 1 && xListeCol[9][1] === 1 ? (<td className="ttcenter"></td>) : ("")}
-                {xListeCol[12][1] === 1 ? (<td className="ttcenter"></td>) : ("")}
-                {xListeCol[13][1] === 1 ? (<td className="ttcenter"></td>) : ("")}
-                {xListeCol[14][1] === 1 ? (<td className="ttcenter"></td>) : ("")}
-                {xListeCol[19][1] === 1 ? (<td className="ttcenter"></td>) : ("")}
-                {xListeCol[15][1] === 1 ? (<td className="ttcenter" style={{ color: `rgb(160, 160, 160)` }}></td>) : ("")}
-                {xListeCol[16][1] === 1 ? (<td className="ttcenter"></td>) : ("")}
-                {xListeCol[17][1] === 1 ? (<td className="ttcenter" style={{ color: `rgb(160, 160, 160)` }}></td>) : ("")}
-            </>) : ("");
+        const totFruit = selectedQuant !== "unit" ? renderInvTotalCells({
+            xListeCol,
+            selectedQuantity,
+            totals: {
+                cost: inventoryItemsFruit.totcCost,
+                shop: inventoryItemsFruit.totcShop,
+                trader: inventoryItemsFruit.totcTrader,
+                nifty: inventoryItemsFruit.totcNifty,
+                opensea: inventoryItemsFruit.totcOS,
+            },
+            tprctN: tprctcN,
+            tprctO: tprctcO,
+        }) : ("");
         var showBldinv = true;
         var BldItems = "";
         if (showBldinv) {
@@ -294,12 +249,13 @@ export default function InvTable() {
                                 {xListeCol[7][1] === 1 ? (<td className="tdcenterbrd">{frmtNb(pTrad)}</td>) : ("")}
                                 {xListeCol[18][1] === 1 && xListeCol[6][1] === 1 ? (<td className="tdcenter"></td>) : ("")}
                                 {xListeCol[8][1] === 1 ? (<td className="tdcenter"></td>) : ("")}
-                                {xListeCol[11][1] === 1 && xListeCol[14][1] === 1 ? (<td className="tdcenter"></td>) : ("")}
+                                {xListeCol[11][1] === 1 && xListeCol[9][1] === 1 && xListeCol[7][1] === 1 ? (<td className="tdcenter"></td>) : ("")}
                                 {xListeCol[9][1] === 1 ? (<td className="tdcenterbrd">{frmtNb(pNifty)}</td>) : ("")}
-                                {xListeCol[18][1] === 1 && xListeCol[8][1] === 1 ? (<td className="tdcenter"></td>) : ("")}
-                                {xListeCol[11][1] === 1 && xListeCol[14][1] === 1 ? (<td className="tdcenter"></td>) : ("")}
-                                {xListeCol[10][1] === 1 ? (<td className="tdcenterbrd">{frmtNb(pOS)}</td>) : ("")}
                                 {xListeCol[18][1] === 1 && xListeCol[9][1] === 1 ? (<td className="tdcenter"></td>) : ("")}
+                                {xListeCol[11][1] === 1 && xListeCol[10][1] === 1 && xListeCol[7][1] === 1 ? (<td className="tdcenter"></td>) : ("")}
+                                {xListeCol[10][1] === 1 ? (<td className="tdcenterbrd">{frmtNb(pOS)}</td>) : ("")}
+                                {xListeCol[18][1] === 1 && xListeCol[10][1] === 1 ? (<td className="tdcenter"></td>) : ("")}
+                                {xListeCol[20]?.[1] === 1 ? (<td className="tdcenter"></td>) : ("")}
                                 {xListeCol[12][1] === 1 ? (<td className="tdcenter" style={{ color: `rgb(255, 234, 204)` }}></td>) : ("")}
                                 {xListeCol[13][1] === 1 ? (<td className="tdcenter" style={{ color: `rgb(255, 225, 183)` }}></td>) : ("")}
                                 {xListeCol[14][1] === 1 ? (<td className="tdcenter tooltipcell" style={{ color: `rgb(253, 215, 162)` }}
@@ -384,15 +340,15 @@ export default function InvTable() {
                             {xListeCol[7][1] === 1 ? (<th className="thtrad" onClick={() => handleTraderClick()}><div className="overlay-trad"></div>Market</th>) : ("")}
                             {xListeCol[18][1] === 1 && xListeCol[6][1] === 1 ? (<th className="thcenter tooltipcell" style={{ fontSize: `10px` }}
                                 onClick={(e) => handleTooltip("coef", "th", "", e)}>Profit<div>%</div></th>) : ("")}
-                            {xListeCol[8][1] === 2 ? (<th className="thcenter tooltipcell" style={{ color: `rgb(160, 160, 160)` }}
+                            {xListeCol[8][1] === 1 ? (<th className="thcenter tooltipcell" style={{ color: `rgb(160, 160, 160)` }}
                                 onClick={(e) => handleTooltip("withdraw", "th", "", e)} >Withdraw</th>) : ("")}
-                            {xListeCol[11][1] === 1 && xListeCol[14][1] === 1 ? (<th className="thcenter tooltipcell" onClick={(e) => handleTooltip("diff", "th", "", e)}>Diff</th>) : ("")}
+                            {xListeCol[11][1] === 1 && xListeCol[9][1] === 1 && xListeCol[7][1] === 1 ? (<th className="thcenter tooltipcell" onClick={(e) => handleTooltip("diff", "th", "", e)}>Diff</th>) : ("")}
                             {xListeCol[9][1] === 1 ? (<th className="thnifty" onClick={() => handleNiftyClick()}><div className="overlay-nifty"></div> </th>) : ("")}
-                            {xListeCol[18][1] === 1 && xListeCol[8][1] === 1 ? (<th className="thcenter tooltipcell" onClick={(e) => handleTooltip("coef", "th", "", e)}>Coef</th>) : ("")}
-                            {xListeCol[11][1] === 1 && xListeCol[14][1] === 1 ? (<th className="thcenter tooltipcell" onClick={(e) => handleTooltip("diff", "th", "", e)}>Diff</th>) : ("")}
-                            {xListeCol[10][1] === 1 ? (<th className="thos" onClick={() => handleOSClick()}><div className="overlay-os"></div> </th>) : ("")}
                             {xListeCol[18][1] === 1 && xListeCol[9][1] === 1 ? (<th className="thcenter tooltipcell" onClick={(e) => handleTooltip("coef", "th", "", e)}>Coef</th>) : ("")}
-                            <th className="thcenter">
+                            {xListeCol[11][1] === 1 && xListeCol[10][1] === 1 && xListeCol[7][1] === 1 ? (<th className="thcenter tooltipcell" onClick={(e) => handleTooltip("diff", "th", "", e)}>Diff</th>) : ("")}
+                            {xListeCol[10][1] === 1 ? (<th className="thos" onClick={() => handleOSClick()}><div className="overlay-os"></div> </th>) : ("")}
+                            {xListeCol[18][1] === 1 && xListeCol[10][1] === 1 ? (<th className="thcenter tooltipcell" onClick={(e) => handleTooltip("coef", "th", "", e)}>Coef</th>) : ("")}
+                            {xListeCol[20]?.[1] === 1 ? (<th className="thcenter">
                                 <DList
                                     name="selectedPChange"
                                     title="Chng%"
@@ -406,7 +362,7 @@ export default function InvTable() {
                                     onChange={handleUIChange}
                                     height={28}
                                 />
-                            </th>
+                            </th>) : ("")}
                             {xListeCol[12][1] === 1 ? (<th className="thcenter tooltipcell" onClick={(e) => handleTooltip("yield", "th", "", e)}>Yield</th>) : ("")}
                             {xListeCol[13][1] === 1 ? (<th className="thcenter tooltipcell" onClick={(e) => handleTooltip("harvest", "th", "", e)}>Harvest<div style={{ fontSize: "10px" }}>average</div></th>) : ("")}
                             {xListeCol[14][1] === 1 ? (<th className="thcenter tooltipcell" onClick={(e) => handleTooltip("toharvest", "th", "", e)}>ToHarvest<div style={{ fontSize: "10px" }}>growing</div></th>) : ("")}
@@ -444,51 +400,35 @@ export default function InvTable() {
                         </tr>
                         {selectedQuant !== "unit" ?
                             <tr style={{ position: "sticky" }}>
-                                {xListeCol[0][1] === 1 ? (<td className="ttcenter" >TOTAL</td>) : ("")}
-                                <td className="td-icon">   </td>
-                                <td></td>
-                                <td style={{ display: 'none' }}>ID</td>
-                                {xListeCol[1][1] === 1 ? (<td className="ttcenter"></td>) : ("")}
-                                {selectedQuantity === "daily" ? (<td className="ttcenter"></td>) : ("")}
-                                {selectedQuantity === "daily" ? (<td className="ttcenter"></td>) : ("")}
-                                {selectedQuantity === "daily" ? (<td className="ttcenter"></td>) : ("")}
-                                {xListeCol[2][1] === 1 ? (<td className="ttcenter" style={{ color: `rgb(160, 160, 160)` }}></td>) : ("")}
-                                {xListeCol[3][1] === 1 ? (<td className="ttcenter"></td>) : ("")}
-                                {xListeCol[4][1] === 1 ? (<td className="ttcenter">{parseFloat(totCost).toFixed(2)}</td>) : ("")}
-                                {xListeCol[5][1] === 1 ? (<td className="ttcenter">{parseFloat(totShop).toFixed(2)}</td>) : ("")}
-                                {xListeCol[6][1] === 1 ? (<td className="ttcenterbrd"></td>) : ("")}
-                                {xListeCol[7][1] === 1 ? (<td className="ttcenterbrd">{parseFloat(totTrader).toFixed(2)}</td>) : ("")}
-                                {xListeCol[18][1] === 1 && xListeCol[6][1] === 1 ? (<td className="ttcenter"></td>) : ("")}
-                                {xListeCol[8][1] === 1 ? (<td className="ttcenter" style={{ color: `rgb(160, 160, 160)` }}></td>) : ("")}
-                                {xListeCol[11][1] === 1 && xListeCol[14][1] === 1 ? (<td className={tprctN > -20 ? 'tdpdiffgrn' : 'tdpdiff'}>{tprctN}{totTrader > 0 ? "%" : ""}</td>) : ("")}
-                                {xListeCol[9][1] === 1 ? (<td className="ttcenterbrd">{parseFloat(totNifty).toFixed(2)}</td>) : ("")}
-                                {xListeCol[18][1] === 1 && xListeCol[8][1] === 1 ? (<td className="ttcenter"></td>) : ("")}
-                                {xListeCol[11][1] === 1 && xListeCol[14][1] === 1 ? (<td className={tprctO > -20 ? 'tdpdiffgrn' : 'tdpdiff'}>{tprctO}{totTrader > 0 ? "%" : ""}</td>) : ("")}
-                                {xListeCol[10][1] === 1 ? (<td className="ttcenterbrd">{parseFloat(totOS).toFixed(2)}</td>) : ("")}
-                                {xListeCol[18][1] === 1 && xListeCol[9][1] === 1 ? (<td className="ttcenter"></td>) : ("")}
-                                {xListeCol[12][1] === 1 ? (<td className="ttcenter"></td>) : ("")}
-                                {xListeCol[13][1] === 1 ? (<td className="ttcenter"></td>) : ("")}
-                                {xListeCol[14][1] === 1 ? (<td className="ttcenter"></td>) : ("")}
-                                {xListeCol[19][1] === 1 ? (<td className="ttcenter"></td>) : ("")}
-                                {xListeCol[15][1] === 1 ? (<td className="ttcenter" style={{ color: `rgb(160, 160, 160)` }}></td>) : ("")}
-                                {xListeCol[16][1] === 1 ? (<td className="ttcenter"></td>) : ("")}
-                                {xListeCol[17][1] === 1 ? (<td className="ttcenter" style={{ color: `rgb(160, 160, 160)` }}></td>) : ("")}
+                                {renderInvTotalCells({
+                                    xListeCol,
+                                    selectedQuantity,
+                                    totals: {
+                                        cost: totCost,
+                                        shop: totShop,
+                                        trader: totTrader,
+                                        nifty: totNifty,
+                                        opensea: totOS,
+                                    },
+                                    tprctN: tprctN,
+                                    tprctO: tprctO,
+                                })}
                             </tr> : ("")}
                     </thead>
                     <tbody>
-                        {selectedQuant !== "unit" ?
+                        {selectedQuant !== "unit" && showCrop ?
                             (<tr style={{ position: "sticky" }}>{totCrop}</tr>) : ""}
-                        {inventoryItemsCrop.inventoryItems}
-                        {selectedQuant !== "unit" ?
+                        {showCrop ? inventoryItemsCrop.inventoryItems : null}
+                        {selectedQuant !== "unit" && showResources ?
                             (<tr style={{ position: "sticky" }}>{totRes}</tr>) : ""}
-                        {inventoryItemsRes.inventoryItems}
-                        {selectedQuant !== "unit" ?
+                        {showResources ? inventoryItemsRes.inventoryItems : null}
+                        {selectedQuant !== "unit" && showAnimals ?
                             (<tr style={{ position: "sticky" }}>{totAnml}</tr>) : ""}
-                        {inventoryItemsAnml.inventoryItems}
-                        {selectedQuant !== "unit" ?
+                        {showAnimals ? inventoryItemsAnml.inventoryItems : null}
+                        {selectedQuant !== "unit" && showFruit ?
                             (<tr style={{ position: "sticky" }}>{totFruit}</tr>) : ""}
-                        {inventoryItemsFruit.inventoryItems}
-                        {BldItems}
+                        {showFruit ? inventoryItemsFruit.inventoryItems : null}
+                        {showBuildings ? BldItems : null}
                     </tbody>
                 </table>
             </>
@@ -519,6 +459,7 @@ function setInvContent(pinventoryEntries, sortedInventoryItems, totCost, totShop
         actions: {
             handleUIChange,
             handleTooltip,
+            handleTradeListClick,
         },
         img: {
             imgwinter,
@@ -552,7 +493,10 @@ function setInvContent(pinventoryEntries, sortedInventoryItems, totCost, totShop
     //const TaxTradSfl = 0.25 / priceData[2];
     const catArray = [ItCat1, ItCat2, ItCat3, ItCat4].filter(Boolean);
     const CorespondantItems = sortedInventoryItems.filter(item => catArray.includes(it[item[0]].cat));
-    const tableLen = CorespondantItems.length;
+    const categoryDisplayItems = CorespondantItems
+        .filter(([item, quantity]) => (quantity > 0 || it[item]?.tobharvest > 0))
+        .filter(([item]) => isItemOnSelectedSeason(it[item], selectedSeason));
+    const tableLen = categoryDisplayItems.length;
     invIndex += tableLen;
     const imgbee = <img src="./icon/ui/bee.webp" alt={''} className="nodico" title="Bee swarm" style={{ width: '15px', height: '15px' }} />;
     const imglove = <img src="./icon/ui/expression_love.png" alt={''} className="nodico" title="Needs love" style={{ width: '15px', height: '15px' }} />;
@@ -561,20 +505,18 @@ function setInvContent(pinventoryEntries, sortedInventoryItems, totCost, totShop
     const imgPPriceChng = <img src="./icon/ui/priceup.png" alt={''} title="UP" style={{ width: '10px', height: '10px' }} />;
     const imgNPriceChng = <img src="./icon/ui/pricedown.png" alt={''} title="DOWN" style={{ width: '10px', height: '10px' }} />;
     let maxCoinRatio = 0;
-    let indexCoinRatio = 0;
-    let iR = 0;
+    let maxCoinRatioItem = "";
     for (let itemR in it) {
         const xcoinsRatio = TryChecked ? it[itemR].coinratiotry : it[itemR].coinratio;;
         if (xcoinsRatio > maxCoinRatio) {
             maxCoinRatio = xcoinsRatio;
-            indexCoinRatio = iR;
+            maxCoinRatioItem = itemR;
         }
-        iR++;
     }
-    const inventoryItems = sortedInventoryItems.map(([item, quantity], index) => {
+    const inventoryItems = categoryDisplayItems.map(([item, quantity], index) => {
         let xIndex = index;
-        const firstind = index === invIndex - tableLen;
-        const lastind = index === invIndex - 1;
+        const firstind = index === 0;
+        const lastind = index === tableLen - 1;
         const cellStyle = {};
         cellStyle.borderBottom = lastind ? '1px solid rgb(83, 51, 51)' : 'none';
         cellStyle.borderTop = firstind ? '1px solid rgb(83, 51, 51)' : 'none';
@@ -610,9 +552,7 @@ function setInvContent(pinventoryEntries, sortedInventoryItems, totCost, totShop
                 }
                 if (!icoseason) { isOnSeason = true; }
             }
-            if (selectedSeason !== "all" && !isOnSeason) {
-                return null;
-            }
+            if (selectedSeason !== "all" && !isOnSeason) return null;
             const ido = cobj ? cobj.id : 0;
             //const frmido = cobj ? cobj.farmid : 0;
             const ximgtrd = ""; //frmido === Number(curID) ? <img src={imgtrd} alt="" /> : "";
@@ -901,7 +841,7 @@ function setInvContent(pinventoryEntries, sortedInventoryItems, totCost, totShop
             marketDataTooltip.CostChecked = CostChecked;
             const xcoinsRatio = TryChecked ? cobj.coinratiotry : cobj.coinratio; //1 / pTrad * (pShop * dataSet.options.coinsRatio); //(pShop * dataSet.options.coinsRatio) / pTrad;
             const cellCoinRatioStyle = {};
-            if (indexCoinRatio === xIndex) {
+            if (item === maxCoinRatioItem) {
                 cellCoinRatioStyle.backgroundColor = 'rgba(13, 63, 21, 0.71)';
             }
             cellCoinRatioStyle.borderBottom = cellStyle.borderBottom;
@@ -987,19 +927,19 @@ function setInvContent(pinventoryEntries, sortedInventoryItems, totCost, totShop
                         {xListeCol[18][1] === 1 && xListeCol[6][1] === 1 ? (<td style={{ ...cellStyle, color: colorT, textAlign: 'center', fontSize: '10px' }}
                             onClick={(e) => handleTooltip(item, "coef", coefT, e)}>{pTrad > 0 ? coefT : ""}</td>) : ("")}
                         {xListeCol[8][1] === 1 ? (<td className="quantity" style={{ ...cellStyle }}>{parseFloat((iQuant) * 0.7).toFixed(2)}</td>) : ("")}
-                        {xListeCol[11][1] === 1 && xListeCol[14][1] === 1 ? (<td className={prctN > -20 ? 'tdpdiffgrn tooltipcell' : 'tdpdiff tooltipcell'} style={cellStyle}
+                        {xListeCol[11][1] === 1 && xListeCol[9][1] === 1 && xListeCol[7][1] === 1 ? (<td className={prctN > -20 ? 'tdpdiffgrn tooltipcell' : 'tdpdiff tooltipcell'} style={cellStyle}
                             onClick={(e) => handleTooltip(item, "prct", prctN, e)}>{prctN}{((pTrad > 0) && (pNifty > 0)) ? "%" : ""}</td>) : ("")}
                         {xListeCol[9][1] === 1 ? (<td className={parseFloat(pNifty).toFixed(20) === getMaxValue(pTrad, pNifty, pOS) ? 'tdcentergreen' : 'tdcenterbrd'}
                             style={cellStyle} title={titleNifty}>{puNifty !== 0 ? frmtNb(pNifty) : ""}</td>) : ("")}
-                        {xListeCol[18][1] === 1 && xListeCol[8][1] === 1 ? (<td classname="tooltipcell" style={{ ...cellStyle, color: colorN, textAlign: 'center', fontSize: '8px' }}
+                        {xListeCol[18][1] === 1 && xListeCol[9][1] === 1 ? (<td classname="tooltipcell" style={{ ...cellStyle, color: colorN, textAlign: 'center', fontSize: '8px' }}
                             onClick={(e) => handleTooltip(item, "coef", coefT, e)}>{coefN > 0 ? coefN : ""}</td>) : ("")}
-                        {xListeCol[11][1] === 1 && xListeCol[14][1] === 1 ? (<td className={prctO > -20 ? 'tdpdiffgrn tooltipcell' : 'tdpdiff tooltipcell'} style={cellStyle}
+                        {xListeCol[11][1] === 1 && xListeCol[10][1] === 1 && xListeCol[7][1] === 1 ? (<td className={prctO > -20 ? 'tdpdiffgrn tooltipcell' : 'tdpdiff tooltipcell'} style={cellStyle}
                             onClick={(e) => handleTooltip(item, "prct", prctO, e)}>{prctO}{((pTrad > 0) && (pOS > 0)) ? "%" : ""}</td>) : ("")}
                         {xListeCol[10][1] === 1 ? (<td className={parseFloat(pOS).toFixed(20) === getMaxValue(pTrad, pNifty, pOS) ? 'tdcentergreen' : 'tdcenterbrd'}
                             onClick={(event) => handleTradeListClick(inputValue, ido, "OS")} style={cellStyle} title={titleOS}>{puOS !== 0 ? frmtNb(pOS) : ""}</td>) : ("")}
-                        {xListeCol[18][1] === 1 && xListeCol[9][1] === 1 ? (<td classname="tooltipcell" style={{ ...cellStyle, color: colorO, textAlign: 'center', fontSize: '8px' }}
+                        {xListeCol[18][1] === 1 && xListeCol[10][1] === 1 ? (<td classname="tooltipcell" style={{ ...cellStyle, color: colorO, textAlign: 'center', fontSize: '8px' }}
                             onClick={(e) => handleTooltip(item, "coef", coefO, e)}>{coefO > 0 ? coefO : ""}</td>) : ("")}
-                        {xListeCol[3][1] === 1 ? (<td className="tdcenter" style={{ ...cellStyle, fontSize: "11px", color: colorPChange }}>{imgpriceChange}{txtpriceChange}</td>) : ("")}
+                        {xListeCol[20]?.[1] === 1 ? (<td className="tdcenter" style={{ ...cellStyle, fontSize: "11px", color: colorPChange }}>{imgpriceChange}{txtpriceChange}</td>) : ("")}
                         {xListeCol[12][1] === 1 ? (<td className="tdcenter tooltipcell" style={{ ...cellStyle, color: `rgb(255, 234, 204)` }} onClick={(e) => handleTooltip(item, "trynft", "yield", e)}>
                             {parseFloat(imyield).toFixed(2)}</td>) : ("")}
                         {xListeCol[13][1] === 1 ? (<td className="tdcenter tooltipcell" style={{ ...cellStyle, color: `rgb(255, 225, 183)` }} onClick={(e) => handleTooltip(item, "harvest", 0, e)}>
@@ -1017,6 +957,7 @@ function setInvContent(pinventoryEntries, sortedInventoryItems, totCost, totShop
                 </>
             );
         }
+        return null;
     });
     const result = {
         inventoryItems: inventoryItems,
@@ -1035,6 +976,104 @@ function setInvContent(pinventoryEntries, sortedInventoryItems, totCost, totShop
         invIndex: invIndex
     }
     return result;
+}
+function isItemOnSelectedSeason(itemObj, selectedSeason) {
+    if (!itemObj) return false;
+    if (selectedSeason === "all") return true;
+    const cat = itemObj.cat || "";
+    if ((cat !== "crop" && cat !== "fruit") || itemObj.greenhouse) return true;
+    const icoseason = itemObj.imgseason || "";
+    if (!icoseason) return true;
+    const tokens = String(icoseason).split("*");
+    return tokens.some((t) => {
+        const s = String(t || "").toLowerCase();
+        if (s === "fullmoon") return true;
+        return s === String(selectedSeason || "").toLowerCase();
+    });
+}
+function renderInvTotalCells({ xListeCol, selectedQuantity, totals, tprctN, tprctO }) {
+    return (
+        <>
+            {xListeCol[0][1] === 1 ? (<td className="ttcenter">TOTAL</td>) : ("")}
+            <td className="td-icon">   </td>
+            <td></td>
+            <td style={{ display: 'none' }}>ID</td>
+            {xListeCol[1][1] === 1 ? (<td className="ttcenter"></td>) : ("")}
+            {selectedQuantity === "daily" ? (<td className="ttcenter"></td>) : ("")}
+            {selectedQuantity === "daily" ? (<td className="ttcenter"></td>) : ("")}
+            {selectedQuantity === "daily" ? (<td className="ttcenter"></td>) : ("")}
+            {xListeCol[2][1] === 1 ? (<td className="ttcenter" style={{ color: `rgb(160, 160, 160)` }}></td>) : ("")}
+            {xListeCol[3][1] === 1 ? (<td className="ttcenter"></td>) : ("")}
+            {xListeCol[4][1] === 1 ? (<td className="ttcenter">{parseFloat(totals.cost).toFixed(2)}</td>) : ("")}
+            {xListeCol[5][1] === 1 ? (<td className="ttcenter">{parseFloat(totals.shop).toFixed(2)}</td>) : ("")}
+            {xListeCol[6][1] === 1 ? (<td className="ttcenterbrd"></td>) : ("")}
+            {xListeCol[7][1] === 1 ? (<td className="ttcenterbrd">{parseFloat(totals.trader).toFixed(2)}</td>) : ("")}
+            {xListeCol[18][1] === 1 && xListeCol[6][1] === 1 ? (<td className="ttcenter"></td>) : ("")}
+            {xListeCol[8][1] === 1 ? (<td className="ttcenter" style={{ color: `rgb(160, 160, 160)` }}></td>) : ("")}
+            {xListeCol[11][1] === 1 && xListeCol[9][1] === 1 && xListeCol[7][1] === 1 ? (<td className={tprctN > -20 ? 'tdpdiffgrn' : 'tdpdiff'}>{tprctN}{totals.trader > 0 ? "%" : ""}</td>) : ("")}
+            {xListeCol[9][1] === 1 ? (<td className="ttcenterbrd">{parseFloat(totals.nifty).toFixed(2)}</td>) : ("")}
+            {xListeCol[18][1] === 1 && xListeCol[9][1] === 1 ? (<td className="ttcenter"></td>) : ("")}
+            {xListeCol[11][1] === 1 && xListeCol[10][1] === 1 && xListeCol[7][1] === 1 ? (<td className={tprctO > -20 ? 'tdpdiffgrn' : 'tdpdiff'}>{tprctO}{totals.trader > 0 ? "%" : ""}</td>) : ("")}
+            {xListeCol[10][1] === 1 ? (<td className="ttcenterbrd">{parseFloat(totals.opensea).toFixed(2)}</td>) : ("")}
+            {xListeCol[18][1] === 1 && xListeCol[10][1] === 1 ? (<td className="ttcenter"></td>) : ("")}
+            {xListeCol[20]?.[1] === 1 ? (<td className="ttcenter"></td>) : ("")}
+            {xListeCol[12][1] === 1 ? (<td className="ttcenter"></td>) : ("")}
+            {xListeCol[13][1] === 1 ? (<td className="ttcenter"></td>) : ("")}
+            {xListeCol[14][1] === 1 ? (<td className="ttcenter"></td>) : ("")}
+            {xListeCol[19][1] === 1 ? (<td className="ttcenter"></td>) : ("")}
+            {xListeCol[15][1] === 1 ? (<td className="ttcenter" style={{ color: `rgb(160, 160, 160)` }}></td>) : ("")}
+            {xListeCol[16][1] === 1 ? (<td className="ttcenter"></td>) : ("")}
+            {xListeCol[17][1] === 1 ? (<td className="ttcenter" style={{ color: `rgb(160, 160, 160)` }}></td>) : ("")}
+        </>
+    );
+}
+function getInvSortValue(sortBy, item, quantity, it, tryChecked, selectedPChange = "3d") {
+    const obj = it?.[item] || {};
+    switch (sortBy) {
+        case "item":
+            return String(item || "");
+        case "quantity":
+            return Number(quantity || 0);
+        case "time":
+            return Number(tryChecked ? obj.timetry : obj.time) || 0;
+        case "cost":
+            if (obj.cat === "crop") {
+                return Number(tryChecked ? obj.pcosttry : obj.pcost) || 0;
+            }
+            return Number(tryChecked ? obj.costtry : obj.cost) || 0;
+        case "shop":
+            return Number(tryChecked ? obj.shoptry : obj.shop) || 0;
+        case "market":
+            return Number(obj.costp2pt) || 0;
+        case "nifty":
+            return Number(obj.costp2pn) || 0;
+        case "opensea":
+            return Number(obj.costp2po) || 0;
+        case "ratio":
+            return Number(tryChecked ? obj.coinratiotry : obj.coinratio) || 0;
+        case "yield":
+            return Number(tryChecked ? obj.myieldtry : obj.myield) || 0;
+        case "harvest":
+            return Number(tryChecked ? obj.harvesttry : obj.harvest) || 0;
+        case "toharvest":
+            return Number(obj.tobharvest) || 0;
+        case "dailysfl":
+            return Number(tryChecked ? obj.dailysfltry : obj.dailysfl) || 0;
+        case "ready":
+            return Number(obj.rdyat) || 0;
+        case "pricechange":
+            return Number(obj?.["cost" + selectedPChange]) || 0;
+        default:
+            return 0;
+    }
+}
+function getInvCategoryBucket(item, it) {
+    const cat = it?.[item]?.cat;
+    if (cat === "crop") return 0;
+    if (cat === "mineral" || cat === "gem" || cat === "wood" || cat === "oil") return 1;
+    if (cat === "animal" || cat === "honey" || cat === "flower") return 2;
+    if (cat === "fruit" || cat === "mushroom") return 3;
+    return 4;
 }
 function formatdate(timestamp) {
     if (timestamp < 3600 * 1000 * 24) { timestamp -= 3600 * 1000 }

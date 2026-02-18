@@ -9,7 +9,6 @@ import Help from './fhelp.js';
 import Cadre from './animodal.js';
 import Tooltip from "./tooltip/Tooltip.jsx";
 import DList from "./dlist.jsx";
-//import DropdownCheckbox from './listcol.js';
 //import CounterInput from "./counterinput.js";
 import { FormControl, InputLabel, Select, MenuItem, Switch, FormControlLabel } from '@mui/material';
 import { frmtNb, filterTryit, formatUpdated } from './fct.js';
@@ -68,6 +67,199 @@ let lastID = "";
 
 let helpImage = "./image/helpgeneral.jpg";
 
+const INV_COLUMNS_TEMPLATE = [
+  ['Hoard', 1],
+  ['Item name', 0],
+  ['Quantity', 1],
+  ['Time', 1],
+  ['Production cost', 1],
+  ['Shop price', 1],
+  ['Ratio coins/flower', 1],
+  ['Marketplace price', 1],
+  ['Withdraw quantity', 0],
+  ['Niftyswap price', 0],
+  ['OpenSea price', 0],
+  ['Price difference with Marketplace', 0],
+  ['Yield', 1],
+  ['Harvest average', 1],
+  ['To harvest', 1],
+  ['BlockBuck production', 0],
+  ['Daily Flower', 1],
+  ['Daily max production', 1],
+  ['Profit %', 1],
+  ['When ready', 1],
+  ['Price change', 1],
+];
+const INV_COLUMNS_PICKER = [
+  { idx: 0, label: 'Hoard' },
+  { idx: 1, label: 'Item name' },
+  { idx: 2, label: 'Quantity' },
+  { idx: 3, label: 'Time' },
+  { idx: 4, label: 'Production cost' },
+  { idx: 5, label: 'Shop price' },
+  { idx: 6, label: 'Ratio coins/flower' },
+  { idx: 7, label: 'Marketplace price' },
+  { idx: 8, label: 'Withdraw quantity' },
+  { idx: 12, label: 'Yield' },
+  { idx: 13, label: 'Harvest average' },
+  { idx: 14, label: 'To harvest' },
+  { idx: 15, label: 'BlockBuck production' },
+  { idx: 16, label: 'Daily Flower' },
+  { idx: 17, label: 'Daily max production' },
+  { idx: 18, label: 'Profit %' },
+  { idx: 19, label: 'When ready' },
+  { idx: 20, label: 'Price change' },
+];
+const INV_SORT_OPTIONS_TEMPLATE = [
+  { value: "none", label: "Default", idx: null },
+  { value: "item", label: "Item", idx: 1 },
+  { value: "quantity", label: "Quantity", idx: 2 },
+  { value: "time", label: "Time", idx: 3 },
+  { value: "cost", label: "Cost", idx: 4 },
+  { value: "shop", label: "Shop", idx: 5 },
+  { value: "market", label: "Market", idx: 7 },
+  { value: "nifty", label: "Nifty", idx: 9 },
+  { value: "opensea", label: "OpenSea", idx: 10 },
+  { value: "ratio", label: "Ratio", idx: 6 },
+  { value: "yield", label: "Yield", idx: 12 },
+  { value: "harvest", label: "Harvest", idx: 13 },
+  { value: "toharvest", label: "ToHarvest", idx: 14 },
+  { value: "dailysfl", label: "Daily Flower", idx: 16 },
+  { value: "ready", label: "Ready", idx: 19 },
+  { value: "pricechange", label: "Price change", idx: 20 },
+];
+const COOK_COLUMNS_TEMPLATE = [
+  ['Building', 1],
+  ['Item name', 0],
+  ['Quantity', 1],
+  ['XP', 1],
+  ['Time to cook', 1],
+  ['Time for components growing', 0],
+  ['XP/H', 1],
+  ['XP/H with components time', 0],
+  ['XP/Flower', 1],
+  ['Cost', 1],
+  ['Marketplace price', 1],
+  ['Components', 1],
+];
+const COOK_COLUMNS_PICKER = [
+  { idx: 0, label: 'Building' },
+  { idx: 1, label: 'Item name' },
+  { idx: 2, label: 'Quantity' },
+  { idx: 3, label: 'XP' },
+  { idx: 4, label: 'Time to cook' },
+  //{ idx: 5, label: 'Time for components growing' },
+  { idx: 6, label: 'XP/H' },
+  //{ idx: 7, label: 'XP/H with components time' },
+  { idx: 8, label: 'XP/Flower' },
+  { idx: 9, label: 'Cost' },
+  { idx: 10, label: 'Marketplace price' },
+  { idx: 11, label: 'Components' },
+];
+const COOK_SORT_OPTIONS_TEMPLATE = [
+  { value: "none", label: "Default", idx: null },
+  { value: "building", label: "Building", idx: 0 },
+  { value: "item", label: "Item", idx: 1 },
+  { value: "quantity", label: "Quantity", idx: 2 },
+  { value: "xp", label: "XP", idx: 3 },
+  { value: "time", label: "Time", idx: 4 },
+  { value: "xph", label: "XP/H", idx: 6 },
+  { value: "xpsfl", label: "XP/Flower", idx: 8 },
+  { value: "cost", label: "Cost", idx: 9 },
+  { value: "market", label: "Marketplace", idx: 10 },
+  { value: "components", label: "Components", idx: 11 },
+];
+const FISH_COLUMNS_TEMPLATE = [
+  ['Category', 1],
+  ['Location', 0],
+  ['Hoard', 1],
+  ['Item name', 1],
+  ['Bait', 1],
+  ['Quantity', 1],
+  ['Caught', 1],
+  ['Map', 1],
+  ['Chum', 1],
+  ['Period', 1],
+  ['Percent by category', 1],
+  ['XP', 1],
+  ['Cost', 1],
+  ['XP/Flower', 1],
+];
+const FISH_COLUMNS_PICKER = [
+  { idx: 0, label: 'Category' },
+  //{ idx: 1, label: 'Location' },
+  { idx: 2, label: 'Hoard' },
+  { idx: 3, label: 'Fish' },
+  { idx: 4, label: 'Bait' },
+  { idx: 5, label: 'Quantity' },
+  { idx: 6, label: 'Caught' },
+  { idx: 7, label: 'Map' },
+  { idx: 8, label: 'Chum' },
+  { idx: 9, label: 'Period' },
+  { idx: 10, label: '% by category' },
+  { idx: 11, label: 'XP' },
+  { idx: 12, label: 'Cost' },
+  { idx: 13, label: 'XP/Flower' },
+];
+const CRUSTA_COLUMNS_TEMPLATE = [
+  ['Tool', 1],
+  ['Hoard', 1],
+  ['Crustacean', 1],
+  ['Stock', 1],
+  ['Caught', 1],
+  ['Chum', 1],
+  ['Cost', 1],
+  ['Market', 1],
+  ['Grow', 1],
+  ['Ready', 1],
+];
+const CRUSTA_COLUMNS_PICKER = [
+  { idx: 0, label: 'Tool' },
+  { idx: 1, label: 'Hoard' },
+  { idx: 2, label: 'Crustacean' },
+  { idx: 3, label: 'Stock' },
+  { idx: 4, label: 'Caught' },
+  { idx: 5, label: 'Chum' },
+  { idx: 6, label: 'Cost' },
+  { idx: 7, label: 'Market' },
+  { idx: 8, label: 'Grow' },
+  { idx: 9, label: 'Ready' },
+];
+const ACTIVITY_COLUMNS_TEMPLATE = [
+  ['From', 1],
+  ['Total XP', 1],
+  ['Tickets on daily chest', 1],
+  ['Tickets on crops', 1],
+  ['Tickets on tentacles', 1],
+  ['Tickets from deliveries', 1],
+  ['Tickets from chores', 1],
+  ['Tickets max', 1],
+  ['Deliveries cost', 1],
+  ['Deliveries cost P2P', 1],
+  ['Ticket cost', 1],
+  ['SFL from deliveries', 1],
+  ['SFL balance', 1],
+  ['Ressources burned', 1],
+];
+const ACTIVITY_ITEM_COLUMNS_TEMPLATE = [
+  ['Item Name', 1],
+  ['Harvested', 1],
+  ['Quantity', 1],
+  ['Burned', 1],
+  ['Production Cost', 1],
+  ['Marketplace Price', 1],
+  ['Niftyswap Price', 0],
+  ['OpenSea Price', 0],
+  ['Traded', 1],
+  ['Devliveries Burn', 1],
+];
+const ACTIVITY_QUEST_COLUMNS_TEMPLATE = [
+  ['From', 1],
+  ['Description', 1],
+  ['Reward', 1],
+  ['Date', 1],
+];
+
 function App() {
   const [initialDataSet, setInitialDataSet] = useState(null);
   const [notifListInitial, setNotifListInitial] = useState(null);
@@ -81,6 +273,7 @@ function App() {
     selectedCostCook: "trader",
     selectedQuantity: "farm",
     selectedQuantityCook: "farm",
+    cookCategories: ["base", "honey", "cheese", "fish", "cake"],
     selectedAnimalLvl: "farm",
     selectedReady: "when",
     selectedDsfl: "trader",
@@ -92,12 +285,19 @@ function App() {
     selectedDigCur: "sfl",
     selectedSeason: "all",
     selectedPChange: "3d",
+    invSortBy: "none",
+    invSortDir: "asc",
+    cookSortBy: "none",
+    cookSortDir: "asc",
+    invCategories: ["crop", "resources", "animals", "fruit", "buildings"],
     petView: "pets",
     fishView: "fish",
     inputValue: "",
     inputKeep: 3,
     inputFromLvl: 1,
     inputToLvl: 30,
+    fromtolvltime: 0,
+    fromtolvlxp: 0,
     TryChecked: false,
     CostChecked: true,
     BurnChecked: true,
@@ -107,55 +307,16 @@ function App() {
     isOpen: {},
     customSeedCM: {},
     customQuantFetch: {},
+    petFetchSelection: {},
+    petFetchSelectionInitDone: false,
     cstPrices: {},
     toCM: {},
     selectedHomeBlocks: {},
     selectedHomeItems: {},
-    xListeCol: [['Hoard', 1],
-    ['Item name', 0],
-    ['Quantity', 1],
-    ['Time', 1],
-    ['Production cost', 1],
-    ['Shop price', 1],
-    ['Ratio coins/flower', 1],
-    ['Marketplace price', 1],
-    ['Withdraw quantity', 0],
-    ['Niftyswap price', 0],
-    ['OpenSea price', 0],
-    ['Price difference with Marketplace', 0],
-    ['Yield', 1],
-    ['Harvest average', 1],
-    ['To harvest', 1],
-    ['BlockBuck production', 0],
-    ['Daily SFL', 1],
-    ['Daily max production', 1],
-    ['Coefficient Prod cost / Sell cost', 1],
-    ['Wen ready', 1]],
-    xListeColCook: [['Building', 1],
-    ['Item name', 0],
-    ['Quantity', 1],
-    ['XP', 1],
-    ['Time to cook', 1],
-    ['Time for components growing', 0],
-    ['XP/H', 1],
-    ['XP/H with components time', 0],
-    ['XP/SFL', 1],
-    ['Cost', 1],
-    ['Cost p2p', 1],
-    ['Components', 1]],
-    xListeColFish: [['Category', 1],
-    ['Location', 0],
-    ['Hoard', 1],
-    ['Item name', 1],
-    ['Bait', 1],
-    ['Quantity on farm', 1],
-    ['Caught', 1],
-    ['Chum', 1],
-    ['Period', 1],
-    ['Percent by category', 1],
-    ['XP', 1],
-    ['Cost', 1],
-    ['XP/SFL', 1]],
+    xListeCol: INV_COLUMNS_TEMPLATE,
+    xListeColCook: COOK_COLUMNS_TEMPLATE,
+    xListeColFish: FISH_COLUMNS_TEMPLATE,
+    xListeColCrusta: CRUSTA_COLUMNS_TEMPLATE,
     xListeColFlower: [['Seed', 1],
     ['Flower name', 1],
     ['Breeding', 1],
@@ -185,42 +346,77 @@ function App() {
     ['Ressources requirement', 1],
     ['Nodes', 1],
     ['Cost', 1]],
-    xListeColActivity: [['From', 1],
-    ['Total XP', 1],
-    ['Tickets on daily chest', 1],
-    ['Tickets on crops', 1],
-    ['Tickets on tentacles', 1],
-    ['Tickets from deliveries', 1],
-    ['Tickets from chores', 1],
-    ['Tickets max', 1],
-    ['Deliveries cost', 1],
-    ['Deliveries cost P2P', 1],
-    ['Ticket cost', 1],
-    ['SFL from deliveries', 1],
-    ['SFL balance', 1],
-    ['Ressources burned', 1]],
-    xListeColActivityItem: [['Item Name', 1],
-    ['Harvested', 1],
-    ['Quantity', 1],
-    ['Burned', 1],
-    ['Production Cost', 1],
-    ['Balloon Price', 1],
-    ['Niftyswap Price', 1],
-    ['OpenSea Price', 1],
-    ['Traded', 1],
-    ['Devliveries Burn', 1],
-    ['Food produced', 1]],
-    xListeColActivityQuest: [['From', 1],
-    ['Description', 1],
-    ['Reward', 1],
-    ['Date', 1]],
+    xListeColActivity: ACTIVITY_COLUMNS_TEMPLATE,
+    xListeColActivityItem: ACTIVITY_ITEM_COLUMNS_TEMPLATE,
+    xListeColActivityQuest: ACTIVITY_QUEST_COLUMNS_TEMPLATE,
+  };
+  const normalizeUI = (raw) => {
+    const next = { ...(raw || {}) };
+    const currentInvCols = Array.isArray(next.xListeCol) ? next.xListeCol : [];
+    next.xListeCol = INV_COLUMNS_TEMPLATE.map((tpl, i) => {
+      const cur = Array.isArray(currentInvCols[i]) ? currentInvCols[i] : null;
+      const enabled = cur && (cur[1] === 1 || cur[1] === 0) ? cur[1] : tpl[1];
+      return [tpl[0], enabled];
+    });
+    const currentCookCols = Array.isArray(next.xListeColCook) ? next.xListeColCook : [];
+    next.xListeColCook = COOK_COLUMNS_TEMPLATE.map((tpl, i) => {
+      const cur = Array.isArray(currentCookCols[i]) ? currentCookCols[i] : null;
+      const enabled = cur && (cur[1] === 1 || cur[1] === 0) ? cur[1] : tpl[1];
+      return [tpl[0], enabled];
+    });
+    const currentFishCols = Array.isArray(next.xListeColFish) ? next.xListeColFish : [];
+    next.xListeColFish = FISH_COLUMNS_TEMPLATE.map((tpl, i) => {
+      const cur = Array.isArray(currentFishCols[i]) ? currentFishCols[i] : null;
+      const enabled = cur && (cur[1] === 1 || cur[1] === 0) ? cur[1] : tpl[1];
+      return [tpl[0], enabled];
+    });
+    const currentCrustaCols = Array.isArray(next.xListeColCrusta) ? next.xListeColCrusta : [];
+    next.xListeColCrusta = CRUSTA_COLUMNS_TEMPLATE.map((tpl, i) => {
+      const cur = Array.isArray(currentCrustaCols[i]) ? currentCrustaCols[i] : null;
+      const enabled = cur && (cur[1] === 1 || cur[1] === 0) ? cur[1] : tpl[1];
+      return [tpl[0], enabled];
+    });
+    const currentActivityCols = Array.isArray(next.xListeColActivity) ? next.xListeColActivity : [];
+    next.xListeColActivity = ACTIVITY_COLUMNS_TEMPLATE.map((tpl, i) => {
+      const cur = Array.isArray(currentActivityCols[i]) ? currentActivityCols[i] : null;
+      const enabled = cur && (cur[1] === 1 || cur[1] === 0) ? cur[1] : tpl[1];
+      return [tpl[0], enabled];
+    });
+    const currentActivityItemCols = Array.isArray(next.xListeColActivityItem) ? next.xListeColActivityItem : [];
+    // Legacy shape had 9 columns (without Nifty/OpenSea), but Activity table reads index 9.
+    const normalizedLegacyActivityItemCols = currentActivityItemCols.length === 9
+      ? [
+        currentActivityItemCols[0],
+        currentActivityItemCols[1],
+        currentActivityItemCols[2],
+        currentActivityItemCols[3],
+        currentActivityItemCols[4],
+        currentActivityItemCols[5],
+        ['Niftyswap Price', 0],
+        ['OpenSea Price', 0],
+        currentActivityItemCols[6],
+        [(currentActivityItemCols[7]?.[1] === 1 || currentActivityItemCols[8]?.[1] === 1) ? 'Devliveries Burn' : 'Devliveries Burn', (currentActivityItemCols[7]?.[1] === 1 || currentActivityItemCols[8]?.[1] === 1) ? 1 : 0],
+      ]
+      : currentActivityItemCols;
+    next.xListeColActivityItem = ACTIVITY_ITEM_COLUMNS_TEMPLATE.map((tpl, i) => {
+      const cur = Array.isArray(normalizedLegacyActivityItemCols[i]) ? normalizedLegacyActivityItemCols[i] : null;
+      const enabled = cur && (cur[1] === 1 || cur[1] === 0) ? cur[1] : tpl[1];
+      return [tpl[0], enabled];
+    });
+    const currentActivityQuestCols = Array.isArray(next.xListeColActivityQuest) ? next.xListeColActivityQuest : [];
+    next.xListeColActivityQuest = ACTIVITY_QUEST_COLUMNS_TEMPLATE.map((tpl, i) => {
+      const cur = Array.isArray(currentActivityQuestCols[i]) ? currentActivityQuestCols[i] : null;
+      const enabled = cur && (cur[1] === 1 || cur[1] === 0) ? cur[1] : tpl[1];
+      return [tpl[0], enabled];
+    });
+    return next;
   };
   const [ui, setUI] = useState(() => {
     try {
       const stored = JSON.parse(localStorage.getItem("ui"));
       return {
         ...uiDefaults,
-        ...(stored || {}),
+        ...normalizeUI(stored),
       };
     } catch {
       return uiDefaults;
@@ -230,7 +426,78 @@ function App() {
     localStorage.setItem("ui", JSON.stringify(ui));
   }, [ui]);
   const { inputValue, TryChecked, selectedInv, fromexpand, toexpand, selectedExpandType } = ui;
-
+  const invPickerOptions = useMemo(
+    () => INV_COLUMNS_PICKER.map((c) => ({ value: String(c.idx), label: c.label })),
+    []
+  );
+  const invPickerValue = useMemo(
+    () => INV_COLUMNS_PICKER
+      .filter((c) => ui?.xListeCol?.[c.idx]?.[1] === 1)
+      .map((c) => String(c.idx)),
+    [ui?.xListeCol]
+  );
+  const invSortOptions = useMemo(() => {
+    const visibleIdx = new Set(
+      INV_COLUMNS_PICKER
+        .filter((c) => ui?.xListeCol?.[c.idx]?.[1] === 1)
+        .map((c) => c.idx)
+    );
+    return INV_SORT_OPTIONS_TEMPLATE
+      .filter((o) => o.idx === null || visibleIdx.has(o.idx))
+      .map(({ value, label }) => ({ value, label }));
+  }, [ui?.xListeCol]);
+  useEffect(() => {
+    const current = ui?.invSortBy || "none";
+    if (!invSortOptions.some((o) => o.value === current)) {
+      setUIField("invSortBy", "none");
+    }
+  }, [ui?.invSortBy, invSortOptions]);
+  const cookPickerOptions = useMemo(
+    () => COOK_COLUMNS_PICKER.map((c) => ({ value: String(c.idx), label: c.label })),
+    []
+  );
+  const cookPickerValue = useMemo(
+    () => COOK_COLUMNS_PICKER
+      .filter((c) => ui?.xListeColCook?.[c.idx]?.[1] === 1)
+      .map((c) => String(c.idx)),
+    [ui?.xListeColCook]
+  );
+  const cookSortOptions = useMemo(() => {
+    const visibleIdx = new Set(
+      COOK_COLUMNS_PICKER
+        .filter((c) => ui?.xListeColCook?.[c.idx]?.[1] === 1)
+        .map((c) => c.idx)
+    );
+    return COOK_SORT_OPTIONS_TEMPLATE
+      .filter((o) => o.idx === null || visibleIdx.has(o.idx))
+      .map(({ value, label }) => ({ value, label }));
+  }, [ui?.xListeColCook]);
+  const fishPickerOptions = useMemo(
+    () => FISH_COLUMNS_PICKER.map((c) => ({ value: String(c.idx), label: c.label })),
+    []
+  );
+  const fishPickerValue = useMemo(
+    () => FISH_COLUMNS_PICKER
+      .filter((c) => ui?.xListeColFish?.[c.idx]?.[1] === 1)
+      .map((c) => String(c.idx)),
+    [ui?.xListeColFish]
+  );
+  const crustaPickerOptions = useMemo(
+    () => CRUSTA_COLUMNS_PICKER.map((c) => ({ value: String(c.idx), label: c.label })),
+    []
+  );
+  const crustaPickerValue = useMemo(
+    () => CRUSTA_COLUMNS_PICKER
+      .filter((c) => ui?.xListeColCrusta?.[c.idx]?.[1] === 1)
+      .map((c) => String(c.idx)),
+    [ui?.xListeColCrusta]
+  );
+  useEffect(() => {
+    const current = ui?.cookSortBy || "none";
+    if (!cookSortOptions.some((o) => o.value === current)) {
+      setUIField("cookSortBy", "none");
+    }
+  }, [ui?.cookSortBy, cookSortOptions]);
   const [farmData, setFarmData] = useState([]);
   const [dataSetFarm, setdataSetFarm] = useState({});
   const [options, setOptions] = useState({});
@@ -254,6 +521,56 @@ function App() {
   const [showOptions, setShowOptions] = useState(false);
   const [showHelp, setShowHelp] = useState(false);
   const [showCadre, setShowCadre] = useState(false);
+  useEffect(() => {
+    const mode = ui?.selectedQuantityCook;
+    if (mode !== "daily" && mode !== "dailymax") return;
+    const food = dataSetFarm?.itables?.food || {};
+    const pfood = dataSetFarm?.itables?.pfood || {};
+    const foodKeys = Object.keys(food);
+    const pfoodKeys = Object.keys(pfood);
+    const allKeys = [...foodKeys, ...pfoodKeys];
+    if (allKeys.length === 0) return;
+    const hasCookit = allKeys.some((key) => Number((food[key] || pfood[key])?.cookit) === 1);
+    if (hasCookit) return;
+    const firstFoodKey = foodKeys[0];
+    const firstPfoodKey = pfoodKeys[0];
+    setdataSetFarm((prev) => {
+      const prevItables = prev?.itables || {};
+      const prevFood = prevItables?.food || {};
+      const prevPfood = prevItables?.pfood || {};
+      if (firstFoodKey) {
+        return {
+          ...prev,
+          itables: {
+            ...prevItables,
+            food: {
+              ...prevFood,
+              [firstFoodKey]: {
+                ...(prevFood[firstFoodKey] || {}),
+                cookit: 1,
+              },
+            },
+          },
+        };
+      }
+      if (firstPfoodKey) {
+        return {
+          ...prev,
+          itables: {
+            ...prevItables,
+            pfood: {
+              ...prevPfood,
+              [firstPfoodKey]: {
+                ...(prevPfood[firstPfoodKey] || {}),
+                cookit: 1,
+              },
+            },
+          },
+        };
+      }
+      return prev;
+    });
+  }, [ui?.selectedQuantityCook, dataSetFarm?.itables?.food, dataSetFarm?.itables?.pfood]);
 
   const handleHomeClic = (index) => {
     //setIsOpen((prevState) => ({
@@ -481,6 +798,12 @@ function App() {
         else return prev;
         const table = itables[tableKey] ?? {};
         const current = table[item] ?? {};
+        const nextBinary = value ? 1 : 0;
+        if (root === "cookit" && nextBinary === 0 && Number(current?.cookit) === 1) {
+          const foodCount = Object.values(food).reduce((acc, obj) => acc + (Number(obj?.cookit) === 1 ? 1 : 0), 0);
+          const pfoodCount = Object.values(pfood).reduce((acc, obj) => acc + (Number(obj?.cookit) === 1 ? 1 : 0), 0);
+          if ((foodCount + pfoodCount) <= 1) return prev;
+        }
         return {
           ...prev,
           itables: {
@@ -489,7 +812,7 @@ function App() {
               ...table,
               [item]: {
                 ...current,
-                [root]: current?.[root] === 1 ? 0 : 1,
+                [root]: nextBinary,
               },
             },
           },
@@ -905,6 +1228,9 @@ function App() {
     handleTooltip,
     handleHomeClic,
     handleTraderClick,
+    handleNiftyClick,
+    handleOSClick,
+    handleTradeListClick,
     handleRefreshfTNFT,
     handleSetHrvMax
   }), [
@@ -913,6 +1239,9 @@ function App() {
     handleTooltip,
     handleHomeClic,
     handleTraderClick,
+    handleNiftyClick,
+    handleOSClick,
+    handleTradeListClick,
     handleRefreshfTNFT,
     handleSetHrvMax
   ]);
@@ -1544,16 +1873,165 @@ function App() {
                   />
                 )}
                 {selectedInv === "fish" && (
-                  <DList
-                    name="fishView"
-                    options={[
-                      { value: "fish", label: "Fish", iconSrc: "./icon/fish/anchovy.png" },
-                      { value: "crustacean", label: "Crustaceans", iconSrc: imgcrustacean },
-                    ]}
-                    value={ui.fishView}
-                    onChange={handleUIChange}
-                    height={20}
-                  />
+                  <>
+                    <DList
+                      name="fishView"
+                      options={[
+                        { value: "fish", label: "Fish", iconSrc: "./icon/fish/anchovy.png" },
+                        { value: "crustacean", label: "Crustaceans", iconSrc: imgcrustacean },
+                      ]}
+                      value={ui.fishView}
+                      onChange={handleUIChange}
+                      height={20}
+                    />
+                    <DList
+                      options={ui.fishView === "crustacean" ? crustaPickerOptions : fishPickerOptions}
+                      value={ui.fishView === "crustacean" ? crustaPickerValue : fishPickerValue}
+                      multiple={true}
+                      closeOnSelect={false}
+                      emitEvent={false}
+                      onChange={(selectedValues) => {
+                        const selectedSet = new Set((selectedValues || []).map(String));
+                        if (ui.fishView === "crustacean") {
+                          const next = (ui.xListeColCrusta || CRUSTA_COLUMNS_TEMPLATE).map((col, idx) => {
+                            const isPickerCol = CRUSTA_COLUMNS_PICKER.some((c) => c.idx === idx);
+                            if (!isPickerCol) return col;
+                            return [col[0], selectedSet.has(String(idx)) ? 1 : 0];
+                          });
+                          setUIField("xListeColCrusta", next);
+                          return;
+                        }
+                        const next = (ui.xListeColFish || FISH_COLUMNS_TEMPLATE).map((col, idx) => {
+                          const isPickerCol = FISH_COLUMNS_PICKER.some((c) => c.idx === idx);
+                          if (!isPickerCol) return col;
+                          return [col[0], selectedSet.has(String(idx)) ? 1 : 0];
+                        });
+                        setUIField("xListeColFish", next);
+                      }}
+                      listIcon="./options.png"
+                      iconOnly={true}
+                      height={28}
+                      menuMinWidth={220}
+                    />
+                  </>
+                )}
+                {selectedInv === "cook" && (
+                  <>
+                    <DList
+                      options={cookPickerOptions}
+                      value={cookPickerValue}
+                      multiple={true}
+                      closeOnSelect={false}
+                      emitEvent={false}
+                      onChange={(selectedValues) => {
+                        const selectedSet = new Set((selectedValues || []).map(String));
+                        const next = (ui.xListeColCook || COOK_COLUMNS_TEMPLATE).map((col, idx) => {
+                          const isPickerCol = COOK_COLUMNS_PICKER.some((c) => c.idx === idx);
+                          if (!isPickerCol) return col;
+                          return [col[0], selectedSet.has(String(idx)) ? 1 : 0];
+                        });
+                        setUIField("xListeColCook", next);
+                      }}
+                      listIcon="./options.png"
+                      iconOnly={true}
+                      height={28}
+                      menuMinWidth={250}
+                    />
+                    <DList
+                      name="cookCategories"
+                      title="Categories"
+                      options={[
+                        { value: "base", label: "Base", iconSrc: "./icon/food/chef_hat.png" },
+                        { value: "honey", label: "Honey", iconSrc: "./icon/res/honey.png" },
+                        { value: "cheese", label: "Cheese", iconSrc: "./icon/food/cheese.webp" },
+                        { value: "fish", label: "Fish", iconSrc: "./icon/fish/anchovy.png" },
+                        { value: "cake", label: "Cake", iconSrc: "./icon/food/carrot_cake.png" },
+                      ]}
+                      multiple={true}
+                      closeOnSelect={false}
+                      value={ui.cookCategories || ["base", "honey", "cheese", "fish", "cake"]}
+                      onChange={handleUIChange}
+                      height={20}
+                    />
+                    <DList
+                      name="cookSortBy"
+                      title="Sort"
+                      options={cookSortOptions}
+                      value={ui.cookSortBy || "none"}
+                      onChange={handleUIChange}
+                      height={20}
+                    />
+                    <DList
+                      name="cookSortDir"
+                      title="Direction"
+                      options={[
+                        { value: "asc", label: "Asc" },
+                        { value: "desc", label: "Desc" },
+                      ]}
+                      value={ui.cookSortDir || "asc"}
+                      onChange={handleUIChange}
+                      height={20}
+                    />
+                  </>
+                )}
+                {selectedInv === "inv" && (
+                  <>
+                    <DList
+                      options={invPickerOptions}
+                      value={invPickerValue}
+                      multiple={true}
+                      closeOnSelect={false}
+                      emitEvent={false}
+                      onChange={(selectedValues) => {
+                        const selectedSet = new Set((selectedValues || []).map(String));
+                        const next = (ui.xListeCol || INV_COLUMNS_TEMPLATE).map((col, idx) => {
+                          const isPickerCol = INV_COLUMNS_PICKER.some((c) => c.idx === idx);
+                          if (!isPickerCol) return col;
+                          return [col[0], selectedSet.has(String(idx)) ? 1 : 0];
+                        });
+                        setUIField("xListeCol", next);
+                      }}
+                      listIcon="./options.png"
+                      iconOnly={true}
+                      height={28}
+                      menuMinWidth={220}
+                    />
+                    <DList
+                      name="invCategories"
+                      title="Categories"
+                      options={[
+                        { value: "crop", label: "Crop", iconSrc: "./icon/res/soil.png" },
+                        { value: "resources", label: "Resources", iconSrc: "./icon/res/stone_small.png" },
+                        { value: "animals", label: "Animals", iconSrc: "./icon/res/cow.webp" },
+                        { value: "fruit", label: "Fruit", iconSrc: "./icon/res/apple.png" },
+                        { value: "buildings", label: "Buildings", iconSrc: "./icon/building/kitchen_icon.png" },
+                      ]}
+                      multiple={true}
+                      closeOnSelect={false}
+                      value={ui.invCategories || ["crop", "resources", "animals", "fruit", "buildings"]}
+                      onChange={handleUIChange}
+                      height={20}
+                    />
+                    <DList
+                      name="invSortBy"
+                      title="Sort"
+                      options={invSortOptions}
+                      value={ui.invSortBy || "none"}
+                      onChange={handleUIChange}
+                      height={20}
+                    />
+                    <DList
+                      name="invSortDir"
+                      title="Direction"
+                      options={[
+                        { value: "asc", label: "Asc" },
+                        { value: "desc", label: "Desc" },
+                      ]}
+                      value={ui.invSortDir || "asc"}
+                      onChange={handleUIChange}
+                      height={20}
+                    />
+                  </>
                 )}
               </div>
             </>) : null}
@@ -1708,7 +2186,7 @@ function App() {
         DefaultOptions();
         try {
           const storedUI = JSON.parse(localStorage.getItem("ui"));
-          setUI({ ...uiDefaults, ...(storedUI || {}) });
+          setUI({ ...uiDefaults, ...normalizeUI(storedUI) });
         } catch {
           setUI(uiDefaults);
         }

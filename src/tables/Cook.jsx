@@ -1,6 +1,6 @@
-import React from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { useAppCtx } from "../context/AppCtx";
-import { FormControl, InputLabel, Select, MenuItem, Switch, FormControlLabel } from '@mui/material';
+import { FormControl, InputLabel, Select, MenuItem, Switch, FormControlLabel, CircularProgress } from '@mui/material';
 import { frmtNb, convtimenbr, convTime, ColorValue, Timer, filterTryit, PBar, timeToDays, flattenCompoit } from '../fct.js';
 import DList from "../dlist.jsx";
 
@@ -30,6 +30,9 @@ export default function CookTable() {
             selectedQuantCook,
             selectedCostCook,
             selectedQuantityCook,
+            cookSortBy,
+            cookSortDir,
+            cookCategories,
             xListeColCook,
             TryChecked,
         },
@@ -45,39 +48,97 @@ export default function CookTable() {
             imgna,
         }
     } = useAppCtx();
-    function handleFromLvlChange(event) {
-        const value = event.target.value.replace(/\D/g, '');
-        //setInputFromLvl(value);
-        //if (value > 0 && value <= 199) { getxpFromToLvl(value, inputToLvl, xdxp); }
-        getxpFromToLvl(value, inputToLvl, xdxp);
-    }
-    function handleToLvlChange(event) {
-        const value = event.target.value.replace(/\D/g, '');
-        //setInputToLvl(value);
-        //if (value > 0 && value <= 150) { getxpFromToLvl(inputFromLvl, value, xdxp); }
-        getxpFromToLvl(inputFromLvl, value, xdxp);
-    }
-    async function getxpFromToLvl(xfrom, xto, xdxp) {
-        const responseLVL = await fetch(API_URL + "/getfromtolvl", {
-            method: 'GET',
-            headers: {
-                frmid: dataSet.farmId,
-                from: xfrom,
-                to: xto,
-                xdxp: xdxp,
+    const levelReqTimerRef = useRef(null);
+    const levelReqSeqRef = useRef(0);
+    const stickyBarRef = useRef(null);
+    const cookHeaderRowRef = useRef(null);
+    const [isLevelRangeLoading, setIsLevelRangeLoading] = useState(false);
+    const [cookHeaderStickyTop, setCookHeaderStickyTop] = useState(0);
+    const [cookHeaderRowHeight, setCookHeaderRowHeight] = useState(0);
+    useEffect(() => {
+        return () => {
+            if (levelReqTimerRef.current) {
+                clearTimeout(levelReqTimerRef.current);
             }
-        });
-        if (responseLVL.ok) {
-            const responseDataLVL = await responseLVL.json();
-            //console.log(responseData);
-            //setpriceData(JSON.parse(JSON.stringify(responseData.priceData)));
-            setUIField("fromtolvltime", responseDataLVL.time);
-            //setfromtolvltime(responseDataLVL.time);
-            setUIField("fromtolvlxp", responseDataLVL.xp);
-            //setfromtolvlxp(responseDataLVL.xp);
-        } else {
-            console.log(`Error : ${responseLVL.status}`);
+            levelReqSeqRef.current += 1;
+        };
+    }, []);
+    useEffect(() => {
+        const updateCookHeaderTop = () => {
+            setCookHeaderStickyTop(stickyBarRef.current?.offsetHeight || 0);
+            setCookHeaderRowHeight(cookHeaderRowRef.current?.offsetHeight || 0);
+        };
+        const raf = requestAnimationFrame(updateCookHeaderTop);
+        window.addEventListener("resize", updateCookHeaderTop);
+        return () => {
+            cancelAnimationFrame(raf);
+            window.removeEventListener("resize", updateCookHeaderTop);
+        };
+    }, [selectedQuantityCook, selectedQuantCook, isLevelRangeLoading, fromtolvltime, fromtolvlxp, xListeColCook]);
+    useEffect(() => {
+        const shouldFetchLevelRange = selectedQuantCook !== "unit" && selectedQuantityCook !== "farm";
+        if (!shouldFetchLevelRange) {
+            if (levelReqTimerRef.current) {
+                clearTimeout(levelReqTimerRef.current);
+                levelReqTimerRef.current = null;
+            }
+            setIsLevelRangeLoading(false);
+            return;
         }
+        scheduleLevelRangeFetch(inputFromLvl, inputToLvl);
+    }, [
+        inputFromLvl,
+        inputToLvl,
+        selectedQuantCook,
+        selectedQuantityCook,
+        dataSetFarm?.itables?.food,
+        dataSetFarm?.itables?.pfood,
+    ]);
+    function scheduleLevelRangeFetch(xfromRaw, xtoRaw) {
+        if (levelReqTimerRef.current) {
+            clearTimeout(levelReqTimerRef.current);
+            levelReqTimerRef.current = null;
+        }
+        const xfrom = Number.parseInt(String(xfromRaw), 10);
+        const xto = Number.parseInt(String(xtoRaw), 10);
+        const isValid = Number.isFinite(xfrom) && Number.isFinite(xto) && xfrom > 0 && xto > 0;
+        if (!isValid) {
+            setUIField("fromtolvltime", 0);
+            setUIField("fromtolvlxp", 0);
+            setIsLevelRangeLoading(false);
+            levelReqSeqRef.current += 1;
+            return;
+        }
+        const reqId = ++levelReqSeqRef.current;
+        setIsLevelRangeLoading(true);
+        levelReqTimerRef.current = setTimeout(async () => {
+            try {
+                const responseLVL = await fetch(API_URL + "/getfromtolvl", {
+                    method: 'GET',
+                    headers: {
+                        frmid: dataSet.farmId,
+                        from: xfrom,
+                        to: xto,
+                        xdxp: xdxp,
+                    }
+                });
+                if (!responseLVL.ok) {
+                    throw new Error(`Error : ${responseLVL.status}`);
+                }
+                const responseDataLVL = await responseLVL.json();
+                if (reqId !== levelReqSeqRef.current) return;
+                setUIField("fromtolvltime", responseDataLVL.time);
+                setUIField("fromtolvlxp", responseDataLVL.xp);
+            } catch {
+                if (reqId !== levelReqSeqRef.current) return;
+                setUIField("fromtolvltime", 0);
+                setUIField("fromtolvlxp", 0);
+            } finally {
+                if (reqId === levelReqSeqRef.current) {
+                    setIsLevelRangeLoading(false);
+                }
+            }
+        }, 750);
     }
     if (farmData.inventory) {
         const { it, food, fish, bounty, pfood, crustacean } = dataSetFarm.itables;
@@ -89,7 +150,7 @@ export default function CookTable() {
         const Compo = [];
         Compo["total"] = [];
         const sortedCompo = [];
-        const sortedInventoryItems = cookNames.map(item => {
+        const baseInventoryItems = cookNames.map(item => {
             const cobj = food[item] || pfood[item];
             const cobjCompo = flattenCompoit(cobj?.compoit);
             const quantityInventory = inventoryEntries.find(([entryItem]) => entryItem === item)?.[1] || 0;
@@ -105,6 +166,44 @@ export default function CookTable() {
                 }
             }
             return [item, quantity];
+        });
+        const sortedInventoryItems = (!cookSortBy || cookSortBy === "none")
+            ? baseInventoryItems
+            : [...baseInventoryItems].sort((a, b) => {
+                const [itemA, qtyA] = a;
+                const [itemB, qtyB] = b;
+                const valueA = getCookSortValue(cookSortBy, itemA, qtyA, food, pfood, TryChecked, dataSet.options.coinsRatio);
+                const valueB = getCookSortValue(cookSortBy, itemB, qtyB, food, pfood, TryChecked, dataSet.options.coinsRatio);
+                const direction = cookSortDir === "desc" ? -1 : 1;
+                if (typeof valueA === "string" || typeof valueB === "string") {
+                    const cmp = String(valueA ?? "").localeCompare(String(valueB ?? ""));
+                    return cmp * direction;
+                }
+                const aNum = Number.isFinite(Number(valueA)) ? Number(valueA) : -Infinity;
+                const bNum = Number.isFinite(Number(valueB)) ? Number(valueB) : -Infinity;
+                if (aNum === bNum) return itemA.localeCompare(itemB);
+                return (aNum - bNum) * direction;
+            });
+        const selectedCookCategories = new Set(cookCategories || ["base", "honey", "cheese", "fish", "cake"]);
+        const cheeseRegex = /(cheese|cheddar|chedder|curd)/i;
+        const honeyRegex = /honey/i;
+        const filteredInventoryItems = sortedInventoryItems.filter(([item]) => {
+            if (selectedCookCategories.size === 0) return false;
+            const cobj = food[item] || pfood[item];
+            const rawCompo = cobj?.compoit || {};
+            const directKeys = Object.keys(rawCompo || {});
+            const hasHoney = directKeys.some((name) => honeyRegex.test(String(name)));
+            const hasCheese = String(item) === "Cheese" || hasIngredientMatching(rawCompo, (name) => cheeseRegex.test(String(name)));
+            const hasFish = hasIngredientFromTable(rawCompo, fish) || hasIngredientFromTable(rawCompo, pfood);
+            const isCake = String(item).toLowerCase().includes("cake");
+            const isBase = !hasHoney && !hasCheese && !hasFish && !isCake;
+            return (
+                (selectedCookCategories.has("base") && isBase) ||
+                (selectedCookCategories.has("honey") && hasHoney) ||
+                (selectedCookCategories.has("cheese") && hasCheese) ||
+                (selectedCookCategories.has("fish") && hasFish) ||
+                (selectedCookCategories.has("cake") && isCake)
+            );
         });
         Object.keys(it).forEach(item => {
             if (Object.hasOwn(Compo["total"], item)) {
@@ -133,7 +232,7 @@ export default function CookTable() {
         var totCostp2p = 0;
         var BldTime = [];
         var totTime = 0;
-        const inventoryItems = sortedInventoryItems.map(([item, quantity], index) => {
+        const inventoryItems = filteredInventoryItems.map(([item, quantity], index) => {
             const cobj = food[item] || pfood[item];
             const cobjCompo = flattenCompoit(cobj?.compoit);
             const ico = cobj ? cobj.img : '';
@@ -244,7 +343,8 @@ export default function CookTable() {
                         />
                     </td> : null}
                     {xListeColCook[2][1] === 1 ? <td className="tdcenter">{iQuant}</td> : null}
-                    {xListeColCook[3][1] === 1 ? <td className="tdcenter">{parseFloat(ixp).toFixed(1)}</td> : null}
+                    {xListeColCook[3][1] === 1 ? <td className="tdcenter tooltipcell"
+                        onClick={(e) => handleTooltip(item, "trynft", "xp", e)}>{parseFloat(ixp).toFixed(1)}</td> : null}
                     {xListeColCook[4][1] === 1 ? <td className="tdcenter">{timeToDays(time)}</td> : null}
                     {xListeColCook[5][1] === 1 ? <td className="tdcenter">{timecomp}</td> : null}
                     {xListeColCook[6][1] === 1 ? <td className="tdcenter" style={CellXPHStyle}>{ixph}</td> : null}
@@ -286,10 +386,7 @@ export default function CookTable() {
                 step={10}
                 name="inputFromLvl"
                 value={inputFromLvl}
-                onChange={(e) => {
-                    handleUIChange(e);
-                    handleFromLvlChange(e);
-                }}
+                onChange={handleUIChange}
                 style={{ width: "40px", marginLeft: "auto" }}
                 maxLength={3}
             />
@@ -297,37 +394,102 @@ export default function CookTable() {
         const xinputToLvl = selectedQuantCook !== "unit" && selectedQuantityCook !== "farm" ?
             <input
                 type="number"
-                min={1}
+                min={0}
                 max={maxLvl}
                 step={10}
                 name="inputToLvl"
                 value={inputToLvl}
-                onChange={(e) => {
-                    handleUIChange(e);
-                    handleToLvlChange(e);
-                }}
+                onChange={handleUIChange}
                 style={{ width: "40px", marginLeft: "auto" }}
                 maxLength={3}
             />
             : "";
-        const xinputFromLvlt = selectedQuantCook !== "unit" && selectedQuantityCook !== "farm" ? "From " : "";
-        const xinputToLvlt = selectedQuantCook !== "unit" && selectedQuantityCook !== "farm" ? " to " : "";
-        const xLvlconft = selectedQuantCook !== "unit" && selectedQuantityCook !== "farm" ? " days, " + fromtolvlxp + "xp" : "";
-        const xspace = selectedQuantCook !== "unit" && selectedQuantityCook !== "farm" ? " " : "";
+        const showLevelRange = selectedQuantCook !== "unit" && selectedQuantityCook !== "farm";
+        const levelDays = Number(fromtolvltime);
+        const levelXp = Number(fromtolvlxp);
+        const levelDaysLabel = Number.isFinite(levelDays) ? `${levelDays.toFixed(1)} days` : "- days";
+        const levelXpLabel = Number.isFinite(levelXp) ? `${frmtNb(levelXp)}xp` : "-xp";
+        const levelRangeBadge = showLevelRange ? (
+            <div
+                style={{
+                    display: "inline-flex",
+                    alignItems: "center",
+                    gap: "6px",
+                    margin: "0",
+                    padding: "4px 8px",
+                    border: "1px solid rgb(90, 90, 90)",
+                    borderRadius: "6px",
+                    background: "rgba(0, 0, 0, 0.28)",
+                    width: "fit-content",
+                    maxWidth: "340px",
+                    fontSize: "12px",
+                }}
+            >
+                <span>From</span>
+                {xinputFromLvl}
+                <span>to</span>
+                {xinputToLvl}
+                <span>{levelDaysLabel}, {levelXpLabel}</span>
+                {isLevelRangeLoading ? <CircularProgress size={12} sx={{ color: "rgb(255, 205, 96)" }} /> : null}
+            </div>
+        ) : null;
         const bfdtolvl = !TryChecked ? bumpkinData[0].foodtolvl : bumpkinData[0].foodtolvltry;
         const bfdpstlvl = !TryChecked ? Math.ceil(bumpkinData[0].foodxppastlvl) : Math.ceil(bumpkinData[0].foodxppastlvltry);
         const bxptonxtlvl = !TryChecked ? Math.ceil(bumpkinData[0].xptonextlvl) : Math.ceil(bumpkinData[0].xptonextlvltry);
+        const stockProgressBadge = selectedQuantityCook === "farm" ? (
+            <div
+                style={{
+                    display: "inline-flex",
+                    alignItems: "center",
+                    gap: "8px",
+                    margin: "0",
+                    padding: "4px 8px",
+                    border: "1px solid rgb(90, 90, 90)",
+                    borderRadius: "6px",
+                    background: "rgba(0, 0, 0, 0.28)",
+                    width: "fit-content",
+                    maxWidth: "340px",
+                }}
+            >
+                <span style={{ fontSize: "12px", whiteSpace: "nowrap" }}>Stock XP to lvl{bfdtolvl} {"("}not counting Keep quantity{")"}</span>
+                {PBar(bfdpstlvl, 0, bxptonxtlvl, 0, 110)}
+            </div>
+        ) : null;
+        const hasCookStickyBar = Boolean(levelRangeBadge || stockProgressBadge);
+        const stickyCookBadgeBar = hasCookStickyBar ? (
+            <div
+                ref={stickyBarRef}
+                style={{
+                    position: "sticky",
+                    top: "0px",
+                    zIndex: 7,
+                    display: "flex",
+                    gap: "8px",
+                    alignItems: "center",
+                    flexWrap: "wrap",
+                    padding: "2px 0 4px 0",
+                    background: "rgb(18, 8, 2)",
+                }}
+            >
+                {levelRangeBadge}
+                {stockProgressBadge}
+            </div>
+        ) : null;
 
         xdxp = totXP;
         //const icolspan = xListeColCook[0][1] === 1 ? 3 : 2;
         const tableContent = (
             <>
-                {selectedQuantityCook !== "farm" ?
-                    <span>{xinputFromLvlt}{xinputFromLvl}{xinputToLvlt}{xinputToLvl}{xspace}{selectedQuantCook !== "unit" ? parseFloat(fromtolvltime).toFixed(1) : ""}{xLvlconft}</span>
-                    : null}
-                <table className="table">
+                {stickyCookBadgeBar}
+                <table
+                    className="table cook-table"
+                    style={{
+                        "--cook-head-top": `${cookHeaderStickyTop}px`,
+                        "--cook-head-row-h": `${cookHeaderRowHeight}px`,
+                    }}
+                >
                     <thead>
-                        <tr>
+                        <tr ref={cookHeaderRowRef}>
                             {xListeColCook[0][1] === 1 ? <th className="thcenter" >Building</th> : null}
                             <th className="th-icon">   </th>
                             {xListeColCook[1][1] === 1 ? <th className="thcenter" >Food</th> : null}
@@ -342,7 +504,7 @@ export default function CookTable() {
                                     ]}
                                     value={selectedQuantityCook}
                                     onChange={handleUIChange}
-                                    height={28}
+                                    height={20}
                                 />
                             </th> : null}
                             {xListeColCook[3][1] === 1 ? <th className="thcenter"  >
@@ -355,7 +517,7 @@ export default function CookTable() {
                                     ]}
                                     value={selectedQuantCook}
                                     onChange={handleUIChange}
-                                    height={28}
+                                    height={20}
                                 />
                             </th> : null}
                             {xListeColCook[4][1] === 1 ? <th className="thcenter" >Time</th> : null}
@@ -380,26 +542,20 @@ export default function CookTable() {
                         {(selectedQuantCook !== "unit" || selectedQuantityCook !== "farm") ?
                             <tr key="total">
                                 {xListeColCook[0][1] === 1 ? <td className="tdcenter">Total</td> : null}
+                                <td></td>
                                 {xListeColCook[1][1] === 1 ? <td></td> : null}
                                 {selectedQuantityCook !== "farm" ? <td className="tdcenter"></td> : null}
                                 {/* {xListeColCook[1][1] === 1 && selectedQuantityCook === "farm" ? <td className="tditem"></td> : null} */}
-                                {xListeColCook[2][1] === 1 ? <td></td> : null}
-                                {selectedQuantityCook !== "farm" ? <td className="tdcenter"></td> : null}
-                                {xListeColCook[2][1] === 1 && selectedQuantityCook === "farm" ?
-                                    <td className="tdcenter" title="Keep for deliveries">{xinputKeept}{xinputKeep}</td> : null}
+                                {xListeColCook[2][1] === 1 ? (
+                                    <td className="tdcenter">
+                                        {selectedQuantityCook === "farm" ? (
+                                            <span title="Keep for deliveries">{xinputKeept}{xinputKeep}</span>
+                                        ) : null}
+                                    </td>
+                                ) : null}
                                 {xListeColCook[3][1] === 1 ? <td className="tdcenter">{selectedQuantCook !== "unit" ? parseFloat(totXP).toFixed(1) : ""}</td> : null}
                                 {xListeColCook[4][1] === 1 ? <td className="tdcenter" style={{ color: timeOver && selectedQuantityCook !== "farm" ? "rgb(255, 0, 0)" : "rgb(255, 255, 255)" }}>
-                                    {selectedQuantityCook !== "farm" ? totTime :
-                                        <><span>to lvl{bfdtolvl}</span>
-                                            {PBar(bfdpstlvl, 0, bxptonxtlvl, 0, 90)}
-                                            {/* <div className="progress-bar" style={{ width: "80px" }}>
-                                                <div className="progress" style={{ width: `${bfdpstlvl / (bfdpstlvl + bxptonxtlvl) * 100}%` }}>
-                                                    <span className="progress-text">
-                                                        {`${parseFloat(bfdpstlvl).toFixed(0)}`}
-                                                    </span>
-                                                </div>
-                                            </div> */}
-                                        </>}</td> : null}
+                                    {selectedQuantityCook !== "farm" ? totTime : ""}</td> : null}
                                 {xListeColCook[5][1] === 1 ? <td className="tdcenter"></td> : null}
                                 {xListeColCook[6][1] === 1 ? <td className="tdcenter"></td> : null}
                                 {xListeColCook[7][1] === 1 ? <td className="tdcenter"></td> : null}
@@ -424,5 +580,54 @@ export default function CookTable() {
             </>
         );
         return (tableContent);
+    }
+}
+function hasIngredientFromTable(tree, table) {
+    if (!tree || typeof tree !== "object" || !table) return false;
+    return Object.entries(tree).some(([name, rawNode]) => {
+        if (table[name]) return true;
+        if (rawNode && typeof rawNode === "object" && rawNode.compoit && typeof rawNode.compoit === "object") {
+            return hasIngredientFromTable(rawNode.compoit, table);
+        }
+        return false;
+    });
+}
+function hasIngredientMatching(tree, matcher) {
+    if (!tree || typeof tree !== "object" || typeof matcher !== "function") return false;
+    return Object.entries(tree).some(([name, rawNode]) => {
+        if (matcher(name)) return true;
+        if (rawNode && typeof rawNode === "object" && rawNode.compoit && typeof rawNode.compoit === "object") {
+            return hasIngredientMatching(rawNode.compoit, matcher);
+        }
+        return false;
+    });
+}
+function getCookSortValue(sortBy, item, quantity, food, pfood, tryChecked, coinsRatio) {
+    const cobj = food[item] || pfood[item] || {};
+    const unitCost = ((Number(tryChecked ? cobj.costtry : cobj.cost) || 0) / (coinsRatio || 1));
+    const unitXpSfl = (Number(tryChecked ? cobj.xpsfltry : cobj.xpsfl) || 0) * (coinsRatio || 1);
+    switch (sortBy) {
+        case "building":
+            return String(cobj.bld || "Fish Market");
+        case "item":
+            return String(item || "");
+        case "quantity":
+            return Number(quantity || 0);
+        case "xp":
+            return Number(tryChecked ? cobj.xptry : cobj.xp) || 0;
+        case "time":
+            return convtimenbr(tryChecked ? cobj.timetry : cobj.time);
+        case "xph":
+            return Number(tryChecked ? cobj.xphtry : cobj.xph) || 0;
+        case "xpsfl":
+            return Number(unitXpSfl) || 0;
+        case "cost":
+            return Number(unitCost) || 0;
+        case "market":
+            return Number(tryChecked ? (cobj.costp2pttry ?? cobj.costp2pt) : cobj.costp2pt) || 0;
+        case "components":
+            return Object.keys(flattenCompoit(cobj?.compoit) || {}).length;
+        default:
+            return 0;
     }
 }

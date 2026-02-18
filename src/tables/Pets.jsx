@@ -1,6 +1,5 @@
 import React from "react";
 import { useAppCtx } from "../context/AppCtx";
-import { FormControl, InputLabel, Select, MenuItem } from '@mui/material';
 import { frmtNb } from '../fct.js';
 import DList from "../dlist.jsx";
 
@@ -12,10 +11,13 @@ export default function PetsTable() {
       petView,
       selectedQuantFetch,
       customQuantFetch,
+      petFetchSelection,
+      petFetchSelectionInitDone,
       TryChecked
     },
     actions: {
       handleUIChange,
+      setUIField,
       handleTooltip,
     },
     img: {
@@ -72,15 +74,66 @@ export default function PetsTable() {
       compToShrines[comp].push(shName);
     });
   });
+  const getOwnedPets = () => Object.entries(Pets || {})
+    .filter(([, p]) => !!p?.cat && !!p?.minNrgSfl);
+  const getFetchItemsForCat = (cat) => {
+    const items = CATEGORY_ITEMS[cat] || [];
+    return items.filter((comp) => comp !== "Fossil Shell" && !!petit?.[comp]);
+  };
+  const getSelectedFetchListForPet = (petName, cat) => {
+    const validItems = getFetchItemsForCat(cat);
+    const raw = petFetchSelection?.[petName] ?? petFetchSelection?.[cat];
+    if (Array.isArray(raw)) return raw.filter((x) => validItems.includes(x));
+    if (typeof raw === "string" && validItems.includes(raw)) return [raw];
+    return [];
+  };
+  React.useEffect(() => {
+    if (petFetchSelectionInitDone) return;
+    if (!petit || Object.keys(petit).length === 0) return;
+
+    const currentSelection = petFetchSelection || {};
+    if (Object.keys(currentSelection).length > 0) {
+      setUIField("petFetchSelectionInitDone", true);
+      return;
+    }
+
+    const defaults = {};
+    const ownedPets = getOwnedPets();
+    ownedPets.forEach(([petName, petData]) => {
+      const cat = petData?.cat;
+      if (!cat) return;
+      const fetchItems = getFetchItemsForCat(cat);
+      if (fetchItems.length === 0) return;
+
+      const current = new Set(Array.isArray(defaults[petName]) ? defaults[petName] : []);
+      const isNft = petData?.type === "nft";
+      const defaultCoreItem = isNft ? "Moonfur" : "Acorn";
+      if (fetchItems.includes(defaultCoreItem)) current.add(defaultCoreItem);
+
+      const maxCostItem = fetchItems.reduce((best, item) => {
+        const bestCost = Number(petit?.[best]?.costp2pt || 0);
+        const itemCost = Number(petit?.[item]?.costp2pt || 0);
+        return itemCost > bestCost ? item : best;
+      }, fetchItems[0]);
+      if (maxCostItem) current.add(maxCostItem);
+
+      defaults[petName] = Array.from(current);
+    });
+
+    setUIField("petFetchSelection", defaults);
+    setUIField("petFetchSelectionInitDone", true);
+  }, [petFetchSelectionInitDone, petFetchSelection, petit, Pets, setUIField]);
   if (petView === "pets") {
-    //const petit = dataSetFarm?.petit || {};
-    const categories = Object.keys(CATEGORY_ITEMS);
-    const rows = categories.map(cat => {
+    const categories = Object.keys(CATEGORY_ITEMS).flatMap((cat) => {
+      const petsInCat = Object.entries(Pets || {}).filter(([, p]) => p?.cat === cat && p?.minNrgSfl);
+      if (petsInCat.length === 0) return [{ cat, petName: null }];
+      return petsInCat.map(([petName]) => ({ cat, petName }));
+    });
+    const rows = categories.map(({ cat, petName: rowPetName }) => {
       let foodCostTotal = 0;
       let foodCostMTotal = 0;
       const catImgPath = CATEGORY_IMG[cat] || "./icon/nft/na.png";
       const catImg = <img src={catImgPath} alt="" className="nftico" title={cat} />;
-      const items = CATEGORY_ITEMS[cat] || [];
       let curNrg = 0;
       let petLvl = 0;
       let energySfl = 0;
@@ -91,8 +144,11 @@ export default function PetsTable() {
       let supply = Pets[cat] ? Pets[cat].supply || 0 : 0;
       let aura = "";
       let bib = "";
+      const fetchItems = getFetchItemsForCat(cat);
+      const selectedFetchList = getSelectedFetchListForPet(rowPetName || cat, cat);
+      const isOwnedCat = !!rowPetName;
       for (let petName in Pets) {
-        if (Pets[petName].cat === cat && Pets[petName].minNrgSfl) {
+        if (Pets[petName].cat === cat && Pets[petName].minNrgSfl && (!rowPetName || petName === rowPetName)) {
           requests.push(...(Pets[petName].req || []));
           for (let reqp in Pets[petName].feeds) {
             const feed = Pets[petName].feeds[reqp];
@@ -123,19 +179,47 @@ export default function PetsTable() {
           curNrg = Pets[petName].curnrg || 0;
         }
       }
-      const itemIcons = items.map(comp => {
-        if (comp === "Fossil Shell") return null;
+      const itemIcons = fetchItems.map(comp => {
         const cimg = petit?.[comp]?.img || "./icon/nft/na.png";
+        const isChecked = selectedFetchList.includes(comp);
+        if (!isOwnedCat) {
+          return (
+            <span key={comp} title={comp} style={{ marginRight: 4, display: "inline-flex", alignItems: "center" }}>
+              <img src={cimg} alt="" className="itico" />
+            </span>
+          );
+        }
         return (
-          <span key={comp} title={comp} style={{ marginRight: 6 }}>
+          <button
+            key={comp}
+            type="button"
+            title={`${comp}${isChecked ? " (selected)" : ""}`}
+            onClick={() => {
+              setUIField("petFetchSelection", (prev) => ({
+                ...(prev || {}),
+                [rowPetName || cat]: isChecked
+                  ? selectedFetchList.filter((x) => x !== comp)
+                  : [...selectedFetchList, comp],
+              }));
+            }}
+            style={{
+              marginRight: 4,
+              padding: 0,
+              border: isChecked ? "1px solid #7ea76b" : "1px solid transparent",
+              borderRadius: 3,
+              background: "transparent",
+              cursor: "pointer",
+              lineHeight: 0,
+            }}
+          >
             <img src={cimg} alt="" className="itico" />
-          </span>
+          </button>
         );
       });
       return (
-        <tr key={cat}>
+        <tr key={`${cat}-${rowPetName || "none"}`}>
           <td className="tdcenter" id="iccolumn">{catImg}</td>
-          <td className="tditem">{cat}</td>
+          <td className="tditem">{(rowPetName && Pets[rowPetName]?.type === "nft") ? cat : (rowPetName || cat)}</td>
           <td className="tdcenter">{itemIcons.length ? itemIcons : <i>N/A</i>}</td>
           <td className="tdcenter" style={{ padding: "0 10px" }}>{supply ? supply : ""}</td>
           <td className="tdcenter" style={{ padding: "0 10px" }}>{petLvl > 0 ? petLvl : ""}</td>
@@ -159,7 +243,7 @@ export default function PetsTable() {
         <thead>
           <tr>
             <th className="thcenter"></th>
-            <th className="thcenter">Category</th>
+            <th className="thcenter">Pet</th>
             <th className="thcenter">Fetch</th>
             <th className="thcenter">Supply</th>
             <th className="thcenter">Lvl</th>
@@ -238,6 +322,7 @@ export default function PetsTable() {
   if (petView === "components") {
     //const petit = dataSetFarm?.petit || {};
     //const shrine = dataSetFarm?.shrine || {};
+    const ownedCats = new Set(getOwnedPets().map(([, p]) => p?.cat).filter(Boolean));
     const compToCats = {};
     Object.entries(CATEGORY_ITEMS).forEach(([cat, items]) => {
       items.forEach(it => {
@@ -267,8 +352,14 @@ export default function PetsTable() {
       let totalComp = 0;
       let totalNrg = 0;
       const catIcons = catArr.map(cat => {
+        let hasSelectedForComp = false;
         for (let petName in Pets) {
-          if (Pets[petName].cat === cat) {
+          if (Pets[petName].cat === cat && Pets[petName].minNrgSfl) {
+            const selectedListForPet = getSelectedFetchListForPet(petName, cat);
+            if (selectedListForPet.includes(c)) hasSelectedForComp = true;
+            if (selectedQuantFetch === "pets" || selectedQuantFetch === "petst") {
+              if (selectedListForPet.length === 0 || !selectedListForPet.includes(c)) continue;
+            }
             const ipetNrg = selectedQuantFetch === "pets" ? Pets[petName]?.[key("totnrg")] : selectedQuantFetch === "petst" ? Pets[petName]?.curnrg : 0;
             let myield = (Pets[petName].lvl > 18 && c === "Acorn") ? 2 : 1;
             myield += (Pets[petName].lvl > 60 && Pets[petName].type === "nft" && c !== "Acorn") ? 1 : 0;
@@ -277,14 +368,29 @@ export default function PetsTable() {
           }
         }
         if (c === "Moonfur") return "All";
+        const isGreyed = !hasSelectedForComp;
         const img = CATEGORY_IMG[cat] || "./icon/nft/na.png";
         return (
-          <span key={cat} title={cat} style={{ marginRight: 8, display: "inline-flex", alignItems: "center" }}>
+          <span key={cat} title={cat} style={{ marginRight: 8, display: "inline-flex", alignItems: "center", opacity: isGreyed ? 0.35 : 1 }}>
             <img src={img} alt={cat} className="nodico" style={{ marginRight: 4 }} />
             {/* <span style={{ fontSize: 11 }}>{cat}</span> */}
           </span>
         );
       });
+      const selectedCatIcons = catArr
+        .filter((cat) => ownedCats.has(cat) && Object.entries(Pets || {}).some(([petName, petData]) => (
+          petData?.cat === cat
+          && petData?.minNrgSfl
+          && getSelectedFetchListForPet(petName, cat).includes(c)
+        )))
+        .map((cat) => {
+          const img = CATEGORY_IMG[cat] || "./icon/nft/na.png";
+          return (
+            <span key={`selected-${cat}`} title={cat} style={{ marginRight: 8, display: "inline-flex", alignItems: "center" }}>
+              <img src={img} alt={cat} className="nodico" style={{ marginRight: 4 }} />
+            </span>
+          );
+        });
       const shrineBadges = shrineArr.map(s => (
         <span key={s} className="badge" title={s} style={{ marginRight: 6 }}><img src={shrine[s].img} alt={s} className="nodico" style={{ marginRight: 4 }} /></span>
       ));
@@ -297,8 +403,10 @@ export default function PetsTable() {
 
       const customVal = customQuantFetch?.[c] ?? 1;
       const iQuant =
-        (selectedQuantFetch === "pets" || selectedQuantFetch === "petst")
-          ? Math.floor(totalComp)
+        selectedQuantFetch === "pets"
+          ? totalComp
+          : selectedQuantFetch === "petst"
+            ? Math.floor(totalComp)
           : selectedQuantFetch === "stock"
             ? cstock
             : customVal;
@@ -321,11 +429,17 @@ export default function PetsTable() {
                 value={customQuantFetch?.[c] ?? 1}
                 onChange={handleUIChange}
               /></td>) :
-            (<td className="tdcenter">{frmtNb(iQuant)}</td>) : ("")}
+            (<td className="tdcenter">{selectedQuantFetch === "pets" ? Number(iQuant || 0).toFixed(2) : frmtNb(iQuant)}</td>) : ("")}
           <td className="tdcenter" style={{ padding: "0 10px" }}>{frmtNb(iNrg)}</td>
           <td className="tdcenter" style={{ padding: "0 10px" }} onClick={(e) => handleTooltip(c, "fetchcost", 0, e)}>{iCost > 0 ? frmtNb(iCost) : ""}</td>
           <td className="tdcenter" style={{ padding: "0 10px" }}>{frmtNb(iMarket)}</td>
-          <td className="tdcenter">{c === "Moonfur" ? "All NFT" : c === "Acorn" ? "All" : (catIcons.length ? catIcons : <i>N/A</i>)}</td>
+          <td className="tdcenter">
+            {c === "Moonfur"
+              ? (selectedCatIcons.length ? selectedCatIcons : "All NFT")
+              : c === "Acorn"
+                ? (selectedCatIcons.length ? selectedCatIcons : "All")
+                : (catIcons.length ? catIcons : <i>N/A</i>)}
+          </td>
           <td className="tdcenter">{c === "Acorn" ? "All" : shrineBadges.length ? shrineBadges : <i>N/A</i>}</td>
         </tr>
       );

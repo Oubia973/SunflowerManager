@@ -1,10 +1,14 @@
-import React from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { useAppCtx } from "../context/AppCtx";
 import { FormControl, InputLabel, Select, MenuItem } from '@mui/material';
 import { PBar, formatdate } from '../fct.js';
 import DList from "../dlist.jsx";
 
 export default function FishTable() {
+  const stickyBarRef = useRef(null);
+  const fishHeaderRowRef = useRef(null);
+  const [fishHeaderStickyTop, setFishHeaderStickyTop] = useState(0);
+  const [fishHeaderRowHeight, setFishHeaderRowHeight] = useState(0);
   const {
     data: {
       dataSet,
@@ -17,6 +21,7 @@ export default function FishTable() {
       selectedQuantFish,
       selectedQuantCrusta,
       xListeColFish,
+      xListeColCrusta,
       TryChecked,
       selectedSeason,
       fishView,
@@ -34,6 +39,19 @@ export default function FishTable() {
   const fishingDetails = dataSetFarm?.Fish || {};
   const reelCasts = fishingDetails?.casts ?? 0;
   const reelCastMax = TryChecked ? fishingDetails?.fishcastmaxtry ?? 0 : fishingDetails?.fishcastmax ?? 0;
+  useEffect(() => {
+    if (fishView !== "fish") return;
+    const updateFishHeaderTop = () => {
+      setFishHeaderStickyTop(stickyBarRef.current?.offsetHeight || 0);
+      setFishHeaderRowHeight(fishHeaderRowRef.current?.offsetHeight || 0);
+    };
+    const raf = requestAnimationFrame(updateFishHeaderTop);
+    window.addEventListener("resize", updateFishHeaderTop);
+    return () => {
+      cancelAnimationFrame(raf);
+      window.removeEventListener("resize", updateFishHeaderTop);
+    };
+  }, [fishView, selectedSeason, selectedQuantFish, xListeColFish, reelCasts, reelCastMax]);
   if (farmData.inventory) {
     if (fishView === "fish") {
       const { fish } = dataSetFarm.itables;
@@ -106,6 +124,10 @@ export default function FishTable() {
         var icost = cobj ? ((!TryChecked ? cobj.cost : cobj.costtry) / dataSet.options.coinsRatio) : '';
         const iQuant = quantity;
         const ixp = cobj ? selectedQuantFish === "unit" ? (!TryChecked ? cobj.xp : cobj.xptry) : parseFloat((!TryChecked ? cobj.xp : cobj.xptry) * iQuant).toFixed(1) : 0;
+        const mapRare = cobj?.mapDropFish ? fish[cobj.mapDropFish] : null;
+        const mapTooltip = cobj?.mapDropFish
+          ? `Drop fragment for ${cobj.mapDropFish} (${cobj.mapDropChance || "?"}%)`
+          : "";
         totXPfsh += isNaN(ixp) ? 0 : Number(ixp);
         totCaught += icaught;
         const iprct = cobj ? parseFloat(cobj.prct).toFixed(1) : '';
@@ -152,28 +174,83 @@ export default function FishTable() {
               {xListeColFish[5][1] === 1 ? <td className="tdcenter">{iQuant}</td> : null}
               {xListeColFish[6][1] === 1 ? <td className="tdcenter">{icaught}</td> : null}
               {xListeColFish[7][1] === 1 ? <td className="tdcenter">
+                {mapRare?.img ? (
+                  <span title={mapTooltip} style={{ display: "inline-flex", alignItems: "center", gap: "4px", opacity: 0.9 }}>
+                    <img src={mapRare.img} alt="" className="itico" />
+                    <span style={{ fontSize: "10px" }}>{cobj?.mapDropChance}%</span>
+                  </span>
+                ) : null}
+              </td> : null}
+              {xListeColFish[8][1] === 1 ? <td className="tdcenter">
                 {xChums.map((value, index) => {
                   if (value !== "") { return (<span key={index}><i><img src={xChumsImg[index]} alt={''} className="itico" title={value} /></i></span>) }
                   return null;
                 })}</td> : null}
-              {xListeColFish[8][1] === 1 ? <td className="tdcenter">
+              {xListeColFish[9][1] === 1 ? <td className="tdcenter">
                 {iperiod.map((value, index) => {
                   if (value !== "") { return (<span key={index}><i>{iperiod[index]}</i></span>) }
                   return null;
                 })}</td> : null}
-              {xListeColFish[9][1] === 1 ? <td className="tdcenter">{iprct}</td> : null}
-              {xListeColFish[10][1] === 1 ? <td className="tdcenter">{isNaN(ixp) ? "" : parseFloat(ixp).toFixed(1)}</td> : null}
-              {xListeColFish[11][1] === 1 ? <td className="tdcenter">{parseFloat(xCost).toFixed(3)}</td> : null}
-              {xListeColFish[12][1] === 1 ? <td className="tdcenter">{isNaN(parseFloat(ixpsfl).toFixed(1)) ? "" : parseFloat(ixpsfl).toFixed(1)}</td> : null}
+              {xListeColFish[10][1] === 1 ? <td className="tdcenter">{iprct}</td> : null}
+              {xListeColFish[11][1] === 1 ? <td className="tdcenter">{isNaN(ixp) ? "" : parseFloat(ixp).toFixed(1)}</td> : null}
+              {xListeColFish[12][1] === 1 ? <td className="tdcenter">{parseFloat(xCost).toFixed(3)}</td> : null}
+              {xListeColFish[13][1] === 1 ? <td className="tdcenter">{isNaN(parseFloat(ixpsfl).toFixed(1)) ? "" : parseFloat(ixpsfl).toFixed(1)}</td> : null}
             </tr>
           );
         }
       });
+      const fishStatusBadge = (
+        <div
+          style={{
+            display: "inline-flex",
+            alignItems: "center",
+            gap: "8px",
+            margin: "0",
+            padding: "4px 8px",
+            border: "1px solid rgb(90, 90, 90)",
+            borderRadius: "6px",
+            background: "rgba(0, 0, 0, 0.28)",
+            width: "fit-content",
+            maxWidth: "100%",
+            flexWrap: "wrap",
+          }}
+        >
+          <span style={{ fontSize: "12px", whiteSpace: "nowrap" }}>Reel {reelCasts}/{reelCastMax}</span>
+          <span style={{ fontSize: "12px", whiteSpace: "nowrap" }}>
+            {earthwormquant}{earthwormbait} {grubquant}{grubbait} {redwigglerquant}{redwigglerbait}
+          </span>
+        </div>
+      );
+      const stickyFishBadgeBar = (
+        <div
+          ref={stickyBarRef}
+          style={{
+            position: "sticky",
+            top: "0px",
+            zIndex: 7,
+            display: "flex",
+            gap: "8px",
+            alignItems: "center",
+            flexWrap: "wrap",
+            padding: "2px 0 4px 0",
+            background: "rgb(18, 8, 2)",
+          }}
+        >
+          {fishStatusBadge}
+        </div>
+      );
       const tableContent = (
         <>
-          <table className="table">
+          {stickyFishBadgeBar}
+          <table
+            className="table fish-table"
+            style={{
+              "--fish-head-top": `${fishHeaderStickyTop}px`,
+              "--fish-head-row-h": `${fishHeaderRowHeight}px`,
+            }}
+          >
             <thead>
-              <tr>
+              <tr ref={fishHeaderRowRef}>
                 {xListeColFish[0][1] === 1 ? <th className="thcenter" >Category</th> : null}
                 {xListeColFish[1][1] === 1 ? <th className="thcenter" >Location</th> : null}
                 {xListeColFish[2][1] === 1 ? <th className="thcenter" >Hoard</th> : null}
@@ -182,8 +259,9 @@ export default function FishTable() {
                 {xListeColFish[4][1] === 1 ? <th className="thcenter" >Bait</th> : null}
                 {xListeColFish[5][1] === 1 ? <th className="thcenter" >Quantity</th> : null}
                 {xListeColFish[6][1] === 1 ? <th className="thcenter" >Caught</th> : null}
-                {xListeColFish[7][1] === 1 ? <th className="thcenter" >Chum</th> : null}
-                {xListeColFish[8][1] === 1 ? <th className="thcenter" >
+                {xListeColFish[7][1] === 1 ? <th className="thcenter" >Map</th> : null}
+                {xListeColFish[8][1] === 1 ? <th className="thcenter" >Chum</th> : null}
+                {xListeColFish[9][1] === 1 ? <th className="thcenter" >
                   {/* <div className="selectseasonback"><FormControl variant="standard" id="formselectquant" className="selectseason" size="small">
                     <InputLabel style={{ fontSize: `12px` }}>Season</InputLabel>
                     <Select name={"selectedSeason"} value={selectedSeason} onChange={handleUIChange} onClick={(e) => e.stopPropagation()}>
@@ -208,8 +286,8 @@ export default function FishTable() {
                     height={28}
                   />
                 </th> : null}
-                {xListeColFish[9][1] === 1 ? <th className="thcenter" > % </th> : null}
-                {xListeColFish[10][1] === 1 ? <th className="thcenter" >
+                {xListeColFish[10][1] === 1 ? <th className="thcenter" > % </th> : null}
+                {xListeColFish[11][1] === 1 ? <th className="thcenter" >
                   {/* <div className="selectquantback" style={{ top: `4px` }}><FormControl variant="standard" id="formselectquant" className="selectquant" size="small">
                     <InputLabel>XP</InputLabel>
                     <Select name="selectedQuantFish" value={selectedQuantFish} onChange={handleUIChange}>
@@ -228,24 +306,25 @@ export default function FishTable() {
                     height={28}
                   />
                 </th> : null}
-                {xListeColFish[11][1] === 1 ? <th className="thcenter" >Cost</th> : null}
-                {xListeColFish[12][1] === 1 ? <th className="thcenter" >XP/SFL</th> : null}
+                {xListeColFish[12][1] === 1 ? <th className="thcenter" >Cost</th> : null}
+                {xListeColFish[13][1] === 1 ? <th className="thcenter" >XP/SFL</th> : null}
               </tr>
               <tr key="total">
                 {xListeColFish[0][1] === 1 ? <td className="tdcenter">Total</td> : null}
                 {xListeColFish[1][1] === 1 ? <td className="tdcenter"></td> : null}
                 {xListeColFish[2][1] === 1 ? <td className="tdcenter"></td> : null}
                 <td></td>
-                {xListeColFish[3][1] === 1 ? <td className="tdcenter">Reel: {reelCasts}/{reelCastMax}</td> : null}
-                {xListeColFish[4][1] === 1 ? <td className="tdcenter">{earthwormquant}{earthwormbait}{grubquant}{grubbait}{redwigglerquant}{redwigglerbait}</td> : null}
+                {xListeColFish[3][1] === 1 ? <td className="tdcenter"></td> : null}
+                {xListeColFish[4][1] === 1 ? <td className="tdcenter"></td> : null}
                 {xListeColFish[5][1] === 1 ? <td className="tdcenter"></td> : null}
                 {xListeColFish[6][1] === 1 ? <td className="tdcenter">{totCaught}</td> : null}
                 {xListeColFish[7][1] === 1 ? <td className="tdcenter"></td> : null}
                 {xListeColFish[8][1] === 1 ? <td className="tdcenter"></td> : null}
                 {xListeColFish[9][1] === 1 ? <td className="tdcenter"></td> : null}
-                {xListeColFish[10][1] === 1 ? <td className="tdcenter">{(selectedQuantFish !== "unit") ? parseFloat(totXPfsh).toFixed(1) : ""}</td> : null}
-                {xListeColFish[11][1] === 1 ? <td className="tdcenter">{(selectedQuantFish !== "unit") ? parseFloat(totCost).toFixed(1) : ""}</td> : null}
-                {xListeColFish[12][1] === 1 ? <td className="tdcenter"></td> : null}
+                {xListeColFish[10][1] === 1 ? <td className="tdcenter"></td> : null}
+                {xListeColFish[11][1] === 1 ? <td className="tdcenter">{(selectedQuantFish !== "unit") ? parseFloat(totXPfsh).toFixed(1) : ""}</td> : null}
+                {xListeColFish[12][1] === 1 ? <td className="tdcenter">{(selectedQuantFish !== "unit") ? parseFloat(totCost).toFixed(1) : ""}</td> : null}
+                {xListeColFish[13][1] === 1 ? <td className="tdcenter"></td> : null}
               </tr>
             </thead>
             <tbody>
@@ -317,13 +396,13 @@ export default function FishTable() {
         totCostChum += xCostChum * (iQuant || 0); */
         return (
           <tr key={index}>
-            {xListeColFish[0][1] === 1 ? <td className="tdcenter">{itool}</td> : null}
-            {xListeColFish[1][1] === 1 ? (<td>{PBar(quantity, previousQuantity, maxh, 0)}</td>) : ("")}
+            {xListeColCrusta[0][1] === 1 ? <td className="tdcenter">{itool}</td> : null}
+            {xListeColCrusta[1][1] === 1 ? (<td>{PBar(quantity, previousQuantity, maxh, 0)}</td>) : ("")}
             <td id="iccolumn"><i><img src={ico} alt={''} className="itico" /></i></td>
-            {xListeColFish[2][1] === 1 ? <td className="tditem">{item}</td> : null}
-            {xListeColFish[3][1] === 1 ? <td className="tdcenter">{itemQuantity || ''}</td> : null}
-            {xListeColFish[4][1] === 1 ? <td className="tdcenter">{icaught || ''}</td> : null}
-            {xListeColFish[6][1] === 1 ? <td className="tdcenter tooltipcell">
+            {xListeColCrusta[2][1] === 1 ? <td className="tditem">{item}</td> : null}
+            {xListeColCrusta[3][1] === 1 ? <td className="tdcenter">{itemQuantity || ''}</td> : null}
+            {xListeColCrusta[4][1] === 1 ? <td className="tdcenter">{icaught || ''}</td> : null}
+            {xListeColCrusta[5][1] === 1 ? <td className="tdcenter tooltipcell">
               {Object.entries(ichum).map(([critem, quant]) => {
                 //const citem = crustacean[critem];
                 if (!critem) return null;
@@ -334,13 +413,13 @@ export default function FishTable() {
                 }
                 return null;
               })}</td> : null}
-            {/* {xListeColFish[7][1] === 1 ? <td className="tdcenter tooltipcell" onClick={(e) => handleTooltip(item, "crustaceancost", iQuant, e)}>
+            {/* {xListeColCrusta[6][1] === 1 ? <td className="tdcenter tooltipcell" onClick={(e) => handleTooltip(item, "crustaceancost", iQuant, e)}>
               {xCost > 0 ? parseFloat(xCostChum).toFixed(3) : ''}</td> : null} */}
-            {xListeColFish[7][1] === 1 ? <td className="tdcenter tooltipcell" onClick={(e) => handleTooltip(item, "crustaceancost", iQuant, e)}>
+            {xListeColCrusta[6][1] === 1 ? <td className="tdcenter tooltipcell" onClick={(e) => handleTooltip(item, "crustaceancost", iQuant, e)}>
               {xCost > 0 ? parseFloat(xCost).toFixed(3) : ''}</td> : null}
-            {xListeColFish[8][1] === 1 ? <td className="tdcenter">{xCostM > 0 ? parseFloat(xCostM).toFixed(3) : ''}</td> : null}
-            {xListeColFish[8][1] === 1 ? <td className="tdcenter">{igrow}</td> : null}
-            {xListeColFish[8][1] === 1 ? <td className="tdcenter">{itime}</td> : null}
+            {xListeColCrusta[7][1] === 1 ? <td className="tdcenter">{xCostM > 0 ? parseFloat(xCostM).toFixed(3) : ''}</td> : null}
+            {xListeColCrusta[8][1] === 1 ? <td className="tdcenter">{igrow}</td> : null}
+            {xListeColCrusta[9][1] === 1 ? <td className="tdcenter">{itime}</td> : null}
           </tr>
         );
       });
@@ -349,14 +428,14 @@ export default function FishTable() {
           <table className="table">
             <thead>
               <tr>
-                {xListeColFish[0][1] === 1 ? <th className="thcenter" >Tool</th> : null}
-                {xListeColFish[1][1] === 1 ? <th className="thcenter" >Hoard</th> : null}
+                {xListeColCrusta[0][1] === 1 ? <th className="thcenter" >Tool</th> : null}
+                {xListeColCrusta[1][1] === 1 ? <th className="thcenter" >Hoard</th> : null}
                 <th className="th-icon">   </th>
-                {xListeColFish[2][1] === 1 ? <th className="thcenter" >Crustacean</th> : null}
-                {xListeColFish[3][1] === 1 ? <th className="thcenter" >Stock</th> : null}
-                {xListeColFish[4][1] === 1 ? <th className="thcenter" >Caught</th> : null}
-                {xListeColFish[5][1] === 1 ? <th className="thcenter" >Chum</th> : null}
-                {xListeColFish[8][1] === 1 ? <th className="thcenter" >
+                {xListeColCrusta[2][1] === 1 ? <th className="thcenter" >Crustacean</th> : null}
+                {xListeColCrusta[3][1] === 1 ? <th className="thcenter" >Stock</th> : null}
+                {xListeColCrusta[4][1] === 1 ? <th className="thcenter" >Caught</th> : null}
+                {xListeColCrusta[5][1] === 1 ? <th className="thcenter" >Chum</th> : null}
+                {xListeColCrusta[6][1] === 1 ? <th className="thcenter" >
                   <DList
                     name="selectedQuantCrusta"
                     title="Cost"
@@ -369,22 +448,22 @@ export default function FishTable() {
                     height={28}
                   />
                 </th> : null}
-                {xListeColFish[8][1] === 1 ? <th className="thcenter" >{imgExchng}</th> : null}
-                {xListeColFish[8][1] === 1 ? <th className="thcenter" >Grow</th> : null}
-                {xListeColFish[8][1] === 1 ? <th className="thcenter" >Ready</th> : null}
+                {xListeColCrusta[7][1] === 1 ? <th className="thcenter" >{imgExchng}</th> : null}
+                {xListeColCrusta[8][1] === 1 ? <th className="thcenter" >Grow</th> : null}
+                {xListeColCrusta[9][1] === 1 ? <th className="thcenter" >Ready</th> : null}
               </tr>
               <tr key="total">
-                {xListeColFish[0][1] === 1 ? <td className="tdcenter">Total</td> : null}
-                {xListeColFish[1][1] === 1 ? <td className="tdcenter"></td> : null}
+                {xListeColCrusta[0][1] === 1 ? <td className="tdcenter">Total</td> : null}
+                {xListeColCrusta[1][1] === 1 ? <td className="tdcenter"></td> : null}
                 <td></td>
-                {xListeColFish[3][1] === 1 ? <td className="tditem"></td> : null}
-                {xListeColFish[4][1] === 1 ? <td className="tdcenter"></td> : null}
-                {xListeColFish[5][1] === 1 ? <td className="tdcenter">{totCaught}</td> : null}
-                {xListeColFish[7][1] === 1 ? <td className="tdcenter"></td> : null}
-                {xListeColFish[8][1] === 1 ? <td className="tdcenter">{(selectedQuantCrusta !== "unit") ? parseFloat(totCost).toFixed(1) : ""}</td> : null}
-                {xListeColFish[8][1] === 1 ? <td className="tdcenter">{(selectedQuantCrusta !== "unit") ? parseFloat(totCostMarket).toFixed(1) : ""}</td> : null}
-                {xListeColFish[8][1] === 1 ? <td className="tdcenter"></td> : null}
-                {xListeColFish[8][1] === 1 ? <td className="tdcenter"></td> : null}
+                {xListeColCrusta[2][1] === 1 ? <td className="tditem"></td> : null}
+                {xListeColCrusta[3][1] === 1 ? <td className="tdcenter"></td> : null}
+                {xListeColCrusta[4][1] === 1 ? <td className="tdcenter">{totCaught}</td> : null}
+                {xListeColCrusta[5][1] === 1 ? <td className="tdcenter"></td> : null}
+                {xListeColCrusta[6][1] === 1 ? <td className="tdcenter">{(selectedQuantCrusta !== "unit") ? parseFloat(totCost).toFixed(1) : ""}</td> : null}
+                {xListeColCrusta[7][1] === 1 ? <td className="tdcenter">{(selectedQuantCrusta !== "unit") ? parseFloat(totCostMarket).toFixed(1) : ""}</td> : null}
+                {xListeColCrusta[8][1] === 1 ? <td className="tdcenter"></td> : null}
+                {xListeColCrusta[9][1] === 1 ? <td className="tdcenter"></td> : null}
               </tr>
             </thead>
             <tbody>

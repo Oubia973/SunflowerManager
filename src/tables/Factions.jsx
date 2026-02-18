@@ -112,8 +112,6 @@ function FactionCard({ factionKey, factionData, dataSet, dataSetFarm, imgExchng 
   const petCurXP = Number(factionData?.petCurXP || 0);
   const petGoal = Number(factionData?.petGoal || 0);
   const streak = Number(factionData?.streak || 0);
-  const factionMul = streak >= 9 ? 1.5 : streak >= 7 ? 1.3 : streak >= 5 ? 1.2 : streak >= 3 ? 1.1 : 1;
-  const streakBonusPct = Math.round((factionMul - 1) * 100);
   const progress = petGoal > 0 ? Math.max(0, (petCurXP / petGoal) * 100) : 0;
   const currentFactionName =
     dataSetFarm?.faction?.factionName ||
@@ -129,6 +127,15 @@ function FactionCard({ factionKey, factionData, dataSet, dataSetFarm, imgExchng 
   );
   const showContributingMember = isCurrentFaction;
   const contributingIcon = isEligible ? "./icon/ui/confirm.png" : "./icon/ui/cancel.png";
+  const memberFaction = dataSetFarm?.frmData?.faction || dataSetFarm?.faction || {};
+  const activeStreakForCurrent = Number(memberFaction?.activeStreak ?? streak);
+  const displayedStreakForCurrent = Number(memberFaction?.streak ?? streak);
+  const streakToMul = (v) => (v >= 8 ? 1.5 : v >= 6 ? 1.3 : v >= 4 ? 1.2 : v >= 2 ? 1.1 : 1);
+  const shownStreak = isCurrentFaction ? displayedStreakForCurrent : streak;
+  const activeStreak = isCurrentFaction ? activeStreakForCurrent : streak;
+  const activeBonusPct = Math.round((streakToMul(activeStreak) - 1) * 100);
+  const nextBonusPct = Math.round((streakToMul(shownStreak) - 1) * 100);
+  const isPendingNextWeek = isCurrentFaction && shownStreak > activeStreak;
 
   // const nextWeekGoal = petGoal * 1.25;
   // const badge = FACTION_BADGE[factionKey] || "./icon/ui/factions.webp";
@@ -207,7 +214,8 @@ function FactionCard({ factionKey, factionData, dataSet, dataSetFarm, imgExchng 
           {/* <img src={petImage} alt="" className="factions-pet-icon" /> */}
           <div className="factions-pet-meta">
             <div className="factions-streak">
-              Streak {streak} ({streakBonusPct}%)
+              Streak {shownStreak} ({activeBonusPct}% active)
+              {isPendingNextWeek ? ` - +${nextBonusPct}% next week` : ""}
               {/* <span>{mood}</span> */}
             </div>
             <div className="factions-progress-wrap">{PBar(petCurXP, 0, petGoal || 1, 0, 269)}</div>
