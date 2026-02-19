@@ -52,18 +52,16 @@ export default function FishTable() {
       window.removeEventListener("resize", updateFishHeaderTop);
     };
   }, [fishView, selectedSeason, selectedQuantFish, xListeColFish, reelCasts, reelCastMax]);
-  if (farmData.inventory) {
+  if (dataSetFarm?.itables?.fish && dataSetFarm?.itables?.crustacean && dataSetFarm?.itables?.it && dataSetFarm?.itables?.bounty && dataSetFarm?.itables?.petit && dataSetFarm?.itables?.pfood) {
     if (fishView === "fish") {
       const { fish } = dataSetFarm.itables;
       var totXPfsh = 0;
       var totCaught = 0;
       var totCost = 0;
-      const inventoryEntries = Object.entries(farmData.inventory);
-      var pinventoryEntries = "";
-      if (farmData.previousInventory) { pinventoryEntries = Object.entries(farmData.previousInventory) }
+      const inventoryMap = farmData?.inventory || {};
       const fishNames = Object.keys(fish);
       const sortedInventoryItems = fishNames.map(item => {
-        const quantity = inventoryEntries.find(([entryItem]) => entryItem === item)?.[1] || 0;
+        const quantity = Number(fish[item]?.instock ?? inventoryMap[item] ?? 0);
         return [item, quantity];
       });
       const earthwormbait = <i><img src={fish["Earthworm"].img} alt={''} className="itico" title="Earthworm" /></i>
@@ -85,9 +83,9 @@ export default function FishTable() {
         const ilocat = cobj ? cobj.locations : '';
         const xBaits = ibait.split("/");
         const icaught = cobj ? cobj.caught : '';
-        const previousQuantity = parseFloat(pinventoryEntries.find(([pItem]) => pItem === item)?.[1] || 0);
+        const previousQuantity = Number(cobj?.prevstock || 0);
         const pquant = previousQuantity;
-        const itemQuantity = quantity;
+        const itemQuantity = Number(quantity || 0);
         const difference = itemQuantity - pquant;
         const absDifference = Math.abs(difference);
         const isNegativeDifference = difference < 0;
@@ -122,7 +120,7 @@ export default function FishTable() {
         }
         const iperiod = xPeriodImg;
         var icost = cobj ? ((!TryChecked ? cobj.cost : cobj.costtry) / dataSet.options.coinsRatio) : '';
-        const iQuant = quantity;
+        const iQuant = itemQuantity;
         const ixp = cobj ? selectedQuantFish === "unit" ? (!TryChecked ? cobj.xp : cobj.xptry) : parseFloat((!TryChecked ? cobj.xp : cobj.xptry) * iQuant).toFixed(1) : 0;
         const mapRare = cobj?.mapDropFish ? fish[cobj.mapDropFish] : null;
         const mapTooltip = cobj?.mapDropFish
@@ -152,7 +150,7 @@ export default function FishTable() {
               {xListeColFish[0][1] === 1 ? <td className="tdcenter">{icat}</td> : null}
               {xListeColFish[1][1] === 1 ? <td className="tdcenter">{ilocat}</td> : null}
               {xListeColFish[2][1] === 1 ? (<td>
-                {PBar(quantity, previousQuantity, maxh, 0)}
+                {PBar(itemQuantity, previousQuantity, maxh, 0)}
                 {/* {maxh > 0 && (
                 <div className={`progress-bar ${isNegativeDifference ? 'negative' : ''}`}>
                   <div className="progress" style={{ width: `${hoardPercentage}%` }}>
@@ -227,6 +225,7 @@ export default function FishTable() {
           style={{
             position: "sticky",
             top: "0px",
+            left: "0px",
             zIndex: 7,
             display: "flex",
             gap: "8px",
@@ -342,12 +341,10 @@ export default function FishTable() {
       var totCost = 0;
       var totCostMarket = 0;
       var totCostChum = 0;
-      const inventoryEntries = Object.entries(farmData.inventory);
-      var pinventoryEntries = "";
-      if (farmData.previousInventory) { pinventoryEntries = Object.entries(farmData.previousInventory) }
+      const inventoryMap = farmData?.inventory || {};
       const fishNames = Object.keys(crustacean);
       const sortedInventoryItems = fishNames.map(item => {
-        const quantity = inventoryEntries.find(([entryItem]) => entryItem === item)?.[1] || 0;
+        const quantity = Number(crustacean[item]?.instock ?? inventoryMap[item] ?? 0);
         return [item, quantity];
       });
       const inventoryItems = sortedInventoryItems.map(([item, quantity], index) => {
@@ -358,9 +355,9 @@ export default function FishTable() {
         const ichum = cobj ? cobj.chum : '';
         const itime = cobj?.rdyat ? formatdate(cobj.rdyat) : '';
         const igrow = cobj ? cobj.grow : '';
-        const previousQuantity = parseFloat(pinventoryEntries.find(([pItem]) => pItem === item)?.[1] || 0);
+        const previousQuantity = Number(cobj?.prevstock || 0);
         const pquant = previousQuantity || 0;
-        const itemQuantity = cobj ? cobj.instock : '';
+        const itemQuantity = Number(cobj?.instock ?? quantity ?? 0);
         const difference = itemQuantity - pquant;
         const absDifference = Math.abs(difference);
         const isNegativeDifference = difference < 0;
@@ -397,7 +394,7 @@ export default function FishTable() {
         return (
           <tr key={index}>
             {xListeColCrusta[0][1] === 1 ? <td className="tdcenter">{itool}</td> : null}
-            {xListeColCrusta[1][1] === 1 ? (<td>{PBar(quantity, previousQuantity, maxh, 0)}</td>) : ("")}
+            {xListeColCrusta[1][1] === 1 ? (<td>{PBar(itemQuantity, previousQuantity, maxh, 0)}</td>) : ("")}
             <td id="iccolumn"><i><img src={ico} alt={''} className="itico" /></i></td>
             {xListeColCrusta[2][1] === 1 ? <td className="tditem">{item}</td> : null}
             {xListeColCrusta[3][1] === 1 ? <td className="tdcenter">{itemQuantity || ''}</td> : null}

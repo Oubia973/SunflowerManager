@@ -41,12 +41,10 @@ export default function InvTable() {
             imgexchng,
         }
     } = useAppCtx();
-    if (farmData.inventory) {
+    if (dataSetFarm?.frmData?.spot && dataSetFarm?.frmData?.buildngf && dataSetFarm?.itables?.it && dataSetFarm?.itables?.tool) {
         const { spot, buildngf } = dataSetFarm.frmData;
         const { it, tool } = dataSetFarm.itables;
-        const inventoryEntries = Object.entries(farmData.inventory);
-        var pinventoryEntries = "";
-        if (farmData.previousInventory) { pinventoryEntries = Object.entries(farmData.previousInventory) }
+        const inventoryMap = farmData?.inventory || {};
         const itemOrder = Object.keys(it);
         //if (selectedQuantity === "daily") {
         function key(name) {
@@ -75,7 +73,7 @@ export default function InvTable() {
         xBurning[burnortry]["Gold"] = (crimestoneSpot * tool[it["Crimstone"].tool]["Gold"] * !crimstoneToolfree) + (sunstoneSpot * tool[it["Sunstone"].tool]["Gold"]);
         //}
         const baseInventoryItems = itemOrder.map(item => {
-            const quantity = inventoryEntries.find(([entryItem]) => entryItem === item)?.[1] || 0;
+            const quantity = Number(it[item]?.instock ?? inventoryMap[item] ?? 0);
             return [item, quantity];
         });
         const sortedInventoryItems = (!invSortBy || invSortBy === "none")
@@ -112,7 +110,7 @@ export default function InvTable() {
         var totNifty = 0;
         var totOS = 0;
         let invIndex = 0;
-        const inventoryItemsCrop = setInvContent(pinventoryEntries, sortedInventoryItems, totCost, totShop, totTrader, totNifty, totOS, totTimeCrp, totTimeRs, invIndex, "crop");
+        const inventoryItemsCrop = setInvContent(sortedInventoryItems, totCost, totShop, totTrader, totNifty, totOS, totTimeCrp, totTimeRs, invIndex, "crop");
         totTimeCrp = inventoryItemsCrop.totTimeCrp;
         totCost = inventoryItemsCrop.totCost;
         totShop = inventoryItemsCrop.totShop;
@@ -137,7 +135,7 @@ export default function InvTable() {
             tprctN: tprctcN,
             tprctO: tprctcO,
         }) : ("");
-        const inventoryItemsRes = setInvContent(pinventoryEntries, sortedInventoryItems, totCost, totShop, totTrader, totNifty, totOS, totTimeCrp, totTimeRs, invIndex, "mineral", "gem", "wood", "oil");
+        const inventoryItemsRes = setInvContent(sortedInventoryItems, totCost, totShop, totTrader, totNifty, totOS, totTimeCrp, totTimeRs, invIndex, "mineral", "gem", "wood", "oil");
         totTimeRs = inventoryItemsCrop.totTimeRs;
         totCost = inventoryItemsRes.totCost;
         totShop = inventoryItemsRes.totShop;
@@ -160,7 +158,7 @@ export default function InvTable() {
             tprctN: tprctcN,
             tprctO: tprctcO,
         }) : ("");
-        const inventoryItemsAnml = setInvContent(pinventoryEntries, sortedInventoryItems, totCost, totShop, totTrader, totNifty, totOS, totTimeCrp, totTimeRs, invIndex, "animal", "honey", "flower");
+        const inventoryItemsAnml = setInvContent(sortedInventoryItems, totCost, totShop, totTrader, totNifty, totOS, totTimeCrp, totTimeRs, invIndex, "animal", "honey", "flower");
         //totTimeRs = inventoryItemsAnml.totTimeRs;
         totCost = inventoryItemsAnml.totCost;
         totShop = inventoryItemsAnml.totShop;
@@ -183,7 +181,7 @@ export default function InvTable() {
             tprctN: tprctcN,
             tprctO: tprctcO,
         }) : ("");
-        const inventoryItemsFruit = setInvContent(pinventoryEntries, sortedInventoryItems, totCost, totShop, totTrader, totNifty, totOS, totTimeCrp, totTimeRs, invIndex, "fruit", "mushroom");
+        const inventoryItemsFruit = setInvContent(sortedInventoryItems, totCost, totShop, totTrader, totNifty, totOS, totTimeCrp, totTimeRs, invIndex, "fruit", "mushroom");
         totCost = inventoryItemsFruit.totCost;
         totShop = inventoryItemsFruit.totShop;
         totTrader = inventoryItemsFruit.totTrader;
@@ -211,10 +209,7 @@ export default function InvTable() {
         var BldItems = "";
         if (showBldinv) {
             const bldOrder = ["Fire Pit", "Kitchen", "Deli", "Bakery", "Smoothie Shack", "Fish Market", "Compost Bin", "Turbo Composter", "Premium Composter"];
-            const sortedBldItems = bldOrder.map(item => {
-                const quantity = inventoryEntries.find(([entryItem]) => entryItem === item)?.[1] || 0;
-                return [item, quantity];
-            });
+            const sortedBldItems = bldOrder.map(item => [item, Number(buildngf?.[item]?.quant ?? inventoryMap[item] ?? 0)]);
             BldItems = sortedBldItems.map(([building], index) => {
                 if (buildngf[building]) {
                     if (buildngf[building].readyAt > 0) {
@@ -337,7 +332,7 @@ export default function InvTable() {
                             </th>) : ("")}
                             {xListeCol[5][1] === 1 ? (<th className="thcenter">Betty</th>) : ("")}
                             {xListeCol[6][1] === 1 ? (<th className="thcenter">Ratio<div>{imgCoins}/{imgSFL}</div></th>) : ("")}
-                            {xListeCol[7][1] === 1 ? (<th className="thtrad" onClick={() => handleTraderClick()}><div className="overlay-trad"></div>Market</th>) : ("")}
+                            {xListeCol[7][1] === 1 ? (<th className="thtrad" style={{ "--thtrad-bg": `url(${process.env.PUBLIC_URL}/icon/ui/graph.png)` }} onClick={() => handleTraderClick()}><div className="overlay-trad"></div><span className="thtrad-label">Market</span></th>) : ("")}
                             {xListeCol[18][1] === 1 && xListeCol[6][1] === 1 ? (<th className="thcenter tooltipcell" style={{ fontSize: `10px` }}
                                 onClick={(e) => handleTooltip("coef", "th", "", e)}>Profit<div>%</div></th>) : ("")}
                             {xListeCol[8][1] === 1 ? (<th className="thcenter tooltipcell" style={{ color: `rgb(160, 160, 160)` }}
@@ -437,7 +432,7 @@ export default function InvTable() {
         return (tableContent);
     }
 }
-function setInvContent(pinventoryEntries, sortedInventoryItems, totCost, totShop, totTrader, totNifty, totOS, totTimeCrp, totTimeRs, invIndex, ItCat1, ItCat2, ItCat3, ItCat4) {
+function setInvContent(sortedInventoryItems, totCost, totShop, totTrader, totNifty, totOS, totTimeCrp, totTimeRs, invIndex, ItCat1, ItCat2, ItCat3, ItCat4) {
     const {
         data: { dataSet, dataSetFarm, priceData },
         ui: {
@@ -590,7 +585,7 @@ function setInvContent(pinventoryEntries, sortedInventoryItems, totCost, totShop
             const istock = cobj ? cobj.stock : 0;
             const ifrmit = cobj ? cobj.farmit : 0;
             const ibuyit = cobj ? cobj.buyit : 0;
-            const previousQuantity = parseFloat(pinventoryEntries.find(([pItem]) => pItem === item)?.[1] || 0);
+            const previousQuantity = Number(cobj?.prevstock || 0);
             const pquant = previousQuantity;
             const itemQuantity = item === "Flower" ? it["Flower"].quant : quantity;
             const difference = itemQuantity - pquant;
@@ -860,7 +855,7 @@ function setInvContent(pinventoryEntries, sortedInventoryItems, totCost, totShop
                 <>
                     <tr key={xIndex}>
                         {xListeCol[0][1] === 1 ? (<td style={cellStyle}>
-                            {PBar(quantity, previousQuantity, maxh, 0)}
+                            {PBar(itemQuantity, previousQuantity, maxh, 0)}
                             {/* {maxh > 0 && (
                                 <div className={`progress-bar ${isNegativeDifference ? 'negative' : ''}`}>
                                     <div className="progress" style={{ width: `${hoardPercentage}%` }}>

@@ -903,6 +903,67 @@ const Tooltip = ({ onClose, item, context, value, clickPosition, dataSet, dataSe
                         <div>You buy this item for {frmtNb(Item.costp2pt)}{imgsfl}</div></>
                 );
             }
+            if (context === "cmdailysfl") {
+                const itemImg = <img src={Item?.img ?? imgna} alt={item ?? "?"} style={{ width: "22px", height: "22px" }} />;
+                const imgOil = <img src={it["Oil"].img ?? imgna} style={{ width: "20px", height: "20px" }} />
+                const v = (value && typeof value === "object") ? value : {};
+                const cycles = Number(v.cycles || 0);
+                const cyclesRaw = Number(v.cyclesRaw || 0);
+                const seedStock = Number(v.seedStock || 0);
+                const seedBatch = Number(v.seedsPerBatch || 0);
+                const seedsPerDay = Number(v.seedsPerDay || (seedBatch * cycles));
+                const harvestBatch = Number(v.harvestPerBatch || 0);
+                const harvestDay = Number(v.harvestPerDay || 0);
+                const seedCostBatch = Number(v.seedCostPerBatch || 0);
+                const seedCostDay = Number(v.seedCostPerDay || 0);
+                const oilDay = Number(v.oilPerDay || 0);
+                const oilCostDay = Number(v.oilCostPerDay || 0);
+                const dailyRestock = Number(v.dailyRestock || 0);
+                const dailyRestockGems = Number(v.dailyRestockGems || 0);
+                const dailyRestockSfl = Number(v.dailyRestockSfl || 0);
+                const costDay = Number(v.costPerDay || 0);
+                const marketDay = Number(v.marketPerDay || 0);
+                const profitDay = Number(v.profitPerDay || 0);
+                const profitMul = costDay > 0 ? (marketDay / costDay) : Infinity;
+                const profiPercent = (Math.ceil(profitMul * 100) - 100) || 0;
+                const colorProfitMul = ColorValue(profitMul);
+                txt = (
+                    <>
+                        <div>{itemImg} {item} daily</div>
+                        <div>Grow time: {v.growTime || "00:00:00"} (1 pack of {seedStock * 2.5} seeds)</div>
+                        <div>Seed stock: {frmtNb(seedStock)}</div>
+                        <div>Harvest/day: {frmtNb(cycles)} full packs</div>
+                        <div>Harvest average {itemImg}x{frmtNb(harvestBatch)} (1 pack)</div>
+                        <div>Harvest total by day {itemImg}x{frmtNb(harvestDay)} (24h machine)</div>
+                        <div>Seeds x{frmtNb(seedBatch)} x {frmtNb(cycles)} = {frmtNb(seedsPerDay)} ({frmtNb(seedCostDay)}{imgsfl}, 1 pack: {frmtNb(seedCostBatch)}{imgsfl})</div>
+                        <div>Oil/day: {imgOil}x{frmtNb(oilDay)} ({frmtNb(oilCostDay)}{imgsfl})</div>
+                        <div>Restock: {imggem}x15 x{frmtNb(dailyRestock)} = {frmtNb(dailyRestockGems)}{imggem} ({frmtNb(dailyRestockSfl)}{imgsfl})</div>
+                        <div>Production cost/day: {frmtNb(costDay)}{imgsfl}</div>
+                        <div>Marketplace{imgmp}-{dataSet.options.tradeTax}% tax {frmtNb(marketDay)}{imgsfl}</div>
+                        <div>Profit {frmtNb(profitDay)}{imgsfl} <span style={{ color: colorProfitMul }}>{isFinite(profitMul) ? `${profiPercent}%` : "Infinity"}</span></div>
+                    </>
+                );
+            }
+            if (context === "cmgainh") {
+                const itemImg = <img src={Item?.img ?? imgna} alt={item ?? "?"} style={{ width: "22px", height: "22px" }} />;
+                const v = (value && typeof value === "object") ? value : {};
+                const growTime = v.growTime || "00:00:00";
+                const costPerPack = Number(v.costPerPack || 0);
+                const marketPerPack = Number(v.marketPerPack || 0);
+                const profitPerPack = Number(v.profitPerPack || 0);
+                const gainPerHour = Number(v.gainPerHour || 0);
+                const colorGainH = ColorValue(gainPerHour, 0, 10);
+                txt = (
+                    <>
+                        <div>{itemImg} {item} gain/h</div>
+                        <div>Grow time: {growTime}</div>
+                        <div>Cost/pack: {frmtNb(costPerPack)}{imgsfl}</div>
+                        <div>Marketplace/pack {imgmp}: {frmtNb(marketPerPack)}{imgsfl}</div>
+                        <div>Profit/pack: {frmtNb(profitPerPack)}{imgsfl}</div>
+                        <div>Gain/h: <span style={{ color: colorGainH }}>{frmtNb(gainPerHour)}{imgsfl}</span></div>
+                    </>
+                );
+            }
         }
         if (context === "costitem") {
             const itemBase = [it, fish, bounty, flower, craft, petit, crustacean, food, pfood].find(src => src?.[item]);
@@ -1217,6 +1278,85 @@ const Tooltip = ({ onClose, item, context, value, clickPosition, dataSet, dataSe
                     <div>{txtItemImg}ratio: {ratioC}{imgcoins} for 1{imgsfl}</div>
                 </>
             }
+        }
+        if (context === "fetchcost") {
+            const v = (value && typeof value === "object") ? value : {};
+            const itemImg = <img src={Item?.img ?? imgna} alt={item ?? "?"} style={{ width: "20px", height: "20px" }} />;
+            const imgEnergy = <img src="./icon/ui/lightning.png" alt="" className="itico" title="Energy" />;
+            const modeMap = {
+                pets: "Pets Daily",
+                petst: "Pets Total",
+                stock: "Stock",
+                custom: "Custom",
+            };
+            const modeLabel = modeMap[v?.quantMode] || "Custom";
+            const quantity = Number(v?.quantity || 0);
+            const energyUnit = Number(v?.energyUnit || 0);
+            const energyTotal = Number(v?.energyTotal || 0);
+            const unitCost = Number(v?.unitCost || 0);
+            const totalCost = Number(v?.totalCost || 0);
+            const unitMarket = Number(v?.unitMarket || 0);
+            const totalMarket = Number(v?.totalMarket || 0);
+            const producers = Array.isArray(v?.producers) ? v.producers : [];
+            const selectedProducers = producers.filter((p) => !!p?.contributesNow);
+            const producersToDisplay = selectedProducers.length
+                ? selectedProducers
+                : (() => {
+                    if (!producers.length) return [];
+                    const ranked = producers.map((p) => {
+                        const reqCost = Number(p?.reqCost || 0);
+                        const reqEnergy = Number(p?.reqEnergyTotal || 0);
+                        const petYield = Number(p?.yieldBase || 1);
+                        const qty = (energyUnit > 0) ? ((reqEnergy / energyUnit) * petYield) : 0;
+                        const costPerUnit = qty > 0 ? (reqCost / qty) : Number.POSITIVE_INFINITY;
+                        return { p, costPerUnit };
+                    });
+                    ranked.sort((a, b) => a.costPerUnit - b.costPerUnit);
+                    return ranked.length ? [ranked[0].p] : [];
+                })();
+            const producerRows = producersToDisplay
+                .map((p) => {
+                    const reqDetails = Array.isArray(p?.reqDetails) ? p.reqDetails : [];
+                    const reqLine = reqDetails.map((r, idx) => (
+                        <span key={`${p.petName}-${r.name}-${idx}`} style={{ display: "inline-flex", alignItems: "center", marginRight: 6 }}>
+                            <img src={r.img || imgna} alt="" className="itico" title={r.name || ""} />
+                        </span>
+                    ));
+                    const petReqCost = Number(p?.reqCost || 0);
+                    const petReqEnergyTotal = Number(p?.reqEnergyTotal || 0);
+                    const petLabel = p?.isNft ? (p?.cat || p?.petName || "") : (p?.petName || "");
+                    const petYieldBase = Number(p?.yieldBase || 1);
+                    const petQtyFromReqEnergy = (energyUnit > 0) ? ((petReqEnergyTotal / energyUnit) * petYieldBase) : 0;
+                    const petCostPerUnit = petQtyFromReqEnergy > 0 ? (petReqCost / petQtyFromReqEnergy) : 0;
+                    return (
+                        <div key={p.petName} style={{ marginTop: 6 }}>
+                            <div style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
+                                <img src={p.img || imgna} alt={p.petName || ""} style={{ width: "18px", height: "18px" }} />
+                                <span>{petLabel}</span>
+                            </div>
+                            <div>{frmtNb(energyUnit)}{imgEnergy} for {petYieldBase}{itemImg}</div>
+                            <div>{reqLine.length ? reqLine : "N/A"} {reqLine.length ? <>{frmtNb(petReqCost)}{imgsfl}</> : null}
+                            </div>
+                            <div>{frmtNb(petQtyFromReqEnergy)}{itemImg} with {frmtNb(petReqEnergyTotal)}{imgEnergy}</div>
+                            <div>{petQtyFromReqEnergy > 0 ? <>{frmtNb(petReqCost)}{imgsfl} / {frmtNb(petQtyFromReqEnergy)}{itemImg} = {frmtNb(petCostPerUnit)}{imgsfl}</> : "N/A"}</div>
+                        </div>
+                    );
+                });
+            const hasAnyProducer = producers.length > 0;
+            txt = !hasAnyProducer ? (
+                <>
+                    <div>{itemImg} {item} fetch cost</div>
+                    <div>Marketplace{imgmp}: {frmtNb(unitMarket)}{imgsfl} x {frmtNb(quantity)} = {frmtNb(totalMarket)}{imgsfl}</div>
+                </>
+            ) : (
+                <>
+                    <div>{itemImg} {item} fetch cost</div>
+                    {producerRows.length ? <div style={{ marginTop: 6 }}>Producers & requests:</div> : null}
+                    {producerRows}
+                    <div style={{ marginTop: 6 }}>Prod cost: {frmtNb(unitCost)}{imgsfl} x {frmtNb(quantity)} = {frmtNb(totalCost)}{imgsfl}</div>
+                    <div>Marketplace{imgmp}: {frmtNb(unitMarket)}{imgsfl} x {frmtNb(quantity)} = {frmtNb(totalMarket)}{imgsfl}</div>
+                </>
+            );
         }
         if (context === "deliverycost") {
             const itemsMap = (value && typeof value === "object" && value.items && typeof value.items === "object") ? value.items : {};

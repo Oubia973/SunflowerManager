@@ -17,6 +17,7 @@ export default function CropMachineTable() {
         },
         actions: {
             handleUIChange,
+            handleTooltip,
         },
         img: {
             imgsfl,
@@ -24,7 +25,7 @@ export default function CropMachineTable() {
             imgExchng,
         }
     } = useAppCtx();
-    if (farmData.inventory) {
+    if (dataSetFarm?.itables?.it && dataSetFarm?.CropMachine && dataSet?.options) {
         const { it } = dataSetFarm.itables;
         const Keys = Object.keys(it);
         const imgCoins = <img src={imgcoins} alt={''} className="itico" title="Coins" />;
@@ -39,6 +40,7 @@ export default function CropMachineTable() {
         let TotalProd = 0;
         let TotalMarket = 0;
         let TotalProfit = 0;
+        let TotalDailyProfit = 0;
         let TotalTime = 0;
         const tableContent = Keys.map((element, index) => {
             if ((it[element].cat !== "crop") || it[element].greenhouse) return null;
@@ -46,6 +48,7 @@ export default function CropMachineTable() {
             const cobj = it[element];
             const itemName = element;
             const ico = <img src={cobj.img} alt={''} className="itico" title={itemName} />;
+            const cmCrop = ((TryChecked ? CM.perCroptry : CM.perCrop) || {})[itemName] || {};
             const iseedstock = (TryChecked ? cobj.stocktry : cobj.stock);
             const iseedMax = iseedstock * 2.5;
             const customSeed = customSeedCM?.[element] ?? iseedstock ?? 0;
@@ -53,20 +56,84 @@ export default function CropMachineTable() {
                 selectedSeedsCM === "max" ? iseedMax :
                     selectedSeedsCM === "stock" ? iseedstock :
                         customSeed;
-            //const iseeds = selectedSeedsCM === "max" ? iseedMax : selectedSeedsCM === "stock" ? iseedstock : customSeedCM[element];
-            const itime = convTime((convtimenbr(cobj.btime) * (TryChecked ? CM.mtimetry : CM.mtime)) * (iseeds / (TryChecked ? CM.spottry : CM.spot)));
-            const imyieldp = (TryChecked ? cobj.harvestnodetry : cobj.harvestnode);
-            const harvestTotal = iseeds * imyieldp;
-            const iseedCost = (TryChecked ? cobj.seedtry / dataSet.options.coinsRatio : cobj.seed / dataSet.options.coinsRatio) * iseeds;
-            const oilQuant = (24 * convtimenbr(itime)) * (TryChecked ? CM.moiltry : CM.moil);
-            const oilCost = oilQuant * (TryChecked ? it["Oil"].costtry : it["Oil"].cost) / dataSet.options.coinsRatio;
-            const iTotalCost = iseedCost + oilCost;
+            const selectedProfile =
+                selectedSeedsCM === "stock" ? cmCrop.stock :
+                    selectedSeedsCM === "max" ? cmCrop.max :
+                        null;
             const tradeTax = (100 - dataSet.options.tradeTax) / 100;
-            const icostm = cobj.costp2pt * harvestTotal;
-            const profit = (icostm * tradeTax) - iTotalCost;
+            const oilCostPerHour = ((TryChecked ? CM.moiltry : CM.moil) * ((TryChecked ? it["Oil"].costtry : it["Oil"].cost) / dataSet.options.coinsRatio));
+            const packHoursPerSeed = Number(cmCrop.packHoursPerSeed || (convtimenbr(cobj.btime) * (TryChecked ? CM.mtimetry : CM.mtime) / ((TryChecked ? CM.spottry : CM.spot) || 1)));
+            const harvestPerSeed = Number(cmCrop.harvestPerSeed || (TryChecked ? cobj.harvestnodetry : cobj.harvestnode));
+            const seedCostPerSeed = Number(cmCrop.seedCostPerSeed || ((TryChecked ? cobj.seedtry : cobj.seed) / dataSet.options.coinsRatio));
+            const marketPerUnitAfterTax = Number(cmCrop.marketPerUnitAfterTax || (cobj.costp2pt * tradeTax));
+            const batchHours = Number(selectedProfile?.packHours ?? (packHoursPerSeed * iseeds));
+            const itime = convTime(batchHours);
+            const harvestTotal = Number(selectedProfile?.harvestPerPack ?? (harvestPerSeed * iseeds));
+            const iseedCost = Number(selectedProfile?.seedCostPerPack ?? (seedCostPerSeed * iseeds));
+            const oilQuant = Number(selectedProfile?.oilPerPack ?? ((TryChecked ? CM.moiltry : CM.moil) * batchHours));
+            const oilCost = Number(selectedProfile?.oilCostPerPack ?? (oilCostPerHour * batchHours));
+            const iTotalCost = Number(selectedProfile?.packCost ?? (iseedCost + oilCost));
+            const icostm = Number(selectedProfile?.packMarket ?? (marketPerUnitAfterTax * harvestTotal));
+            const profit = Number(selectedProfile?.packProfit ?? (icostm - iTotalCost));
+            const gainH = batchHours > 0 ? (profit / (batchHours * 24)) : 0;
+            const dailyBaseProfile = cmCrop.max || null;
+            const fullPackSeeds = Number(dailyBaseProfile?.seeds ?? iseedMax);
+            const fullPackHours = Number(dailyBaseProfile?.packHours ?? (packHoursPerSeed * fullPackSeeds));
+            const fullHarvestPerPack = Number(dailyBaseProfile?.harvestPerPack ?? (harvestPerSeed * fullPackSeeds));
+            const fullSeedCostPerPack = Number(dailyBaseProfile?.seedCostPerPack ?? (seedCostPerSeed * fullPackSeeds));
+            const dailyCyclesRaw = fullPackHours > 0 ? (1 / fullPackHours) : 0;
+            const dailyCycles = fullPackHours > 1
+                ? Math.max(0, dailyCyclesRaw)
+                : Math.max(0, Math.floor(dailyCyclesRaw));
+            const dailySeedCost = fullSeedCostPerPack * dailyCycles;
+            const dailyOil = 24 * (TryChecked ? CM.moiltry : CM.moil);
+            const dailyOilCost = 24 * oilCostPerHour;
+            const seedsPerDay = fullPackSeeds * dailyCycles;
+            const seedStock = Number(dailyBaseProfile?.seedStock ?? iseedstock);
+            const dailyRestock = seedStock > 0 ? Math.max(0, Math.ceil(seedsPerDay / seedStock) - 1) : 0;
+            const dailyRestockGems = dailyRestock * 15;
+            const dailyRestockSfl = (Number(dataSet?.options?.gemsRatio || 0) > 0) ? (dailyRestockGems * Number(dataSet.options.gemsRatio)) : 0;
+            const dailyCost = dailySeedCost + dailyOilCost + dailyRestockSfl;
+            const dailyHarvest = fullHarvestPerPack * dailyCycles;
+            const dailyMarket = marketPerUnitAfterTax * dailyHarvest;
+            const dailyProfit = dailyMarket - dailyCost;
+            const dailyTooltip = {
+                cycles: dailyCycles,
+                cyclesRaw: dailyCyclesRaw,
+                growTime: convTime(fullPackHours),
+                seedStock: seedStock,
+                seedsPerBatch: fullPackSeeds,
+                seedsPerDay: seedsPerDay,
+                harvestPerBatch: fullHarvestPerPack,
+                harvestPerDay: dailyHarvest,
+                seedCostPerBatch: fullSeedCostPerPack,
+                seedCostPerDay: dailySeedCost,
+                oilPerDay: dailyOil,
+                oilCostPerDay: dailyOilCost,
+                dailyRestock: dailyRestock,
+                dailyRestockGems: dailyRestockGems,
+                dailyRestockSfl: dailyRestockSfl,
+                costPerDay: dailyCost,
+                marketPerDay: dailyMarket,
+                profitPerDay: dailyProfit,
+            };
+            const gainHTooltip = {
+                growTime: itime,
+                costPerPack: iTotalCost,
+                marketPerPack: icostm,
+                profitPerPack: profit,
+                gainPerHour: gainH,
+            };
             const colorT = ColorValue(profit, 0, 10);
+            const colorGH = ColorValue(gainH, 0, 10);
+            const colorDaily = ColorValue(dailyProfit, 0, 10);
             const cellStyle = {};
             cellStyle.color = colorT;
+            const cellStyleGH = {};
+            cellStyleGH.color = colorGH;
+            const cellStyleDaily = {};
+            cellStyleDaily.color = colorDaily;
+            const dailyTitle = `Cycles: ${frmtNb(dailyCycles)} | Cost: ${frmtNb(dailyCost)} | Market: ${frmtNb(dailyMarket)} | Profit: ${frmtNb(dailyProfit)}`;
             const isToCM = !!(toCM?.[element] ?? actualCMCrop);
             if (isToCM) {
                 TotalSeedCost += iseedCost;
@@ -75,6 +142,7 @@ export default function CropMachineTable() {
                 TotalProd += iTotalCost;
                 TotalMarket += icostm;
                 TotalProfit += profit;
+                TotalDailyProfit += dailyProfit;
                 TotalTime += convtimenbr(itime);
             }
             return (
@@ -83,8 +151,8 @@ export default function CropMachineTable() {
                         Not available yet, maybe in future updates
                     </td></tr> : null}
                     <tr key={index}>
-                        <td id="iccolumn">{ico}</td>
-                        {xListeColBounty[2][1] === 1 ? <td className="tdcenter">{actualCMCrop ? (
+                        <td id="iccolumn" className="cm-icon-sticky">{ico}</td>
+                        {xListeColBounty[2][1] === 1 ? <td className="tdcenter cm-check-sticky">{actualCMCrop ? (
                             < input
                                 type="checkbox"
                                 name={`toCM.${element}`}
@@ -115,17 +183,35 @@ export default function CropMachineTable() {
                         {xListeColBounty[5][1] === 1 ? <td className="tdcenter">{frmtNb(iTotalCost)}</td> : null}
                         {xListeColBounty[5][1] === 1 ? <td className="tdcenter">{frmtNb(icostm)}</td> : null}
                         {xListeColBounty[5][1] === 1 ? <td className="tdcenter" style={cellStyle}>{frmtNb(profit)}</td> : null}
+                        {xListeColBounty[5][1] === 1 ? <td
+                            className="tdcenter tooltipcell"
+                            style={cellStyleGH}
+                            onClick={(e) => handleTooltip(itemName, "cmgainh", gainHTooltip, e)}
+                        >{frmtNb(gainH)}</td> : null}
+                        {xListeColBounty[5][1] === 1 && dataSet.options?.isAbo ? <td
+                            className="tdcenter tooltipcell"
+                            style={cellStyleDaily}
+                            title={dailyTitle}
+                            onClick={(e) => handleTooltip(itemName, "cmdailysfl", dailyTooltip, e)}
+                        >{frmtNb(dailyProfit)}</td> : null}
                     </tr></>
             );
         });
         const colorTP = ColorValue(TotalProfit, 0, 10);
+        const totalGainH = TotalTime > 0 ? (TotalProfit / (TotalTime * 24)) : 0;
+        const colorTGH = ColorValue(totalGainH, 0, 10);
+        const colorTDP = ColorValue(TotalDailyProfit, 0, 10);
         const cellStyleTP = {};
         cellStyleTP.color = colorTP;
+        const cellStyleTGH = {};
+        cellStyleTGH.color = colorTGH;
+        const cellStyleTDP = {};
+        cellStyleTDP.color = colorTDP;
         const tableHeader = (
             <thead>
                 <tr>
-                    <th className="th-icon"></th>
-                    {xListeColBounty[0][1] === 1 ? <th className="thcenter"> </th> : null}
+                    <th className="th-icon cm-icon-sticky"></th>
+                    {xListeColBounty[0][1] === 1 ? <th className="thcenter cm-check-sticky"> </th> : null}
                     {xListeColBounty[0][1] === 2 ? <th className="thcenter">Name</th> : null}
                     {xListeColBounty[1][1] === 1 ? <th className="thcenter">Time</th> : null}
                     {xListeColBounty[2][1] === 1 ? <th className="thcenter">
@@ -157,9 +243,11 @@ export default function CropMachineTable() {
                     {xListeColBounty[5][1] === 1 ? <th className="thcenter"><div style={{ fontSize: "11px" }}>Total</div>Cost</th> : null}
                     {xListeColBounty[5][1] === 1 ? <th className="thcenter">{imgExchng}</th> : null}
                     {xListeColBounty[5][1] === 1 ? <th className="thcenter">Profit {imgSfl}</th> : null}
+                    {xListeColBounty[5][1] === 1 ? <th className="thcenter">Gain/h {imgSfl}</th> : null}
+                    {xListeColBounty[5][1] === 1 && dataSet.options?.isAbo ? <th className="thcenter">Daily SFL</th> : null}
                 </tr><tr style={{ height: "25px" }}>
-                    <td></td>
-                    {xListeColBounty[0][1] === 1 ? <td className="thcenter"> </td> : null}
+                    <td className="cm-icon-sticky"></td>
+                    {xListeColBounty[0][1] === 1 ? <td className="thcenter cm-check-sticky"> </td> : null}
                     {xListeColBounty[0][1] === 2 ? <td className="thcenter"> </td> : null}
                     {xListeColBounty[1][1] === 1 ? <td className="thcenter">{convTime(TotalTime)}</td> : null}
                     {xListeColBounty[2][1] === 1 ? <td className="thcenter"> </td> : null}
@@ -170,12 +258,14 @@ export default function CropMachineTable() {
                     {xListeColBounty[5][1] === 1 ? <td className="thcenter">{frmtNb(TotalProd)}</td> : null}
                     {xListeColBounty[5][1] === 1 ? <td className="thcenter">{frmtNb(TotalMarket)}</td> : null}
                     {xListeColBounty[5][1] === 1 ? <td className="thcenter" style={cellStyleTP}>{frmtNb(TotalProfit)}</td> : null}
+                    {xListeColBounty[5][1] === 1 ? <td className="thcenter" style={cellStyleTGH}>{frmtNb(totalGainH)}</td> : null}
+                    {xListeColBounty[5][1] === 1 && dataSet.options?.isAbo ? <td className="thcenter" style={cellStyleTDP}>{frmtNb(TotalDailyProfit)}</td> : null}
                 </tr>
             </thead>
         );
         const table = (
             <>
-                <table className="table" style={{ borderCollapse: "separate", borderSpacing: "6px 0" }}>
+                <table className="table crop-machine-table" style={{ borderCollapse: "separate", borderSpacing: "6px 0", "--cm-check-left": "20px" }}>
                     {tableHeader}
                     <tbody>
                         {tableContent}

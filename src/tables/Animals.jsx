@@ -1,10 +1,24 @@
-import React from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { useAppCtx } from "../context/AppCtx";
-import { FormControl, InputLabel, Select, MenuItem } from '@mui/material';
 import { frmtNb, ColorValue, PBar } from '../fct.js';
-import DList from "../dlist.jsx";
 
 export default function AnimalTable() {
+    const prod1StickyContentRef = useRef(null);
+    const [prod1StickyWidth, setProd1StickyWidth] = useState(52);
+    const measureProdStickyWidth = () => {
+        const measured = prod1StickyContentRef.current?.scrollWidth || 0;
+        if (measured > 0) {
+            setProd1StickyWidth(Math.ceil(measured) + 2);
+        }
+    };
+    useEffect(() => {
+        const raf = requestAnimationFrame(measureProdStickyWidth);
+        window.addEventListener("resize", measureProdStickyWidth);
+        return () => {
+            cancelAnimationFrame(raf);
+            window.removeEventListener("resize", measureProdStickyWidth);
+        };
+    }, []);
     const {
         data: { dataSet, dataSetFarm },
         ui: {
@@ -13,7 +27,6 @@ export default function AnimalTable() {
             TryChecked,
         },
         actions: {
-            handleUIChange,
             handleTooltip,
         },
         img: {
@@ -26,6 +39,10 @@ export default function AnimalTable() {
             imgna,
         }
     } = useAppCtx();
+    useEffect(() => {
+        const raf = requestAnimationFrame(measureProdStickyWidth);
+        return () => cancelAnimationFrame(raf);
+    }, [selectedAnimalLvl, xListeColAnimals, TryChecked, dataSetFarm?.Animals, dataSetFarm?.animalsAllLvl]);
     if (dataSetFarm.Animals) {
         const { Animals, animalsAllLvl } = dataSetFarm;
         const { it, mutant } = dataSetFarm.itables;
@@ -45,6 +62,7 @@ export default function AnimalTable() {
         const tradeTaxMul = (100 - dataSet.options.tradeTax) / 100;
         const AnimalsTable = selectedAnimalLvl === "farm" ? Animals : animalsAllLvl;
         for (let key in AnimalsTable) {
+            const isFirstAnimalTable = table.length === 0;
             const animalKeys = Object.values(AnimalsTable[key]);
             let prod1Total = 0;
             let prod2Total = 0;
@@ -73,7 +91,7 @@ export default function AnimalTable() {
             const prod2img2 = <img src={xprod2img} alt={''} className="nftico" title={prod2name} />;
             const itemImg = (itemName === "Chicken") ? imgchkn : (itemName === "Cow") ? imgcow : (itemName === "Sheep") ? imgsheep : imgna;
             const animalImg = <img src={itemImg} alt={''} className="nftico" title={itemName} />;
-            const tableContent = animalKeys.map(element => {
+            const tableContent = animalKeys.map((element, rowIndex) => {
                 const cobj = element;
                 const xpprogress = cobj.xpProgress || 0;
                 const xptolvl = cobj.xpToLvl || 0;
@@ -166,8 +184,19 @@ export default function AnimalTable() {
                                 </div>
                             </div> */}</td> : null}
                         {xListeColAnimals[1][1] === 1 ? <td className="tdcenter">{rewardImg}{xlvl}</td> : null}
-                        {xListeColAnimals[2][1] === 1 ? <td className="tdcenter">{prod1 > 0 && prod1}{prod1 > 0 && prod1img}</td> : null}
-                        {xListeColAnimals[3][1] === 1 ? <td className="tdcenter">{prod2 > 0 && prod2}{prod2 > 0 && prod2img}</td> : null}
+                        {xListeColAnimals[2][1] === 1 ? (
+                            <td
+                                className="tdcenter animal-prod1-sticky"
+                            >
+                                <span
+                                    ref={isFirstAnimalTable && rowIndex === 0 ? prod1StickyContentRef : null}
+                                    style={{ display: "inline-flex", alignItems: "center", gap: "2px" }}
+                                >
+                                    {prod1 > 0 && prod1}{prod1 > 0 && prod1img}
+                                </span>
+                            </td>
+                        ) : null}
+                        {xListeColAnimals[3][1] === 1 ? <td className="tdcenter animal-prod2-sticky">{prod2 > 0 && prod2}{prod2 > 0 && prod2img}</td> : null}
                         {xListeColAnimals[4][1] === 1 ? <td className="tdcenter">{food}{foodimg}</td> : null}
                         {xListeColAnimals[5][1] === 1 ? <td className="tdcenter">{foodcost}</td> : null}
                         {xListeColAnimals[6][1] === 1 ? <td className="tdcenter">{foodcostp2p}</td> : null}
@@ -244,29 +273,10 @@ export default function AnimalTable() {
                     </tr>
                     <tr>
                         {/* <td></td> */}
-                        {xListeColAnimals[0][1] === 1 ? <td className="tdcenter">
-                            {/* <div className="selectquantityback" style={{ top: `4px` }}>
-                                <FormControl variant="standard" id="formselectquant" className="selectquant" size="small">
-                                    <InputLabel></InputLabel>
-                                    <Select name="selectedAnimalLvl" value={selectedAnimalLvl} onChange={handleUIChange}>
-                                        <MenuItem value="farm">Farm</MenuItem>
-                                        <MenuItem value="all">All lvl</MenuItem>
-                                    </Select></FormControl>
-                            </div> */}
-                            <DList
-                                name="selectedAnimalLvl"
-                                options={[
-                                    { value: "farm", label: "Farm" },
-                                    { value: "all", label: "All lvl" },
-                                ]}
-                                value={selectedAnimalLvl}
-                                onChange={handleUIChange}
-                                height={28}
-                            />
-                        </td> : null}
+                        {xListeColAnimals[0][1] === 1 ? <td className="tdcenter"></td> : null}
                         {xListeColAnimals[1][1] === 1 ? <td className="tdcenter"></td> : null}
-                        {xListeColAnimals[2][1] === 1 ? <td className="tdcenter">{showTotal && parseFloat(prod1Total).toFixed(2)}</td> : null}
-                        {xListeColAnimals[3][1] === 1 ? <td className="tdcenter">{showTotal && parseFloat(prod2Total).toFixed(2)}</td> : null}
+                        {xListeColAnimals[2][1] === 1 ? <td className="tdcenter animal-prod1-sticky">{showTotal && parseFloat(prod1Total).toFixed(2)}</td> : null}
+                        {xListeColAnimals[3][1] === 1 ? <td className="tdcenter animal-prod2-sticky">{showTotal && parseFloat(prod2Total).toFixed(2)}</td> : null}
                         {xListeColAnimals[4][1] === 1 ? <td className="tdcenter" style={{ fontSize: "11px", verticalAlign: "middle" }}>
                             {/* {foodTotal.corn > 0 && (
                   <div style={{ marginLeft: "0px" }}>
@@ -317,7 +327,13 @@ export default function AnimalTable() {
             );
             table.push(
                 <>
-                    <table className="table">
+                    <table
+                        className="table animal-table"
+                        style={{
+                            "--animal-prod1-sticky-width": `${prod1StickyWidth}px`,
+                            "--animal-prod2-sticky-left": `${prod1StickyWidth}px`,
+                        }}
+                    >
                         {tableHeader}
                         <tbody>
                             {tableContent}

@@ -88,8 +88,8 @@ function ModalGraph({ onClose, graphtype, frmid, dataSetFarm, API_URL, username 
       <div className="modalgraph-buttons">
         <div className="modalgraph-header-left">
           <button onClick={closeModal} class="button"><img src="./icon/ui/cancel.png" alt="" className="resico" /></button>
-          <button onClick={handlePriceClick}>Prices</button>
-          <button onClick={handleSupplyClick}>Supply</button>
+          <button type="button" onClick={handlePriceClick} className={`graph-mode-btn ${vals === "price" ? "is-active" : ""}`}>Prices</button>
+          <button type="button" onClick={handleSupplyClick} className={`graph-mode-btn ${vals === "supply" ? "is-active" : ""}`}>Supply</button>
           <DList
             name="Graphstartdate"
             title="Graph period"
@@ -103,7 +103,7 @@ function ModalGraph({ onClose, graphtype, frmid, dataSetFarm, API_URL, username 
             onChange={handleChangeGraphdate}
             height={22}
           />
-          <button type="button" onClick={() => setLegendResetToken((prev) => prev + 1)}>Reset</button>
+          <button type="button" className="graph-mode-btn graph-mode-btn-reset" onClick={() => setLegendResetToken((prev) => prev + 1)}>Reset</button>
         </div>
         <div className="modalgraph-header-right">
           {GRAPH_CATEGORY_KEYS.map((category) => (

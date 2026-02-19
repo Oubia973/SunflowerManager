@@ -140,10 +140,10 @@ export default function CookTable() {
             }
         }, 750);
     }
-    if (farmData.inventory) {
+    if (dataSetFarm?.itables?.it && dataSetFarm?.itables?.food && dataSetFarm?.itables?.pfood && dataSetFarm?.itables?.fish && dataSetFarm?.itables?.bounty && dataSetFarm?.itables?.crustacean) {
         const { it, food, fish, bounty, pfood, crustacean } = dataSetFarm.itables;
         //const inventoryEntries = selectedQuantityCook === "farm" || "daily" || "dailymax" ? Object.entries(farmData.inventory) : Object.entries(farmData.inventory);
-        const inventoryEntries = Object.entries(farmData.inventory);
+        const inventoryMap = farmData?.inventory || {};
         const foodNames = Object.keys(food);
         const pfoodNames = Object.keys(pfood);
         const cookNames = [...foodNames, ...pfoodNames];
@@ -153,7 +153,7 @@ export default function CookTable() {
         const baseInventoryItems = cookNames.map(item => {
             const cobj = food[item] || pfood[item];
             const cobjCompo = flattenCompoit(cobj?.compoit);
-            const quantityInventory = inventoryEntries.find(([entryItem]) => entryItem === item)?.[1] || 0;
+            const quantityInventory = Number(inventoryMap[item] || 0);
             const quantity = Number((food[item] || pfood[item])?.instock ?? quantityInventory ?? 0);
             for (let compofood in cobjCompo) {
                 const compo = compofood;
@@ -462,6 +462,7 @@ export default function CookTable() {
                 style={{
                     position: "sticky",
                     top: "0px",
+                    left: "0px",
                     zIndex: 7,
                     display: "flex",
                     gap: "8px",

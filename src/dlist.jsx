@@ -20,6 +20,7 @@ export default function DList({
     clearable = false,
     iconOnly = false,
     menuMinWidth = null,
+    className = "",
 }) {
     const rootRef = useRef(null);
     const btnRef = useRef(null);
@@ -336,8 +337,14 @@ export default function DList({
             )
             : null;
 
+    const rootClassName =
+        "cd-root " +
+        (dense ? "cd-dense" : "") +
+        (iconOnly ? " dlist-icon-only" : "") +
+        (className ? ` ${className}` : "");
+
     return (
-        <div ref={rootRef} className={"cd-root " + (dense ? "cd-dense" : "")} style={rootStyle} data-open={open ? "1" : "0"}>
+        <div ref={rootRef} className={rootClassName} style={rootStyle} data-open={open ? "1" : "0"}>
             {title && (
                 <div className="cd-title">
                     {title}

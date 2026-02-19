@@ -10,7 +10,7 @@ export default function FlowerTable() {
             TryChecked,
         },
     } = useAppCtx();
-    if (farmData.inventory) {
+    if (dataSetFarm?.itables?.it && dataSetFarm?.itables?.flower) {
         const { it, flower } = dataSetFarm.itables;
         const flwrKeys = Object.keys(flower);
         const tableContent = flwrKeys.map(element => {

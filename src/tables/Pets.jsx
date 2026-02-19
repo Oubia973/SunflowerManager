@@ -82,7 +82,7 @@ export default function PetsTable() {
   };
   const getSelectedFetchListForPet = (petName, cat) => {
     const validItems = getFetchItemsForCat(cat);
-    const raw = petFetchSelection?.[petName] ?? petFetchSelection?.[cat];
+    const raw = petFetchSelection?.[petName];
     if (Array.isArray(raw)) return raw.filter((x) => validItems.includes(x));
     if (typeof raw === "string" && validItems.includes(raw)) return [raw];
     return [];
@@ -216,6 +216,7 @@ export default function PetsTable() {
           </button>
         );
       });
+      const hasRequestTooltip = petFeeds.length > 0 && requests.length > 0;
       return (
         <tr key={`${cat}-${rowPetName || "none"}`}>
           <td className="tdcenter" id="iccolumn">{catImg}</td>
@@ -229,9 +230,9 @@ export default function PetsTable() {
           {/* <td className="tdcenter" style={{ padding: "0 10px" }}>{petExp > 0 ? petExp : ""}</td> */}
           <td className="tdcenter tooltipcell" style={{ fontSize: "12px" }}>{petFeeds}</td>
           <td className="tdcenter" style={{ padding: "0 10px" }}>{totalNrg > 0 ? totalNrg : ""}</td>
-          <td className="tdcenter tooltipcell" style={{ padding: "0 10px" }} onClick={(e) => handleTooltip(requests, "cookcost", 1, e)}>
+          <td className="tdcenter tooltipcell" style={{ padding: "0 10px" }} onClick={hasRequestTooltip ? (e) => handleTooltip(requests, "cookcost", 1, e) : undefined}>
             {petFeeds.length ? frmtNb(foodCostTotal / dataSet.options.coinsRatio) : ""}</td>
-          <td className="tdcenter tooltipcell" style={{ padding: "0 10px" }} onClick={(e) => handleTooltip(requests, "cookcost", 1, e)}
+          <td className="tdcenter tooltipcell" style={{ padding: "0 10px" }} onClick={hasRequestTooltip ? (e) => handleTooltip(requests, "cookcost", 1, e) : undefined}
           >{petFeeds.length ? frmtNb(foodCostMTotal) : ""}</td>
           <td className="tdcenter" style={{ padding: "0 10px" }}>{petFeeds.length > 0 ? (energySfl > 0 ? frmtNb(energySfl) : "ꝏ") : ""}</td>
           <td className="tdcenter" style={{ padding: "0 10px" }}>{(energyMSfl > 0 && foodCostMTotal > 0) ? frmtNb(energyMSfl) : ""}</td>
@@ -344,7 +345,7 @@ export default function PetsTable() {
       const cinfo = petit[c] || {};
       const cimg = cinfo.img || "./icon/nft/na.png";
       const energy = cinfo.energy || 0;
-      const cost = ((cinfo[key("cost")] / dataSet.options.coinsRatio) !== cinfo.costp2pt) ? frmtNb(cinfo[key("cost")] / dataSet.options.coinsRatio) : 0;
+      const unitCost = Number(cinfo[key("cost")] || 0) / dataSet.options.coinsRatio;
       const cp2pt = cinfo.costp2pt || 0;
       const cstock = cinfo.instock || 0;
       const catArr = compToCats[c] || [];
@@ -356,13 +357,11 @@ export default function PetsTable() {
         for (let petName in Pets) {
           if (Pets[petName].cat === cat && Pets[petName].minNrgSfl) {
             const selectedListForPet = getSelectedFetchListForPet(petName, cat);
-            if (selectedListForPet.includes(c)) hasSelectedForComp = true;
-            if (selectedQuantFetch === "pets" || selectedQuantFetch === "petst") {
-              if (selectedListForPet.length === 0 || !selectedListForPet.includes(c)) continue;
-            }
+            const isSelectedForComp = selectedListForPet.includes(c);
+            if (isSelectedForComp) hasSelectedForComp = true;
+            if (!isSelectedForComp) continue;
             const ipetNrg = selectedQuantFetch === "pets" ? Pets[petName]?.[key("totnrg")] : selectedQuantFetch === "petst" ? Pets[petName]?.curnrg : 0;
-            let myield = (Pets[petName].lvl > 18 && c === "Acorn") ? 2 : 1;
-            myield += (Pets[petName].lvl > 60 && Pets[petName].type === "nft" && c !== "Acorn") ? 1 : 0;
+            const myield = Number(Pets[petName]?.yieldByItem?.[c] || 1);
             totalComp += ((ipetNrg || 0) / cinfo.energy) * myield;
             totalNrg += ipetNrg || 0;
           }
@@ -412,8 +411,58 @@ export default function PetsTable() {
             : customVal;
       //const iQuant = (selectedQuantFetch === "pets" || selectedQuantFetch === "petst") ? Math.floor(totalComp) : selectedQuantFetch === "stock" ? cstock : customQuantFetch[index];
       const iNrg = (selectedQuantFetch === "pets" || selectedQuantFetch === "petst") ? totalNrg : energy * iQuant;
-      const iCost = cost * iQuant;
+      const iCost = unitCost * iQuant;
       const iMarket = cp2pt * iQuant;
+      const producerPets = Object.entries(Pets || {})
+        .filter(([, petData]) => !!petData?.minNrgSfl && catArr.includes(petData?.cat))
+        .map(([petName, petData]) => {
+          const selectedListForPet = getSelectedFetchListForPet(petName, petData?.cat);
+          const isSelectedForComp = selectedListForPet.includes(c);
+          const contributesNow = isSelectedForComp;
+          const petEnergyNow = selectedQuantFetch === "pets"
+            ? Number(petData?.[key("totnrg")] || 0)
+            : selectedQuantFetch === "petst"
+              ? Number(petData?.curnrg || 0)
+              : 0;
+          const petEnergyBase = Number(petData?.[key("totnrg")] || petData?.curnrg || 0);
+          const petYield = Number(petData?.yieldByItem?.[c] || 1);
+          const petQtyNow = contributesNow && energy > 0 ? ((petEnergyNow / energy) * petYield) : 0;
+          const petReqCost = Number(petData?.[key("costsfl")] || 0) / dataSet.options.coinsRatio;
+          const petReqMarket = Number(petData?.costp2p || 0);
+          const reqEnergyTotal = Number(petData?.[key("totnrg")] || 0);
+          const reqDetails = Object.values(petData?.feeds || {}).map((feed) => ({
+            name: feed?.name || "",
+            img: feed?.img || "./icon/nft/na.png",
+            cost: Number(feed?.costsfl || 0) / dataSet.options.coinsRatio,
+            market: Number(feed?.costp2p || feed?.costp2pt || 0),
+          }));
+          return {
+            petName,
+            cat: petData?.cat || "",
+            isNft: petData?.type === "nft",
+            img: petData?.img || CATEGORY_IMG[petData?.cat] || "./icon/nft/na.png",
+            selected: isSelectedForComp,
+            contributesNow,
+            qtyNow: Number(petQtyNow || 0),
+            energyBase: Number(petEnergyBase || 0),
+            yieldBase: Number(petYield || 1),
+            reqCost: Number(petReqCost || 0),
+            reqMarket: Number(petReqMarket || 0),
+            reqEnergyTotal: Number(reqEnergyTotal || 0),
+            reqDetails,
+          };
+        });
+      const fetchCostTooltip = {
+        quantMode: selectedQuantFetch,
+        quantity: Number(iQuant || 0),
+        energyUnit: Number(energy || 0),
+        energyTotal: Number(iNrg || 0),
+        unitCost: Number(unitCost || 0),
+        totalCost: Number(iCost || 0),
+        unitMarket: Number(cp2pt || 0),
+        totalMarket: Number(iMarket || 0),
+        producers: producerPets,
+      };
       return (
         <tr key={c}>
           <td id="iccolumn"><img src={cimg} alt="" className="nodico" /></td>
@@ -431,7 +480,7 @@ export default function PetsTable() {
               /></td>) :
             (<td className="tdcenter">{selectedQuantFetch === "pets" ? Number(iQuant || 0).toFixed(2) : frmtNb(iQuant)}</td>) : ("")}
           <td className="tdcenter" style={{ padding: "0 10px" }}>{frmtNb(iNrg)}</td>
-          <td className="tdcenter" style={{ padding: "0 10px" }} onClick={(e) => handleTooltip(c, "fetchcost", 0, e)}>{iCost > 0 ? frmtNb(iCost) : ""}</td>
+          <td className="tdcenter tooltipcell" style={{ padding: "0 10px" }} onClick={(e) => handleTooltip(c, "fetchcost", fetchCostTooltip, e)}>{iCost > 0 ? frmtNb(iCost) : ""}</td>
           <td className="tdcenter" style={{ padding: "0 10px" }}>{frmtNb(iMarket)}</td>
           <td className="tdcenter">
             {c === "Moonfur"

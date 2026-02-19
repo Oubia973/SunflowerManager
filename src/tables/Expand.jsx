@@ -26,7 +26,7 @@ export default function ExpandTable() {
       imgExchng
     }
   } = useAppCtx();
-  if (farmData.inventory) {
+  if (dataSetFarm?.frmData?.expandData && dataSetFarm?.itables?.it && dataSet?.fromtoexpand?.expandData && dataSet?.fromtoexpand?.expand?.totalResources && dataSet?.fromtoexpand?.expand?.totalNodes) {
     const { expandData } = dataSetFarm.frmData;
     const { it } = dataSetFarm.itables;
     //const expEntries = Object.entries(expand);

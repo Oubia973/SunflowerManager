@@ -4,8 +4,9 @@ import { frmtNb, ColorValue } from '../fct.js';
 
 export default function HomeTable() {
     const [isBumpkinCooldown, setIsBumpkinCooldown] = useState(false);
+    const [isBumpkinRefreshing, setIsBumpkinRefreshing] = useState(false);
     const {
-        data: { dataSet, dataSetFarm },
+        data: { dataSet, dataSetFarm, bumpkinLoading },
         ui: {
             selectedInv,
             xListeColBounty,
@@ -37,6 +38,7 @@ export default function HomeTable() {
             const data = await response.json();
             let imageData = data.responseImage;
             dataSet.bumpkinImg = imageData;
+            dataSet.bumpkinImgFarmId = String(dataSet?.farmId ?? "");
         }
     }
     if (it) {
@@ -151,16 +153,26 @@ export default function HomeTable() {
                     {/* <img src="./path/to/your/image.png" alt="Farm" className="home-left-panel-image" /> */}
                     <div className="home-left-panel-image-wrap">
                         <img src={`${img}`} width="100%" alt="Bumpkin"></img>
+                        {(bumpkinLoading || isBumpkinRefreshing) && (
+                            <div className="bumpkin-loading-badge" title="Loading bumpkin image">
+                                <img src="./icon/ui/syncing.gif" alt="" />
+                            </div>
+                        )}
                         <button
                             type="button"
                             className="button small-btn bumpkin-refresh-btn"
-                            title={isBumpkinCooldown ? "Loading" : "Refresh bumpkin"}
-                            disabled={isBumpkinCooldown}
+                            title={isBumpkinCooldown ? "Cooldown 10s" : (bumpkinLoading || isBumpkinRefreshing) ? "Loading" : "Refresh bumpkin"}
+                            disabled={isBumpkinCooldown || bumpkinLoading || isBumpkinRefreshing}
                             onClick={async () => {
-                                if (isBumpkinCooldown) return;
+                                if (isBumpkinCooldown || bumpkinLoading || isBumpkinRefreshing) return;
                                 setIsBumpkinCooldown(true);
-                                await getBumpkin(dataSet);
-                                setTimeout(() => setIsBumpkinCooldown(false), 10000);
+                                setIsBumpkinRefreshing(true);
+                                try {
+                                    await getBumpkin(dataSet);
+                                } finally {
+                                    setIsBumpkinRefreshing(false);
+                                    setTimeout(() => setIsBumpkinCooldown(false), 10000);
+                                }
                             }}
                         >
                             <img src="./icon/ui/refresh.png" alt="" />

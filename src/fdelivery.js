@@ -172,6 +172,12 @@ function ModalDlvr({ onClose, tableData, imgtkt, coinsRatio }) {
     }
   } */
   function setDeliveries() {
+    if (!tableData || !tableData.orders || !tableData.chores || !tableData.bounties) {
+      settableDeliveries([]);
+      settableChores([]);
+      settableBounties([]);
+      return;
+    }
     const inventoryEntries = Object.entries(tableData.orders);
     let totCost = 0;
     let totCostp2p = 0;

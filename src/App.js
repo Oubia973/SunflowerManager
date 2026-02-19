@@ -502,6 +502,7 @@ function App() {
   const [dataSetFarm, setdataSetFarm] = useState({});
   const [options, setOptions] = useState({});
   const [bumpkinData, setBumpkinData] = useState([]);
+  const [bumpkinLoading, setBumpkinLoading] = useState(false);
   const [ftradesData, setftradesData] = useState(null);
   const [mutData, setmutData] = useState([]);
   const [GraphType, setGraphType] = useState('');
@@ -512,6 +513,7 @@ function App() {
   const [searchProgress, setSearchProgress] = useState(0);
   const [activeTimers, setActiveTimers] = useState([]);
   const pendingSaveRef = useRef(false);
+  const farmSectionHashesRef = useRef({});
   const [reqState, setReqState] = useState("");
   const [cdButton, setcdButton] = useState(false);
   const [iaLoading, setIaLoading] = useState(false);
@@ -1015,28 +1017,55 @@ function App() {
             //dataSet.options.tradeTax = responseData.tradeTax;
             if (!dataSet?.options?.tradeTax || dataSet?.options?.autoTradeTax) { dataSet.options.tradeTax = responseData.frmData.tradeTax; }
             if (dataSet?.options?.autoCoinRatio) { dataSet.options.coinsRatio = responseData.bestCoinRatio?.ratio || 0; }
-            if ((lastID !== curID || !dataSet.bumpkinImg)) {
-              const response = await fetch(API_URL + "/getbumpkin", {
-                method: 'GET',
-                headers: {
-                  //tokenuri: bumpkinData[0].tkuri,
-                  //bknid: 1, //bumpkinData[0].id,
-                  frmid: curID,
-                  username: dataSet.options.username,
-                  tknuri: dataSet.bumpkin.tkuri,
+            const shouldFetchBumpkin = (() => {
+              if (selectedInv !== "home") return false;
+              const currentFarmId = String(curID ?? "");
+              const memoryImgFarmId = String(dataSet?.bumpkinImgFarmId ?? "");
+              if (dataSet?.bumpkinImg && memoryImgFarmId === currentFarmId) return false;
+              try {
+                const storedDataRaw = localStorage.getItem("SFLManData");
+                if (!storedDataRaw) return true;
+                const storedData = JSON.parse(storedDataRaw);
+                const cachedFarmId = String(storedData?.dataSet?.options?.farmId ?? storedData?.lastID ?? "");
+                const cachedBumpkinImg = storedData?.dataSet?.bumpkinImg;
+                if (cachedBumpkinImg && cachedFarmId === currentFarmId) {
+                  dataSet.bumpkinImg = cachedBumpkinImg;
+                  dataSet.bumpkinImgFarmId = currentFarmId;
+                  return false;
                 }
-              });
-              if (response.ok) {
-                const data = await response.json();
-                //bkn = data.responseBumpkin;
-                let imageData = data.responseImage;
-                //imageData = await magentaToAlpha(imageData, { r: 255, g: 0, b: 255, tol: 24 });
-                //setImageData(`data:image/png;base64,${imageData}`);
-                //dataSet.bumpkinImg = `data:image/png;base64,${imageData}`;
-                dataSet.bumpkinImg = imageData;
-                //setBumpkinDataOC(data.responseBkn);
-                //bumpkinData[0].Bknlvl = data.Bknlvl;
+              } catch { }
+              return true;
+            })();
+            if (shouldFetchBumpkin) {
+              setBumpkinLoading(true);
+              try {
+                const response = await fetch(API_URL + "/getbumpkin", {
+                  method: 'GET',
+                  headers: {
+                    //tokenuri: bumpkinData[0].tkuri,
+                    //bknid: 1, //bumpkinData[0].id,
+                    frmid: curID,
+                    username: dataSet.options.username,
+                    tknuri: dataSet.bumpkin.tkuri,
+                  }
+                });
+                if (response.ok) {
+                  const data = await response.json();
+                  //bkn = data.responseBumpkin;
+                  let imageData = data.responseImage;
+                  //imageData = await magentaToAlpha(imageData, { r: 255, g: 0, b: 255, tol: 24 });
+                  //setImageData(`data:image/png;base64,${imageData}`);
+                  //dataSet.bumpkinImg = `data:image/png;base64,${imageData}`;
+                  dataSet.bumpkinImg = imageData;
+                  dataSet.bumpkinImgFarmId = String(curID ?? "");
+                  //setBumpkinDataOC(data.responseBkn);
+                  //bumpkinData[0].Bknlvl = data.Bknlvl;
+                }
+              } finally {
+                setBumpkinLoading(false);
               }
+            } else {
+              setBumpkinLoading(false);
             }
             setReqState('');
             setFarmData(responseData.frmData);
@@ -1099,6 +1128,7 @@ function App() {
         } catch (error) {
           //setReqState(`Error : ${response.status}`);
           //console.error("Error during fetchFarmData:", error);
+          setBumpkinLoading(false);
           setReqState(`Error : ${error.message}`);
           dataSet.updated = formatUpdated(farmData?.updated);
           const newdataSetFarm = { ...dataSetFarm };
@@ -1206,6 +1236,7 @@ function App() {
     dataSetFarm,
     farmData,
     bumpkinData,
+    bumpkinLoading,
     priceData,
     tooltipData
   }), [
@@ -1213,6 +1244,7 @@ function App() {
     dataSetFarm,
     farmData,
     bumpkinData,
+    bumpkinLoading,
     priceData,
     tooltipData
   ]);
@@ -1381,13 +1413,32 @@ function App() {
     }
   }
   async function getPrices(onlyPrices) {
+    const mergeFarmPayload = (prevFarm, nextFarm) => {
+      const prev = prevFarm || {};
+      const next = { ...(nextFarm || {}) };
+      delete next.sectionHashes;
+      delete next.unchangedSections;
+      const merged = { ...prev, ...next };
+      if (next.frmData) merged.frmData = { ...(prev.frmData || {}), ...next.frmData };
+      if (next.itables) merged.itables = { ...(prev.itables || {}), ...next.itables };
+      if (next.boostables) merged.boostables = { ...(prev.boostables || {}), ...next.boostables };
+      if (next.constants) merged.constants = { ...(prev.constants || {}), ...next.constants };
+      return merged;
+    };
     const tryItArrays = filterTryit(dataSetFarm, true);
+    const include = ["core", "inventory", "orders"];
+    if (["home", "animal", "cropmachine", "pet"].includes(selectedInv)) { include.push("yields"); }
+    if (["inv", "animal", "pet", "market", "activity", "map", "factions"].includes(selectedInv)) { include.push("boosts"); }
+    if (["market", "activity", "factions"].includes(selectedInv)) { include.push("trades"); }
+    if (selectedInv === "map") { include.push("map"); }
     let vHeaders = onlyPrices ? {
       onlyprices: "true",
     } : {
       frmid: curID,
       options: dataSet.options,
       tryitarrays: tryItArrays,
+      include: [...new Set(include)],
+      knownHashes: farmSectionHashesRef.current,
     };
     //console.log("dataSetFarm dans getPrices :", dataSetFarm);
     const response = await fetch(API_URL + "/getdatacrypto", {
@@ -1404,16 +1455,23 @@ function App() {
       const respData = responseData.allData;
       setpriceData(JSON.parse(JSON.stringify(responseData.priceData)));
       if (respData !== "" && respData !== undefined) {
+        if (respData?.sectionHashes && typeof respData.sectionHashes === "object") {
+          farmSectionHashesRef.current = {
+            ...(farmSectionHashesRef.current || {}),
+            ...respData.sectionHashes,
+          };
+        }
+        const mergedFarmData = mergeFarmPayload(dataSetFarm, respData);
         //setdataSetFarm(respData);
-        setFarmData(respData.frmData);
-        dataSet.options.isAbo = respData.isabo;
-        dataSet.isVip = respData.frmData.vip;
-        dataSet.dateVip = respData.frmData.datevip;
-        dataSet.dailychest = respData.frmData.dailychest;
-        dataSet.taxFreeSFL = frmtNb(respData.frmData.taxFreeSFL);
-        dataSet.bumpkin = respData.Bumpkin[0];
-        setBumpkinData(respData.Bumpkin);
-        const { frmData, expandData, Fish, taxFreeSFL } = respData;
+        setFarmData(mergedFarmData.frmData || {});
+        dataSet.options.isAbo = mergedFarmData.isabo;
+        dataSet.isVip = mergedFarmData?.frmData?.vip;
+        dataSet.dateVip = mergedFarmData?.frmData?.datevip;
+        dataSet.dailychest = mergedFarmData?.frmData?.dailychest;
+        dataSet.taxFreeSFL = frmtNb(mergedFarmData?.frmData?.taxFreeSFL);
+        dataSet.bumpkin = mergedFarmData?.Bumpkin?.[0];
+        setBumpkinData(mergedFarmData?.Bumpkin || []);
+        const { frmData, expandData, Fish, taxFreeSFL } = mergedFarmData;
         dataSet.balance = frmData.balance;
         dataSet.coins = frmData.coins;
         const balance = frmData.balance;
@@ -1451,9 +1509,9 @@ function App() {
         const xfishcost = Fish && ((!TryChecked ? Fish.CastCost : Fish.CastCosttry) / dataSet.options.coinsRatio);
         dataSet.fishcasts = Fish && (Fish.casts + "/" + xfishcastmax);
         dataSet.fishcosts = Fish && (parseFloat(Fish.casts * xfishcost).toFixed(3) + "/" + parseFloat(xfishcastmax * xfishcost).toFixed(3));
-        setdataSetFarm({ ...respData });
-        setdeliveriesData(respData.orderstable);
-        setfTrades(respData);
+        setdataSetFarm({ ...mergedFarmData });
+        setdeliveriesData(mergedFarmData?.orderstable || []);
+        setfTrades(mergedFarmData);
       }
       const priceData = responseData.priceData;
       const balanceUSD = frmtNb(Number(dataSet?.balance || 0) * Number(priceData[2]));
@@ -1700,7 +1758,7 @@ function App() {
                         el.disabled = false;
                         el.classList.remove("is-wait");
                         el.dataset.locked = "";
-                      }, 2000);
+                      }, 4000);
                     }}
                     //onClick={handleButtonClick}
                     className="button"
@@ -1843,9 +1901,22 @@ function App() {
                   options={pageOptions}
                   value={ui.selectedInv}
                   onChange={handleUIChange}
+                  className={selectedInv === "market" ? "header-market-select" : "header-page-select"}
                   width={130}
                   height={25}
                 />
+                {selectedInv === "animal" && (
+                  <DList
+                    name="selectedAnimalLvl"
+                    options={[
+                      { value: "farm", label: "Farm" },
+                      { value: "all", label: "All lvl" },
+                    ]}
+                    value={ui.selectedAnimalLvl}
+                    onChange={handleUIChange}
+                    height={20}
+                  />
+                )}
                 {selectedInv === "activity" && (
                   <DList
                     name="activityDisplay"
@@ -2074,7 +2145,7 @@ function App() {
           <AppCtx.Provider value={ctx}>
             <ModalDlvr
               onClose={() => { handleClosefDlvr() }}
-              tableData={deliveriesData}
+              tableData={dataSetFarm?.orderstable || deliveriesData}
               imgtkt={dataSet.imgtkt}
               coinsRatio={dataSet.options.coinsRatio}
             />
