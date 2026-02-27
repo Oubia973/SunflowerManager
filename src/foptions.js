@@ -3,6 +3,7 @@ import DropdownCheckbox from './listcol.js';
 import DList from "./dlist.jsx";
 import { FormControl, InputLabel, Select, MenuItem, Switch, FormControlLabel } from '@mui/material';
 import { frmtNb } from './fct.js';
+import { computeGemsRatio } from './gemsRatio.js';
 
 const imgna = "./icon/nft/na.png";
 const imgsfl = <img src="./icon/res/flowertoken.webp" style={{ width: "15px", height: "15px" }} />
@@ -13,7 +14,7 @@ function ModalOptions({ onClose, dataSet, onOptionChange, API_URL }) {
     const [isOpen, setIsOpen] = useState(false);
     const [justOpened, setJustOpened] = useState(true);
     const [tradeTax, setTradeTax] = useState(dataSet.tradeTax || "");
-    const [gemsPack, setGemsPack] = useState(Number(dataSet.gemsPack || 2800));
+    const [gemsPack, setGemsPack] = useState(Number(dataSet.gemsPack || 7400));
     const [draftOptions, setDraftOptions] = useState(() => ({
         inputFarmTime: String(dataSet.inputFarmTime ?? 15),
         inputMaxBB: String(dataSet.inputMaxBB ?? 1),
@@ -136,19 +137,8 @@ function ModalOptions({ onClose, dataSet, onOptionChange, API_URL }) {
         const gemPack = Number(e.target.value);
         setGemsPack(gemPack);
         dataSet.gemsPack = gemPack;
-        const usdFlwr = Number(dataSet.usdSfl) || 0;
-        let gemRatioValue = 0;
-        if (usdFlwr > 0) {
-            if (gemPack === 100) gemRatioValue = (0.9 / usdFlwr) / gemPack;
-            if (gemPack === 650) gemRatioValue = (4.54 / usdFlwr) / gemPack;
-            if (gemPack === 1350) gemRatioValue = (9.09 / usdFlwr) / gemPack;
-            if (gemPack === 2800) gemRatioValue = (18.19 / usdFlwr) / gemPack;
-            if (gemPack === 7400) gemRatioValue = (45.49 / usdFlwr) / gemPack;
-            if (gemPack === 15500) gemRatioValue = (90.99 / usdFlwr) / gemPack;
-            if (gemPack === 200000) gemRatioValue = (909.99 / usdFlwr) / gemPack;
-        }
+        const gemRatioValue = computeGemsRatio(gemPack, dataSet.usdSfl);
         dataSet.gemsRatio = gemRatioValue;
-        setGemRatio(gemRatioValue);
         onOptionChange({ target: { name: "GemsRatio", value: gemRatioValue } });
     }
     const handleClickOutside = (event) => {
@@ -186,6 +176,7 @@ function ModalOptions({ onClose, dataSet, onOptionChange, API_URL }) {
             animalLvl: { ...(dataSet.animalLvl || {}) },
         });
         setTradeTax(dataSet.tradeTax ?? "");
+        setGemsPack(Number(dataSet.gemsPack || 7400));
     }, [dataSet]);
     return (
         <div className={`tooltip-wrapper ${isOpen ? "open" : ""}`}
@@ -390,6 +381,8 @@ function ModalOptions({ onClose, dataSet, onOptionChange, API_URL }) {
                     name={"mergeAniProd"} style={{ width: "18px", height: "18px", marginRight: 12 }} />Set animals 2nd prod.cost to 0</div>
                 <div><input type="checkbox" onChange={onOptionChange} checked={!!dataSet.ignoreAniLvl}
                     name={"ignoreAniLvl"} style={{ width: "18px", height: "18px", marginRight: 12 }} />Ignore animals above selected lvl</div>
+                <div><input type="checkbox" onChange={onOptionChange} checked={!!dataSet.chumFishCost}
+                    name={"chumFishCost"} style={{ width: "18px", height: "18px", marginRight: 12 }} />Chum cost in Fish cost</div>
                 {dataSet.isAbo ? (<>
                 </>) : null}
                 <div>

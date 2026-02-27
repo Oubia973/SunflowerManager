@@ -152,6 +152,13 @@ function ModalDlvr({ onClose, tableData, imgtkt, coinsRatio }) {
     const isgems = rewardImg === imggems || String(rewardImg).includes("gem");
     return { rewardImg, quantreward: Number.isFinite(rewardQtyNum) ? rewardQtyNum : 0, istkt, issfl, iscoins, isgems };
   };
+  const getDeliveryRewardCategory = ({ iscoins, issfl, istkt, isgems }) => {
+    if (iscoins) { return "coins"; }
+    if (issfl) { return "sfl"; }
+    if (istkt) { return "ticket"; }
+    if (isgems) { return "gems"; }
+    return "other";
+  };
   const handleChangeCost = (event) => {
     const selectedValue = event.target.value;
     setSelectedCost(selectedValue);
@@ -189,7 +196,9 @@ function ModalDlvr({ onClose, tableData, imgtkt, coinsRatio }) {
     let totTKT = 0;
     let totCoins = 0;
     let totCoinsR = 0;
-    const inventoryItems = inventoryEntries.map(([item], index) => {
+    const deliveryCategoryTotals = {};
+    const deliveryRowsByCategory = {};
+    inventoryEntries.forEach(([item], index) => {
       //Object.values(tableData.orders).map((order, index) => (
       //const OrderItem = item[1];
       const OrderItem = tableData.orders[item];
@@ -198,7 +207,7 @@ function ModalDlvr({ onClose, tableData, imgtkt, coinsRatio }) {
       //const xtentacle = ofrom === "shelly" ? " (" + tableData.wklcth + "/8)" : "";
       xfrom = "./icon/pnj/" + ofrom + ".png";
       if (ofrom === "pumpkin' pete") { xfrom = "./icon/pnj/pumpkinpete.png" }
-      const { quantreward, istkt, issfl, iscoins } = getOrderRewardData(OrderItem);
+      const { rewardImg, quantreward, istkt, issfl, iscoins, isgems } = getOrderRewardData(OrderItem);
       const rewardQty = Number(quantreward || 0);
       const imgComplete = OrderItem.completed ? ximgyes : (OrderItem.instock || 0) > 0 ? ximgheart : ximgno;
       //const coinrewardconvertsfl = iscoins && quantreward + imgbcoins + '(' + quantreward / 320 + imgbsfl + ')';
@@ -223,6 +232,38 @@ function ModalDlvr({ onClose, tableData, imgtkt, coinsRatio }) {
       totCostR += addRatioDone ? costProd : 0;
       totCostp2pR += addRatioDone ? costp2pNum : 0;
       totCoinsR += addRatioDone ? rewardQty : 0;
+      const rewardCategory = getDeliveryRewardCategory({ iscoins, issfl, istkt, isgems });
+      if (!deliveryCategoryTotals[rewardCategory]) {
+        deliveryCategoryTotals[rewardCategory] = {
+          label: rewardCategory === "coins" ? "Coins" : rewardCategory === "sfl" ? "Flower" : rewardCategory === "ticket" ? "Chapter" : rewardCategory === "gems" ? "Gems" : "Other",
+          rewardImg: rewardCategory === "coins" ? imgcoins : rewardCategory === "sfl" ? imgsfl : rewardCategory === "ticket" ? imgtkt : rewardCategory === "gems" ? imggems : (rewardImg || imgna),
+          rewardDone: 0,
+          rewardTotal: 0,
+          costDone: 0,
+          costTotal: 0,
+          marketDone: 0,
+          marketTotal: 0,
+          coinsRewardDone: 0,
+          coinsCostDone: 0,
+          completedCount: 0,
+          totalCount: 0,
+        };
+      }
+      const catTotals = deliveryCategoryTotals[rewardCategory];
+      catTotals.totalCount += 1;
+      catTotals.rewardTotal += rewardQty;
+      catTotals.costTotal += costProd;
+      catTotals.marketTotal += costp2pNum;
+      if (OrderItem.completed) {
+        catTotals.completedCount += 1;
+        catTotals.rewardDone += rewardQty;
+        catTotals.costDone += costProd;
+        catTotals.marketDone += costp2pNum;
+      }
+      if (iscoins) {
+        catTotals.coinsRewardDone += OrderItem.completed ? rewardQty : 0;
+        catTotals.coinsCostDone += OrderItem.completed ? costProd : 0;
+      }
       if (OrderItem.completed) {
         totCost += costProd;
         totCostp2p += costp2pNum;
@@ -254,7 +295,7 @@ function ModalDlvr({ onClose, tableData, imgtkt, coinsRatio }) {
       if ((frmtNb(costp2p) === frmtNb(convRewardSfl)) && (!istkt)) {
         cellMarketStyle.backgroundColor = bakcYellow;
       }
-      return (
+      const rowElement = (
         <tr key={index}>
           <td id="iccolumn" className="tdcenter"><img src={xfrom} alt="" title={ofrom} style={{ width: '25px', height: '25px' }} /></td>
           <td className="tdcenter tooltipcell" onClick={(e) => handleTooltip(ofrom, "deliverycost", { items: orderItemsMap, market: selectedCost }, e)}>{renderOrderItems(orderItemsMap)}</td>
@@ -283,10 +324,55 @@ function ModalDlvr({ onClose, tableData, imgtkt, coinsRatio }) {
           <td className="tdcenter">{OrderItem.nbcompleted}</td>
           <td className="tdcenter">{OrderItem.nbskipped}</td>
         </tr>
-      )
-      //))
+      );
+      if (!deliveryRowsByCategory[rewardCategory]) {
+        deliveryRowsByCategory[rewardCategory] = [];
+      }
+      deliveryRowsByCategory[rewardCategory].push(rowElement);
     });
     const ratioCoins = (totCostR > 0 && totCoinsR > 0) ? frmtNb(totCoinsR / totCostR) : "";
+    const deliveryBodyRows = Object.entries(deliveryCategoryTotals)
+      .sort(([a], [b]) => {
+        const order = { coins: 0, sfl: 1, ticket: 2, gems: 3, other: 4 };
+        return (order[a] ?? 99) - (order[b] ?? 99);
+      })
+      .flatMap(([catKey, cat]) => {
+        const categoryRatio = cat.coinsCostDone > 0 ? frmtNb(cat.coinsRewardDone / cat.coinsCostDone) : "";
+        const totalCategoryRowStyle = { backgroundColor: 'rgba(128, 128, 128, 0.35)' };
+        const totalRow = (
+          <tr key={`delivery-total-${catKey}`} style={totalCategoryRowStyle}>
+            <td>{`${cat.label}`}</td>
+            <td></td>
+            <td className="tdcenter">{cat.completedCount}/{cat.totalCount}</td>
+            <td className="tdcenter">
+              {frmtNb(cat.rewardDone)}/{frmtNb(cat.rewardTotal)}
+              <img src={cat.rewardImg} alt="" title={cat.label} style={{ width: '14px', height: '14px', marginLeft: '4px' }} />
+            </td>
+            <td className="tdcenter">{frmtNb(cat.costDone)}/{frmtNb(cat.costTotal)}</td>
+            <td className="tdcenter">{frmtNb(cat.marketDone)}/{frmtNb(cat.marketTotal)}</td>
+            <td
+              className={`tdcenter${catKey === "coins" ? " tooltipcell" : ""}`}
+              onClick={catKey === "coins" ? (e) => handleTooltip(`total-${catKey}`, "deliveryratio", {
+                type: "total-category",
+                from: `TOTAL ${cat.label}`,
+                isCoinsReward: true,
+                rewardCoins: cat.coinsRewardDone,
+                rewardSfl: (cat.coinsRewardDone / coinsRatio),
+                cost: cat.coinsCostDone,
+                market: cat.marketDone,
+                ratio: (cat.coinsCostDone > 0 ? (cat.coinsRewardDone / cat.coinsCostDone) : 0)
+              }, e) : undefined}
+            >
+              {categoryRatio}
+            </td>
+            <td></td>
+            <td></td>
+            <td></td>
+            <td></td>
+          </tr>
+        );
+        return [totalRow, ...(deliveryRowsByCategory[catKey] || [])];
+      });
     const tableContent = (
       <>
         <table>
@@ -343,7 +429,7 @@ function ModalDlvr({ onClose, tableData, imgtkt, coinsRatio }) {
             </tr>
           </thead>
           <tbody>
-            {inventoryItems}
+            {deliveryBodyRows}
           </tbody>
         </table>
       </>

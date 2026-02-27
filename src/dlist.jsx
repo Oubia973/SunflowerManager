@@ -20,6 +20,7 @@ export default function DList({
     clearable = false,
     iconOnly = false,
     menuMinWidth = null,
+    maxListHeight = 450,
     className = "",
 }) {
     const rootRef = useRef(null);
@@ -104,13 +105,15 @@ export default function DList({
 
         const GAP = 6;
         const PAD = 8;
-        const MAX_LIST = 450;
+        const maxListCap = (typeof maxListHeight === "number" && Number.isFinite(maxListHeight) && maxListHeight > 0)
+            ? maxListHeight
+            : Infinity;
 
         const spaceBelow = window.innerHeight - (r.bottom + GAP) - PAD;
         const spaceAbove = (r.top - GAP) - PAD;
 
         const openDown = spaceBelow >= 180 || spaceBelow >= spaceAbove;
-        const maxListH = Math.max(120, Math.min(MAX_LIST, openDown ? spaceBelow : spaceAbove));
+        const maxListH = Math.max(120, Math.min(maxListCap, openDown ? spaceBelow : spaceAbove));
 
         const minWidthPx =
             menuMinWidth == null

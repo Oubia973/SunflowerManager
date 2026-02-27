@@ -1,4 +1,4 @@
-import React, { useEffect, useLayoutEffect, useMemo, useState, useRef } from 'react';
+﻿import React, { useEffect, useLayoutEffect, useMemo, useState, useRef } from 'react';
 import { frmtNb, convtimenbr, convTime, ColorValue, Timer } from '../fct.js';
 import TradesTooltip from './TradesTooltip.jsx';
 import TryNftTooltip from './TryNftTooltip.jsx';
@@ -385,7 +385,7 @@ const Tooltip = ({ onClose, item, context, value, clickPosition, dataSet, dataSe
                                     </React.Fragment>
                                 ) : null);
                         }); */
-                        const { table, totalCost, totalCostM } = setCompoTable(Item?.tool);
+                        const { table, totalCost, totalCostM } = setCompoTable(Item?.tool, 1, { forceFlatTool: true });
                         const toolCompo = table;
                         /* txtCost = (
                             <><div>{imgTool} cost {frmtNb(itemTool[sflortry])}{imgcoins}
@@ -1004,10 +1004,12 @@ const Tooltip = ({ onClose, item, context, value, clickPosition, dataSet, dataSe
                 : foodName === "Omnifeed"
                     ? imgomni
                     : (it?.[foodName]?.img || imgna);
-            const foodIcon = <img src={foodIconSrc} style={{ width: "16px", height: "16px" }} />;
+            const foodIcon = <img src={foodIconSrc} style={{ width: "22px", height: "22px" }} />;
             const isMixFood = foodName === "Mix" || foodName === "Mix Food";
             const mixFoodCompo = isMixFood ? setCompoTable("Mix Food", Number(foodQty || 0)) : null;
             const mixFoodTable = mixFoodCompo?.table || null;
+            const foodCycleCost = Number(value?.foodCycleCost ?? (Number(displayedCost || 0) * Number(yieldPerCycle || 0)));
+            const foodCycleMarketCost = Number(value?.foodCycleMarketCost ?? 0);
             const animalIconSrc = animalName === "Chicken"
                 ? "./icon/res/chkn.png"
                 : animalName === "Cow"
@@ -1023,7 +1025,7 @@ const Tooltip = ({ onClose, item, context, value, clickPosition, dataSet, dataSe
                     {(foodQty !== undefined && foodQty !== null) ? (
                         isMixFood
                             ? <div>{mixFoodTable}</div>
-                            : <div>{frmtNb(foodQty)} {foodIcon}</div>
+                            : <div>{foodIcon}x{frmtNb(foodQty)} cost {frmtNb(foodCycleCost)}{imgsfl} {imgmp}{frmtNb(foodCycleMarketCost)}{imgsfl}</div>
                     ) : null}
                     {(yieldPerCycle !== undefined && yieldPerCycle !== null) ? <div>{itemImg}x{frmtNb(yieldPerCycle)} per {animalIcon}</div> : null}
                     {(displayedCost !== undefined && displayedCost !== null) ? <div>Your production cost {frmtNb(displayedCost)}{imgsfl}</div> : null}
@@ -1123,6 +1125,36 @@ const Tooltip = ({ onClose, item, context, value, clickPosition, dataSet, dataSe
                     </>
                 );
             }
+            if (item === "gainh") {
+                txt = (
+                    <>
+                        <div>Estimated gain per hour in continuous mode</div>
+                        <div>Uses a 24/24 pace without stock, restock or farm-time limits</div>
+                        <div>Click an item value for details</div>
+                    </>
+                );
+            }
+        }
+        if (context === "gainh") {
+            const itemImg = <img src={Item?.img ?? imgna} alt={item ?? "?"} style={{ width: "22px", height: "22px" }} />;
+            const v = (value && typeof value === "object") ? value : {};
+            const gainPerHour = Number(v.gainH ?? Item[key("gainh")] ?? 0);
+            const dailyWithLimits = Number(v.dailySfl ?? Item[key("dailysfl")] ?? 0);
+            const growTime = Item[timeortry] || "00:00:00";
+            const harvestAvg = Number(Item[harvestortry] || 0);
+            const growHours = 24 * convtimenbr(growTime);
+            const harvestPerHour = growHours > 0 ? (harvestAvg / growHours) : 0;
+            const colorGainH = ColorValue(gainPerHour, 0, 1);
+            txt = (
+                <>
+                    <div>{itemImg} {item} gain/h</div>
+                    <div>Mode: 24/24 illimited restock</div>
+                    <div>Grow time: {growTime}</div>
+                    <div>Harvest average: {itemImg}x{frmtNb(harvestAvg)}</div>
+                    <div>Harvest/h: {itemImg}x{frmtNb(harvestPerHour)}</div>
+                    <div>Gain/h: <span style={{ color: colorGainH }}>{frmtNb(gainPerHour)}{imgsfl}</span></div>
+                </>
+            );
         }
         if (context === "trynft") {
             txt = <TryNftTooltip
@@ -1196,6 +1228,55 @@ const Tooltip = ({ onClose, item, context, value, clickPosition, dataSet, dataSe
         }
         if (context === "crustaceancost") {
             txt = <CompoTablesTooltip items={item} value={value} setCompoTable={setCompoTable} />;
+        }
+        if (context === "fishcost") {
+            const v = (value && typeof value === "object") ? value : {};
+            const qty = Number(v.qty ?? value ?? 1) || 1;
+            const myield = Number(v.fishMyield ?? fish?.[item]?.[key("myield")] ?? 1) || 1;
+            const includeChum = !!(v.includeChum ?? dataSet.options.chumFishCost);
+            const fishUnitCost = Number(v.fishUnitCost ?? 0);
+            const fishUnitMarket = Number(v.fishUnitMarket ?? 0);
+            const chumFallback = String(fish?.[item]?.chum || "").split("*").map((s) => String(s || "").trim()).filter(Boolean)[0] || "";
+            const chumName = v.chumName || fish?.[item]?.[key("cheaperchum")] || fish?.[item]?.cheaperchum || chumFallback;
+            const chumUnitCost = Number(v.chumUnitCost ?? (Number(fish?.[item]?.[key("cheaperchumCost")] ?? fish?.[item]?.cheaperchumCost ?? 0) / dataSet.options.coinsRatio));
+            const chumUnitMarket = Number(v.chumUnitMarket ?? (fish?.[item]?.[key("cheaperchumCostp2pt")] ?? fish?.[item]?.cheaperchumCostp2pt ?? 0));
+            const chumTotalCost = chumUnitCost * qty;
+            const chumTotalMarket = chumUnitMarket * qty;
+            const productionTotal = fishUnitCost * qty;
+            const productionTotalM = fishUnitMarket * qty;
+            const fishIconSrc = Item?.img ?? imgna;
+            const fishIcon = <img src={fishIconSrc} alt={item || "Fish"} style={{ width: "18px", height: "18px" }} />;
+            const rodIcon = <img src={tool?.["Rod"]?.img ?? imgna} alt="Rod" style={{ width: "18px", height: "18px" }} />;
+            const chumBase = [it, bounty, petit, fish].find((src) => src?.[chumName]);
+            const chumIconSrc = chumBase?.[chumName]?.img ?? imgna;
+            const chumIcon = <img src={chumIconSrc} alt={chumName || "Chum"} style={{ width: "16px", height: "16px" }} />;
+            const rodTree = { Rod: { qty: 1, compoit: { sfl: { qty: Number(tool?.["Rod"]?.[sflortry] ?? tool?.["Rod"]?.sfl ?? 0) } } } };
+            if (Number(tool?.["Rod"]?.Wood || 0) > 0) {
+                rodTree.Rod.compoit.Wood = { qty: Number(tool["Rod"].Wood) };
+            }
+            if (Number(tool?.["Rod"]?.Stone || 0) > 0) {
+                rodTree.Rod.compoit.Stone = { qty: Number(tool["Rod"].Stone) };
+            }
+            if (includeChum && chumName) {
+                const chumNode = { qty: 1 };
+                if (chumBase?.[chumName]?.compoit) {
+                    chumNode.compoit = chumBase[chumName].compoit;
+                }
+                rodTree[chumName] = chumNode;
+            }
+            const fishCompo = setCompoTable(item, qty, { compoit: rodTree, img: fishIconSrc, label: item });
+            const chumTxt = includeChum ? (
+                <div>Chum: {chumIcon} {chumName || "None"} {frmtNb(chumTotalCost)}{imgsfl} | {frmtNb(chumTotalMarket)}{imgmp}</div>
+            ) : null;
+            txt = (
+                <>
+                    {fishCompo?.table}
+                    {/* {chumTxt} */}
+                    <div></div>
+                    <div>{fishIcon}x{frmtNb(myield)} average per {rodIcon}</div>
+                    <div>Your production cost {frmtNb(productionTotal)}{imgsfl} | {frmtNb(productionTotalM)}{imgmp}</div>
+                </>
+            );
         }
         if (context === "market") {
             const itemImg = <img src={Item?.img ?? imgna} alt={item ?? "?"} style={{ width: "22px", height: "22px" }} />;
@@ -1295,6 +1376,8 @@ const Tooltip = ({ onClose, item, context, value, clickPosition, dataSet, dataSe
             const energyTotal = Number(v?.energyTotal || 0);
             const unitCost = Number(v?.unitCost || 0);
             const totalCost = Number(v?.totalCost || 0);
+            const unitProdMarket = Number(v?.unitProdMarket || 0);
+            const totalProdMarket = Number(v?.totalProdMarket || 0);
             const unitMarket = Number(v?.unitMarket || 0);
             const totalMarket = Number(v?.totalMarket || 0);
             const producers = Array.isArray(v?.producers) ? v.producers : [];
@@ -1323,11 +1406,15 @@ const Tooltip = ({ onClose, item, context, value, clickPosition, dataSet, dataSe
                         </span>
                     ));
                     const petReqCost = Number(p?.reqCost || 0);
+                    const petReqMarket = Number(p?.reqMarket || 0);
                     const petReqEnergyTotal = Number(p?.reqEnergyTotal || 0);
+                    const petEnergyNow = Number(p?.energyNow || 0);
                     const petLabel = p?.isNft ? (p?.cat || p?.petName || "") : (p?.petName || "");
                     const petYieldBase = Number(p?.yieldBase || 1);
                     const petQtyFromReqEnergy = (energyUnit > 0) ? ((petReqEnergyTotal / energyUnit) * petYieldBase) : 0;
                     const petCostPerUnit = petQtyFromReqEnergy > 0 ? (petReqCost / petQtyFromReqEnergy) : 0;
+                    const petMarketPerUnit = petQtyFromReqEnergy > 0 ? (petReqMarket / petQtyFromReqEnergy) : 0;
+                    const petQtyNow = Number(p?.qtyNow || 0);
                     return (
                         <div key={p.petName} style={{ marginTop: 6 }}>
                             <div style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
@@ -1335,13 +1422,21 @@ const Tooltip = ({ onClose, item, context, value, clickPosition, dataSet, dataSe
                                 <span>{petLabel}</span>
                             </div>
                             <div>{frmtNb(energyUnit)}{imgEnergy} for {petYieldBase}{itemImg}</div>
-                            <div>{reqLine.length ? reqLine : "N/A"} {reqLine.length ? <>{frmtNb(petReqCost)}{imgsfl}</> : null}
+                            <div>{reqLine.length ? reqLine : "N/A"} {reqLine.length ? <>{frmtNb(petReqCost)}{imgsfl} for {frmtNb(petReqEnergyTotal)}{imgEnergy}</> : null}
                             </div>
-                            <div>{frmtNb(petQtyFromReqEnergy)}{itemImg} with {frmtNb(petReqEnergyTotal)}{imgEnergy}</div>
-                            <div>{petQtyFromReqEnergy > 0 ? <>{frmtNb(petReqCost)}{imgsfl} / {frmtNb(petQtyFromReqEnergy)}{itemImg} = {frmtNb(petCostPerUnit)}{imgsfl}</> : "N/A"}</div>
+                            {/* <div>Cost basis: {frmtNb(petQtyFromReqEnergy)}{itemImg} with {frmtNb(petReqEnergyTotal)}{imgEnergy}</div> */}
+                            {/* {v?.quantMode === "petst" ? <div>Current: {frmtNb(petQtyNow)}{itemImg} with {frmtNb(petEnergyNow)}{imgEnergy}</div> : null} */}
+                            {/* <div>{petQtyFromReqEnergy > 0 ? <>{frmtNb(petReqCost)}{imgsfl} / {frmtNb(petQtyFromReqEnergy)}{itemImg} = {frmtNb(petCostPerUnit)}{imgsfl}</> : "N/A"}</div> */}
+                            <div>{itemImg}x1 cost {frmtNb(petCostPerUnit)}{imgsfl} | {frmtNb(petMarketPerUnit)}{imgmp}</div>
                         </div>
                     );
                 });
+            const showAverageLine = selectedProducers.length > 1 && quantity > 0;
+            const averageLine = showAverageLine ? (
+                <div style={{ marginTop: 6 }}>
+                    Average for all pets selected:
+                </div>
+            ) : null;
             const hasAnyProducer = producers.length > 0;
             txt = !hasAnyProducer ? (
                 <>
@@ -1353,7 +1448,9 @@ const Tooltip = ({ onClose, item, context, value, clickPosition, dataSet, dataSe
                     <div>{itemImg} {item} fetch cost</div>
                     {producerRows.length ? <div style={{ marginTop: 6 }}>Producers & requests:</div> : null}
                     {producerRows}
+                    {averageLine}
                     <div style={{ marginTop: 6 }}>Prod cost: {frmtNb(unitCost)}{imgsfl} x {frmtNb(quantity)} = {frmtNb(totalCost)}{imgsfl}</div>
+                    {totalProdMarket > 0 ? <div>Prod {imgmp}: {frmtNb(unitProdMarket)}{imgsfl} x {frmtNb(quantity)} = {frmtNb(totalProdMarket)}{imgsfl}</div> : null}
                     <div>Marketplace{imgmp}: {frmtNb(unitMarket)}{imgsfl} x {frmtNb(quantity)} = {frmtNb(totalMarket)}{imgsfl}</div>
                 </>
             );
@@ -1548,7 +1645,7 @@ const Tooltip = ({ onClose, item, context, value, clickPosition, dataSet, dataSe
                 function formatIAAnswerHTML(answer) {
                     return answer
                         .replace(/\\n/g, "\n")
-                        .replace(/\*\*(.*?)\*\*/g, "🔹 $1")
+                        .replace(/\*\*(.*?)\*\*/g, "ðŸ”¹ $1")
                         .trim();
                 }
                 const textIA = formatIAAnswerJSX(value);
@@ -1615,3 +1712,5 @@ const Tooltip = ({ onClose, item, context, value, clickPosition, dataSet, dataSe
 };
 
 export default Tooltip;
+
+

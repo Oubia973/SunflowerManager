@@ -12,7 +12,7 @@ export default function CropMachineTable() {
             customSeedCM,
             toCM,
             selectedSeedsCM,
-            xListeColBounty,
+            xListeColCropMachine,
             TryChecked,
         },
         actions: {
@@ -26,6 +26,8 @@ export default function CropMachineTable() {
         }
     } = useAppCtx();
     if (dataSetFarm?.itables?.it && dataSetFarm?.CropMachine && dataSet?.options) {
+        const cmCols = xListeColCropMachine || [];
+        const showCol = (idx) => cmCols?.[idx]?.[1] === 1;
         const { it } = dataSetFarm.itables;
         const Keys = Object.keys(it);
         const imgCoins = <img src={imgcoins} alt={''} className="itico" title="Coins" />;
@@ -42,6 +44,8 @@ export default function CropMachineTable() {
         let TotalProfit = 0;
         let TotalDailyProfit = 0;
         let TotalTime = 0;
+        const visibleDataColumnCount = [...Array(12).keys()].filter((idx) => showCol(idx)).length + ((showCol(12) && dataSet.options?.isAbo) ? 1 : 0);
+        const unavailableColSpan = 1 + visibleDataColumnCount;
         const tableContent = Keys.map((element, index) => {
             if ((it[element].cat !== "crop") || it[element].greenhouse) return null;
             if (element === actualLastCrop) { actualCMCrop = false; }
@@ -147,12 +151,12 @@ export default function CropMachineTable() {
             }
             return (
                 <>
-                    {(element === actualLastCrop) ? <tr><td colSpan={10} style={{ textAlign: "center", fontWeight: "bold" }}>
+                    {(element === actualLastCrop) ? <tr><td colSpan={unavailableColSpan} style={{ textAlign: "center", fontWeight: "bold" }}>
                         Not available yet, maybe in future updates
                     </td></tr> : null}
                     <tr key={index}>
                         <td id="iccolumn" className="cm-icon-sticky">{ico}</td>
-                        {xListeColBounty[2][1] === 1 ? <td className="tdcenter cm-check-sticky">{actualCMCrop ? (
+                        {showCol(0) ? <td className="tdcenter cm-check-sticky">{actualCMCrop ? (
                             < input
                                 type="checkbox"
                                 name={`toCM.${element}`}
@@ -160,9 +164,9 @@ export default function CropMachineTable() {
                                 onChange={handleUIChange}
                             />
                         ) : ""}</td> : null}
-                        {xListeColBounty[0][1] === 2 ? <td className="tditem">{itemName}</td> : null}
-                        {xListeColBounty[1][1] === 1 ? <td className="tdcenter">{itime}</td> : null}
-                        {xListeColBounty[2][1] === 1 ? selectedSeedsCM === "custom" ?
+                        {showCol(1) ? <td className="tditem">{itemName}</td> : null}
+                        {showCol(2) ? <td className="tdcenter">{itime}</td> : null}
+                        {showCol(3) ? selectedSeedsCM === "custom" ?
                             (<td className="tdcenter">
                                 <input
                                     type="text"
@@ -175,20 +179,19 @@ export default function CropMachineTable() {
                                 />
                             </td>) :
                             (<td className="tdcenter">{iseeds}</td>) : ("")}
-                        {/* {xListeColBounty[2][1] === 1 ? <td className="tdcenter">{nHarvest}</td> : null} */}
-                        {xListeColBounty[2][1] === 1 ? <td className="tdcenter">{frmtNb(harvestTotal)}</td> : null}
-                        {xListeColBounty[3][1] === 1 ? <td className="tdcenter">{frmtNb(iseedCost)}</td> : null}
-                        {xListeColBounty[4][1] === 1 ? <td className="tdcenter">{frmtNb(oilQuant)}</td> : null}
-                        {xListeColBounty[5][1] === 1 ? <td className="tdcenter">{frmtNb(oilCost)}</td> : null}
-                        {xListeColBounty[5][1] === 1 ? <td className="tdcenter">{frmtNb(iTotalCost)}</td> : null}
-                        {xListeColBounty[5][1] === 1 ? <td className="tdcenter">{frmtNb(icostm)}</td> : null}
-                        {xListeColBounty[5][1] === 1 ? <td className="tdcenter" style={cellStyle}>{frmtNb(profit)}</td> : null}
-                        {xListeColBounty[5][1] === 1 ? <td
+                        {showCol(4) ? <td className="tdcenter">{frmtNb(harvestTotal)}</td> : null}
+                        {showCol(5) ? <td className="tdcenter">{frmtNb(iseedCost)}</td> : null}
+                        {showCol(6) ? <td className="tdcenter">{frmtNb(oilQuant)}</td> : null}
+                        {showCol(7) ? <td className="tdcenter">{frmtNb(oilCost)}</td> : null}
+                        {showCol(8) ? <td className="tdcenter">{frmtNb(iTotalCost)}</td> : null}
+                        {showCol(9) ? <td className="tdcenter">{frmtNb(icostm)}</td> : null}
+                        {showCol(10) ? <td className="tdcenter" style={cellStyle}>{frmtNb(profit)}</td> : null}
+                        {showCol(11) ? <td
                             className="tdcenter tooltipcell"
                             style={cellStyleGH}
                             onClick={(e) => handleTooltip(itemName, "cmgainh", gainHTooltip, e)}
                         >{frmtNb(gainH)}</td> : null}
-                        {xListeColBounty[5][1] === 1 && dataSet.options?.isAbo ? <td
+                        {showCol(12) && dataSet.options?.isAbo ? <td
                             className="tdcenter tooltipcell"
                             style={cellStyleDaily}
                             title={dailyTitle}
@@ -211,10 +214,10 @@ export default function CropMachineTable() {
             <thead>
                 <tr>
                     <th className="th-icon cm-icon-sticky"></th>
-                    {xListeColBounty[0][1] === 1 ? <th className="thcenter cm-check-sticky"> </th> : null}
-                    {xListeColBounty[0][1] === 2 ? <th className="thcenter">Name</th> : null}
-                    {xListeColBounty[1][1] === 1 ? <th className="thcenter">Time</th> : null}
-                    {xListeColBounty[2][1] === 1 ? <th className="thcenter">
+                    {showCol(0) ? <th className="thcenter cm-check-sticky"> </th> : null}
+                    {showCol(1) ? <th className="thcenter">Name</th> : null}
+                    {showCol(2) ? <th className="thcenter">Time</th> : null}
+                    {showCol(3) ? <th className="thcenter">
                         {/* <div className="selectquantityback"><FormControl variant="standard" id="formselectquant" className="selectquant" size="small">
                             <InputLabel>Seeds</InputLabel>
                             <Select name="selectedSeedsCM" value={selectedSeedsCM} onChange={handleUIChange} onClick={(e) => e.stopPropagation()}>
@@ -235,31 +238,30 @@ export default function CropMachineTable() {
                             height={28}
                         />
                     </th> : null}
-                    {/* {xListeColBounty[2][1] === 1 ? <th className="thcenter">nHarvst</th> : null} */}
-                    {xListeColBounty[1][1] === 1 ? <th className="thcenter">Harvest <div>Average</div></th> : null}
-                    {xListeColBounty[3][1] === 1 ? <th className="thcenter"><div style={{ fontSize: "11px" }}>Harvest</div>Cost</th> : null}
-                    {xListeColBounty[4][1] === 1 ? <th className="thcenter">Oil {imgoil}</th> : null}
-                    {xListeColBounty[5][1] === 1 ? <th className="thcenter"><div style={{ fontSize: "11px" }}>Oil</div>Cost</th> : null}
-                    {xListeColBounty[5][1] === 1 ? <th className="thcenter"><div style={{ fontSize: "11px" }}>Total</div>Cost</th> : null}
-                    {xListeColBounty[5][1] === 1 ? <th className="thcenter">{imgExchng}</th> : null}
-                    {xListeColBounty[5][1] === 1 ? <th className="thcenter">Profit {imgSfl}</th> : null}
-                    {xListeColBounty[5][1] === 1 ? <th className="thcenter">Gain/h {imgSfl}</th> : null}
-                    {xListeColBounty[5][1] === 1 && dataSet.options?.isAbo ? <th className="thcenter">Daily SFL</th> : null}
+                    {showCol(4) ? <th className="thcenter">Harvest <div>Average</div></th> : null}
+                    {showCol(5) ? <th className="thcenter"><div style={{ fontSize: "11px" }}>Harvest</div>Cost</th> : null}
+                    {showCol(6) ? <th className="thcenter">Oil {imgoil}</th> : null}
+                    {showCol(7) ? <th className="thcenter"><div style={{ fontSize: "11px" }}>Oil</div>Cost</th> : null}
+                    {showCol(8) ? <th className="thcenter"><div style={{ fontSize: "11px" }}>Total</div>Cost</th> : null}
+                    {showCol(9) ? <th className="thcenter">{imgExchng}</th> : null}
+                    {showCol(10) ? <th className="thcenter">Profit {imgSfl}</th> : null}
+                    {showCol(11) ? <th className="thcenter">Gain/h {imgSfl}</th> : null}
+                    {showCol(12) && dataSet.options?.isAbo ? <th className="thcenter">Daily SFL</th> : null}
                 </tr><tr style={{ height: "25px" }}>
                     <td className="cm-icon-sticky"></td>
-                    {xListeColBounty[0][1] === 1 ? <td className="thcenter cm-check-sticky"> </td> : null}
-                    {xListeColBounty[0][1] === 2 ? <td className="thcenter"> </td> : null}
-                    {xListeColBounty[1][1] === 1 ? <td className="thcenter">{convTime(TotalTime)}</td> : null}
-                    {xListeColBounty[2][1] === 1 ? <td className="thcenter"> </td> : null}
-                    {xListeColBounty[1][1] === 1 ? <td className="thcenter"> </td> : null}
-                    {xListeColBounty[3][1] === 1 ? <td className="thcenter">{frmtNb(TotalSeedCost)}</td> : null}
-                    {xListeColBounty[4][1] === 1 ? <td className="thcenter">{frmtNb(TotalOil)}</td> : null}
-                    {xListeColBounty[5][1] === 1 ? <td className="thcenter">{frmtNb(TotalOilCost)}</td> : null}
-                    {xListeColBounty[5][1] === 1 ? <td className="thcenter">{frmtNb(TotalProd)}</td> : null}
-                    {xListeColBounty[5][1] === 1 ? <td className="thcenter">{frmtNb(TotalMarket)}</td> : null}
-                    {xListeColBounty[5][1] === 1 ? <td className="thcenter" style={cellStyleTP}>{frmtNb(TotalProfit)}</td> : null}
-                    {xListeColBounty[5][1] === 1 ? <td className="thcenter" style={cellStyleTGH}>{frmtNb(totalGainH)}</td> : null}
-                    {xListeColBounty[5][1] === 1 && dataSet.options?.isAbo ? <td className="thcenter" style={cellStyleTDP}>{frmtNb(TotalDailyProfit)}</td> : null}
+                    {showCol(0) ? <td className="thcenter cm-check-sticky"> </td> : null}
+                    {showCol(1) ? <td className="thcenter"> </td> : null}
+                    {showCol(2) ? <td className="thcenter">{convTime(TotalTime)}</td> : null}
+                    {showCol(3) ? <td className="thcenter"> </td> : null}
+                    {showCol(4) ? <td className="thcenter"> </td> : null}
+                    {showCol(5) ? <td className="thcenter">{frmtNb(TotalSeedCost)}</td> : null}
+                    {showCol(6) ? <td className="thcenter">{frmtNb(TotalOil)}</td> : null}
+                    {showCol(7) ? <td className="thcenter">{frmtNb(TotalOilCost)}</td> : null}
+                    {showCol(8) ? <td className="thcenter">{frmtNb(TotalProd)}</td> : null}
+                    {showCol(9) ? <td className="thcenter">{frmtNb(TotalMarket)}</td> : null}
+                    {showCol(10) ? <td className="thcenter" style={cellStyleTP}>{frmtNb(TotalProfit)}</td> : null}
+                    {showCol(11) ? <td className="thcenter" style={cellStyleTGH}>{frmtNb(totalGainH)}</td> : null}
+                    {showCol(12) && dataSet.options?.isAbo ? <td className="thcenter" style={cellStyleTDP}>{frmtNb(TotalDailyProfit)}</td> : null}
                 </tr>
             </thead>
         );

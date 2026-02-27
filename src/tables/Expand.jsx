@@ -1,8 +1,6 @@
 import React from "react";
 import { useAppCtx } from "../context/AppCtx";
-import { FormControl, InputLabel, Select, MenuItem } from '@mui/material';
 import { frmtNb, convTime } from '../fct.js';
-import DList from "../dlist.jsx";
 
 export default function ExpandTable() {
   const {
@@ -10,7 +8,6 @@ export default function ExpandTable() {
     ui: {
       fromexpand,
       toexpand,
-      selectedExpandType,
       xListeColExpand,
       TryChecked,
     },
@@ -109,7 +106,7 @@ export default function ExpandTable() {
       }
       return (
         <tr key={indexrow}>
-          {xListeColExpand[0][1] === 1 ? <td className="tdcenter">{i}</td> : null}
+          <td className="tdcenter expand-lvl-sticky">{i}</td>
           {xListeColExpand[1][1] === 1 ? <td className="tdcenter">{level}</td> : null}
           <td className="tdcenter">{imglvlfarm}</td>
           {xListeColExpand[2][1] === 1 ? <td className="tdcenter">
@@ -143,18 +140,18 @@ export default function ExpandTable() {
           {xListeColExpand[3][1] === 1 ? <td className="tdcenter">{nodBeehive}</td> : null}
           {xListeColExpand[3][1] === 1 ? <td className="tdcenter">{nodOil}</td> : null}
           {xListeColExpand[3][1] === 1 ? <td className="tdcenter">{nodLavapit}</td> : null}
-          {xListeColExpand[3][1] === 1 ? <td className="tdcenter">{time}</td> : null}
-          {xListeColExpand[4][1] === 1 ? <td className="tdcenter">{resWood}</td> : null}
-          {xListeColExpand[4][1] === 1 ? <td className="tdcenter">{resStone}</td> : null}
-          {xListeColExpand[4][1] === 1 ? <td className="tdcenter">{resIron}</td> : null}
-          {xListeColExpand[4][1] === 1 ? <td className="tdcenter">{resGold}</td> : null}
-          {xListeColExpand[4][1] === 1 ? <td className="tdcenter">{resCrimstone}</td> : null}
-          {xListeColExpand[4][1] === 1 ? <td className="tdcenter">{resOil}</td> : null}
-          {xListeColExpand[4][1] === 1 ? <td className="tdcenter">{resObsidian}</td> : null}
-          {xListeColExpand[4][1] === 1 ? <td className="tdcenter">{resBB}</td> : null}
-          {xListeColExpand[4][1] === 1 ? <td className="tdcenter">{resCoins}</td> : null}
-          {xListeColExpand[4][1] === 1 ? <td className="tdcenter">{frmtNb(resTotal)}</td> : null}
-          {xListeColExpand[4][1] === 1 ? <td className="tdcenter">{frmtNb(resTotalM)}</td> : null}
+          {xListeColExpand[4][1] === 1 ? <td className="tdcenter">{time}</td> : null}
+          {xListeColExpand[5][1] === 1 ? <td className="tdcenter">{resWood}</td> : null}
+          {xListeColExpand[5][1] === 1 ? <td className="tdcenter">{resStone}</td> : null}
+          {xListeColExpand[5][1] === 1 ? <td className="tdcenter">{resIron}</td> : null}
+          {xListeColExpand[5][1] === 1 ? <td className="tdcenter">{resGold}</td> : null}
+          {xListeColExpand[5][1] === 1 ? <td className="tdcenter">{resCrimstone}</td> : null}
+          {xListeColExpand[5][1] === 1 ? <td className="tdcenter">{resOil}</td> : null}
+          {xListeColExpand[5][1] === 1 ? <td className="tdcenter">{resObsidian}</td> : null}
+          {xListeColExpand[5][1] === 1 ? <td className="tdcenter">{resBB}</td> : null}
+          {xListeColExpand[5][1] === 1 ? <td className="tdcenter">{resCoins}</td> : null}
+          {xListeColExpand[6][1] === 1 ? <td className="tdcenter">{frmtNb(resTotal)}</td> : null}
+          {xListeColExpand[6][1] === 1 ? <td className="tdcenter">{frmtNb(resTotalM)}</td> : null}
         </tr>
       );
     });
@@ -178,29 +175,7 @@ export default function ExpandTable() {
     const tableHeader = (
       <thead>
         <tr>
-          {xListeColExpand[0][1] === 1 ? <th className="th-icon">
-            {/* <div className="selectquantback" style={{ top: `4px` }}><FormControl variant="standard" id="formselectquant" className="selectquant" size="small">
-              <InputLabel>LVL</InputLabel>
-              <Select name="selectedExpandType" value={selectedExpandType} onChange={handleUIChange}>
-                <MenuItem value="basic">Basic</MenuItem>
-                <MenuItem value="spring">Spring</MenuItem>
-                <MenuItem value="desert">Desert</MenuItem>
-                <MenuItem value="volcano">Volcan</MenuItem>
-              </Select></FormControl></div> */}
-              <DList
-                name="selectedExpandType"
-                title="LVL"
-                options={[
-                  { value: "basic", label: "Basic" },
-                  { value: "spring", label: "Spring" },
-                  { value: "desert", label: "Desert" },
-                  { value: "volcano", label: "Volcan" },
-                ]}
-                value={selectedExpandType}
-                onChange={handleUIChange}
-                height={28}
-              />
-              </th> : null}
+          <th className="thcenter expand-lvl-sticky">LVL</th>
           {xListeColExpand[1][1] === 1 ? <th className="thcenter">Bumpkin</th> : null}
           <th className="tdcenter">Farm</th>
           {xListeColExpand[2][1] === 1 ? <th className="thcenter">From</th> : null}
@@ -216,21 +191,21 @@ export default function ExpandTable() {
           {xListeColExpand[3][1] === 1 ? <th className="thcenter">{imgbeehivenode}</th> : null}
           {xListeColExpand[3][1] === 1 ? <th className="thcenter">{imgoilnode}</th> : null}
           {xListeColExpand[3][1] === 1 ? <th className="thcenter">{imglavapitnode}</th> : null}
-          {xListeColExpand[3][1] === 1 ? <th className="thcenter">Time</th> : null}
-          {xListeColExpand[4][1] === 1 ? <th className="thcenter">{imgwoodres}</th> : null}
-          {xListeColExpand[4][1] === 1 ? <th className="thcenter">{imgstoneres}</th> : null}
-          {xListeColExpand[4][1] === 1 ? <th className="thcenter">{imgironres}</th> : null}
-          {xListeColExpand[4][1] === 1 ? <th className="thcenter">{imggoldres}</th> : null}
-          {xListeColExpand[4][1] === 1 ? <th className="thcenter">{imgcrimstoneres}</th> : null}
-          {xListeColExpand[4][1] === 1 ? <th className="thcenter">{imgoilres}</th> : null}
-          {xListeColExpand[4][1] === 1 ? <th className="thcenter">{imgobsidianres}</th> : null}
-          {xListeColExpand[4][1] === 1 ? <th className="thcenter">{imgbbres}</th> : null}
-          {xListeColExpand[4][1] === 1 ? <th className="thcenter">{imgcoinres}</th> : null}
-          {xListeColExpand[4][1] === 1 ? <th className="thcenter">Value {imgsflres}</th> : null}
-          {xListeColExpand[4][1] === 1 ? <th className="thcenter">{imgExchng}</th> : null}
+          {xListeColExpand[4][1] === 1 ? <th className="thcenter">Time</th> : null}
+          {xListeColExpand[5][1] === 1 ? <th className="thcenter">{imgwoodres}</th> : null}
+          {xListeColExpand[5][1] === 1 ? <th className="thcenter">{imgstoneres}</th> : null}
+          {xListeColExpand[5][1] === 1 ? <th className="thcenter">{imgironres}</th> : null}
+          {xListeColExpand[5][1] === 1 ? <th className="thcenter">{imggoldres}</th> : null}
+          {xListeColExpand[5][1] === 1 ? <th className="thcenter">{imgcrimstoneres}</th> : null}
+          {xListeColExpand[5][1] === 1 ? <th className="thcenter">{imgoilres}</th> : null}
+          {xListeColExpand[5][1] === 1 ? <th className="thcenter">{imgobsidianres}</th> : null}
+          {xListeColExpand[5][1] === 1 ? <th className="thcenter">{imgbbres}</th> : null}
+          {xListeColExpand[5][1] === 1 ? <th className="thcenter">{imgcoinres}</th> : null}
+          {xListeColExpand[6][1] === 1 ? <th className="thcenter">Value {imgsflres}</th> : null}
+          {xListeColExpand[6][1] === 1 ? <th className="thcenter">{imgExchng}</th> : null}
         </tr>
         <tr>
-          {xListeColExpand[0][1] === 1 ? <td className="tdcenter">TOTAL</td> : null}
+          <td className="tdcenter expand-lvl-sticky">TOTAL</td>
           {xListeColExpand[1][1] === 1 ? <td className="tdcenter"></td> : null}
           <td className="tdcenter"></td>
           {xListeColExpand[2][1] === 1 ? <td className="tdcenter"></td> : null}
@@ -246,24 +221,24 @@ export default function ExpandTable() {
           {xListeColExpand[3][1] === 1 ? <td className="tdcenter">{fromtoexpand.expand.totalNodes.Beehive}</td> : null}
           {xListeColExpand[3][1] === 1 ? <td className="tdcenter">{fromtoexpand.expand.totalNodes.Oil}</td> : null}
           {xListeColExpand[3][1] === 1 ? <td className="tdcenter">{fromtoexpand.expand.totalNodes.Lavapit}</td> : null}
-          {xListeColExpand[3][1] === 1 ? <td className="tdcenter">{totTime}</td> : null}
-          {xListeColExpand[4][1] === 1 ? <td className="tdcenter">{fromtoexpand.expand.totalResources.Wood}</td> : null}
-          {xListeColExpand[4][1] === 1 ? <td className="tdcenter">{fromtoexpand.expand.totalResources.Stone}</td> : null}
-          {xListeColExpand[4][1] === 1 ? <td className="tdcenter">{fromtoexpand.expand.totalResources.Iron}</td> : null}
-          {xListeColExpand[4][1] === 1 ? <td className="tdcenter">{fromtoexpand.expand.totalResources.Gold}</td> : null}
-          {xListeColExpand[4][1] === 1 ? <td className="tdcenter">{fromtoexpand.expand.totalResources.Crimstone}</td> : null}
-          {xListeColExpand[4][1] === 1 ? <td className="tdcenter">{fromtoexpand.expand.totalResources.Oil}</td> : null}
-          {xListeColExpand[4][1] === 1 ? <td className="tdcenter">{fromtoexpand.expand.totalResources.Obsidian}</td> : null}
-          {xListeColExpand[4][1] === 1 ? <td className="tdcenter">{fromtoexpand.expand.totalResources["Block Buck"]}</td> : null}
-          {xListeColExpand[4][1] === 1 ? <td className="tdcenter">{fromtoexpand.expand.totalResources.Coins}</td> : null}
-          {xListeColExpand[4][1] === 1 ? <td className="tdcenter">{frmtNb(resTTotal)}</td> : null}
-          {xListeColExpand[4][1] === 1 ? <td className="tdcenter">{frmtNb(resTTotalM)}</td> : null}
+          {xListeColExpand[4][1] === 1 ? <td className="tdcenter">{totTime}</td> : null}
+          {xListeColExpand[5][1] === 1 ? <td className="tdcenter">{fromtoexpand.expand.totalResources.Wood}</td> : null}
+          {xListeColExpand[5][1] === 1 ? <td className="tdcenter">{fromtoexpand.expand.totalResources.Stone}</td> : null}
+          {xListeColExpand[5][1] === 1 ? <td className="tdcenter">{fromtoexpand.expand.totalResources.Iron}</td> : null}
+          {xListeColExpand[5][1] === 1 ? <td className="tdcenter">{fromtoexpand.expand.totalResources.Gold}</td> : null}
+          {xListeColExpand[5][1] === 1 ? <td className="tdcenter">{fromtoexpand.expand.totalResources.Crimstone}</td> : null}
+          {xListeColExpand[5][1] === 1 ? <td className="tdcenter">{fromtoexpand.expand.totalResources.Oil}</td> : null}
+          {xListeColExpand[5][1] === 1 ? <td className="tdcenter">{fromtoexpand.expand.totalResources.Obsidian}</td> : null}
+          {xListeColExpand[5][1] === 1 ? <td className="tdcenter">{fromtoexpand.expand.totalResources["Block Buck"]}</td> : null}
+          {xListeColExpand[5][1] === 1 ? <td className="tdcenter">{fromtoexpand.expand.totalResources.Coins}</td> : null}
+          {xListeColExpand[6][1] === 1 ? <td className="tdcenter">{frmtNb(resTTotal)}</td> : null}
+          {xListeColExpand[6][1] === 1 ? <td className="tdcenter">{frmtNb(resTTotalM)}</td> : null}
         </tr>
       </thead>
     );
     const table = (
       <>
-        <table className="table">
+        <table className="table expand-table">
           {tableHeader}
           <tbody>
             {tableContent}

@@ -16,6 +16,7 @@ import ExpandTable from "./Expand";
 import ActivityTable from "./Activity";
 import MarketTable from "./Market";
 import FactionsTable from "./Factions";
+import TopListsTable from "./TopListsLazy";
 
 export default function PanelTable() {
   const { ui: { selectedInv } } = useAppCtx();
@@ -35,6 +36,7 @@ export default function PanelTable() {
   if (selectedInv === "activity") return <ActivityTable />;
   if (selectedInv === "market") return <MarketTable />;
   if (selectedInv === "factions") return <FactionsTable />;
+  if (selectedInv === "toplists") return <TopListsTable />;
 
   return null;
 }

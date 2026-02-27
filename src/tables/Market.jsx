@@ -241,8 +241,8 @@ function TradesTable({ elements, dataSet, dataSetFarm, xListeColBounty }) {
       <table className="table">
         <thead>
           <tr>
-            {xListeColBounty?.[0]?.[1] === 1 ? <th className="thcenter">To</th> : null}
-            {xListeColBounty?.[0]?.[1] === 1 ? <th className="thcenter">From</th> : null}
+            {xListeColBounty?.[0]?.[1] === 1 ? <th className="thcenter">Seller</th> : null}
+            {xListeColBounty?.[0]?.[1] === 1 ? <th className="thcenter">Buyer</th> : null}
             {xListeColBounty?.[0]?.[1] === 1 ? <th className="thcenter">Type</th> : null}
             <th className="th-icon"></th>
             {xListeColBounty?.[0]?.[1] === 1 ? <th className="thcenter">Name</th> : null}

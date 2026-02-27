@@ -39,6 +39,7 @@ const BOOST_ITEM_CATEGORY_ALIASES = {
   flowers: "flower",
   fish: "fish",
   fishing: "fish",
+  cast: "fish",
   wood: "wood",
   tree: "wood",
   trees: "wood",
@@ -62,7 +63,17 @@ const BOOST_ITEM_CATEGORY_ALIASES = {
   buds: "bud",
   shrine: "shrine",
   shrines: "shrine",
+  dig: "dig",
+  digs: "dig",
+  digging: "dig",
+  treasure: "dig",
+  treasures: "dig",
+  bounty: "dig",
 };
+const NFT_PRICE_COLUMN_OPTIONS = [
+  { value: "opensea", label: "OpenSea", iconSrc: "./icon/ui/openseaico.png" },
+  { value: "market", label: "Market", iconSrc: "./icon/ui/exchange.png" },
+];
 
 function ModalTNFT({ onClose }) {
   const {
@@ -91,6 +102,7 @@ function ModalTNFT({ onClose }) {
   const [selectedBoostTab, setSelectedBoostTab] = useState("collectibles");
   const [boostTypeFilters, setBoostTypeFilters] = useState([]);
   const [boostCategoryFilters, setBoostCategoryFilters] = useState([]);
+  const [nftPriceCols, setNftPriceCols] = useState(["market"]);
   function key(name) {
     if (name === "active") { return TryChecked ? "tryit" : "isactive"; }
     return TryChecked ? name + "try" : name;
@@ -261,6 +273,23 @@ function ModalTNFT({ onClose }) {
     if (/cost|discount|price|cheaper/.test(txt)) { inferred.push("cost"); }
     return inferred;
   };
+  const inferCategoryTokens = (boostText) => {
+    const txt = String(boostText || "").toLowerCase();
+    const inferred = [];
+    if (/\b(fish|fishing|fisher|cast|rod|chum|school)\b/.test(txt)) { inferred.push("fish"); }
+    if (/\b(dig|digging|treasure|bounty|artifact|excavate|excavation)\b/.test(txt)) { inferred.push("dig"); }
+    if (/\b(crop|crops|seed|harvest)\b/.test(txt)) { inferred.push("crop"); }
+    if (/\b(fruit|fruits|tree|trees|orchard)\b/.test(txt)) { inferred.push("fruit"); }
+    if (/\b(flower|flowers|bloom|blossom)\b/.test(txt)) { inferred.push("flower"); }
+    if (/\b(mine|mining|mineral|stone|ore)\b/.test(txt)) { inferred.push("mineral"); }
+    if (/\b(animal|animals|barn|egg|milk|wool)\b/.test(txt)) { inferred.push("animal"); }
+    if (/\b(cook|cooking|food|meal|kitchen)\b/.test(txt)) { inferred.push("cook"); }
+    if (/\b(bee|bees|hive|honey)\b/.test(txt)) { inferred.push("bees"); }
+    if (/\b(compost|fertili[sz]er)\b/.test(txt)) { inferred.push("compost"); }
+    if (/\b(bud|buds)\b/.test(txt)) { inferred.push("bud"); }
+    if (/\b(shrine|shrines)\b/.test(txt)) { inferred.push("shrine"); }
+    return inferred;
+  };
   const resolveItemCategoryTokens = (boostItemTokens) => {
     const itables = dataSetLocal?.itables?.it || {};
     const itemCategoryIndex = {};
@@ -283,10 +312,15 @@ function ModalTNFT({ onClose }) {
       ...getBoostTokenList(value?.boosttype),
       ...inferTypeTokens(value?.boost),
     ];
-    const categoryRaw = [
+    const explicitCategoryRaw = [
       ...getBoostTokenList(value?.boostit),
       ...getBoostTokenList(value?.cat),
       ...getBoostTokenList(value?.scat),
+    ];
+    const inferredCategoryRaw = explicitCategoryRaw.length > 0 ? [] : inferCategoryTokens(value?.boost);
+    const categoryRaw = [
+      ...explicitCategoryRaw,
+      ...inferredCategoryRaw,
     ];
     const typeTokens = Array.from(new Set(typeRaw
       .map((token) => normalizeToken(token, BOOST_TYPE_ALIASES))
@@ -391,6 +425,12 @@ function ModalTNFT({ onClose }) {
   const handleBoostCategoryChange = (selectedValues) => {
     const values = (selectedValues || []).map((v) => String(v).toLowerCase());
     setBoostCategoryFilters(Array.from(new Set(values)));
+  };
+  const handleNftPriceColsChange = (selectedValues) => {
+    const values = (selectedValues || [])
+      .map((v) => String(v).toLowerCase())
+      .filter((v) => v === "opensea" || v === "market");
+    setNftPriceCols(Array.from(new Set(values)));
   };
   const handleTryitChange = (item, base, baseName) => {
     const boostables = dataSetLocal?.boostables ?? {};
@@ -638,6 +678,8 @@ function ModalTNFT({ onClose }) {
     const imgOS = <img src='./icon/ui/openseaico.png' alt={''} className="nftico" />;
     const imgexchng = <img src='./icon/ui/exchange.png' alt={''} className="nftico" />;
     const showTotal = (showNFTW || showNFT);
+    const showOpenSeaCol = showTotal && nftPriceCols.includes("opensea");
+    const showMarketCol = showTotal && nftPriceCols.includes("market");
     const toNum = (v) => Number(v) || 0;
     const isOn = (v) => v === 1 || v === true;
 
@@ -693,8 +735,8 @@ function ModalTNFT({ onClose }) {
             <td className="tdcenter">
               <input type="checkbox" className={'checkbox-disabled'} checked={value.isactive} />
             </td>
-            <td className="tdcenter">{value.price}</td>
-            <td className="tdcenter">{value.pricem || 0}</td>
+            {showOpenSeaCol ? (<td className="tdcenter">{value.price}</td>) : ("")}
+            {showMarketCol ? (<td className="tdcenter">{value.pricem || 0}</td>) : ("")}
             <td className="tdcenter tooltipcell" onClick={(e) => handleTooltip(item, "trynftsupply", "nft", e)}>{isupply}</td>
             <td className="tditemnft" style={{ color: `rgb(190, 190, 190)` }}>{value.boost}</td>
           </tr>
@@ -716,8 +758,8 @@ function ModalTNFT({ onClose }) {
             <td className="tdcenter">
               <input type="checkbox" className={'checkbox-disabled'} checked={valuew.isactive} />
             </td>
-            <td className="tdcenter">{valuew.price}</td>
-            <td className="tdcenter">{valuew.pricem || 0}</td>
+            {showOpenSeaCol ? (<td className="tdcenter">{valuew.price}</td>) : ("")}
+            {showMarketCol ? (<td className="tdcenter">{valuew.pricem || 0}</td>) : ("")}
             <td className="tdcenter tooltipcell" onClick={(e) => handleTooltip(itemw, "trynftsupply", "nftw", e)}>{isupplyw}</td>
             <td className="tditemnft" style={{ color: `rgb(190, 190, 190)` }}>{valuew.boost}</td>
           </tr>
@@ -877,6 +919,7 @@ function ModalTNFT({ onClose }) {
             <td className="tdcenter">
               <input type="checkbox" className={'checkbox-disabled'} checked={valueb.isactive} />
             </td>
+            <td className="tdcenter">{isupplyb}</td>
             <td className="tditemnft" width="500px" style={{ color: `rgb(190, 190, 190)` }}>{valueb.boost}</td>
           </tr>
         );
@@ -900,9 +943,9 @@ function ModalTNFT({ onClose }) {
             {/* <th className="tdcenter"> </th> */}
             <th className="tdcenter">Try</th>
             <th className="tdcenter" style={{ fontSize: "10px" }}>Active</th>
-            {showTotal ? (<th className="tdcenter">{imgOS}</th>) : ("")}
-            {showTotal ? (<th className="tdcenter">{imgexchng}</th>) : ("")}
-            {(showTotal || showCraft) ? (<th className="tdcenter">Supply</th>) : ("")}
+            {showOpenSeaCol ? (<th className="tdcenter">{imgOS}</th>) : ("")}
+            {showMarketCol ? (<th className="tdcenter">{imgexchng}</th>) : ("")}
+            {(showTotal || showCraft || showShrine) ? (<th className="tdcenter">Supply</th>) : ("")}
             <th style={{ width: `150px` }}>Boost</th>
           </tr>
           <tr key="total">
@@ -924,9 +967,9 @@ function ModalTNFT({ onClose }) {
             {/* <td className="tdcenter"></td> */}
             <td className="tdcenter">{(showTotal || showSkill) && parseFloat(totalCostToDisplay).toFixed(0)}</td>
             <td className="tdcenter">{showSkill ? parseFloat(totalCostactiv).toFixed(0) : ""}</td>
-            {showTotal ? (<td className="tdcenter">{parseFloat(totalCostactiv).toFixed(0)}</td>) : ("")}
-            {showTotal ? (<td className="tdcenter">{parseFloat(totalCostactivM).toFixed(0)}</td>) : ("")}
-            {(showTotal || showCraft) ? (<td></td>) : ("")}
+            {showOpenSeaCol ? (<td className="tdcenter">{parseFloat(totalCostactiv).toFixed(0)}</td>) : ("")}
+            {showMarketCol ? (<td className="tdcenter">{parseFloat(totalCostactivM).toFixed(0)}</td>) : ("")}
+            {(showTotal || showCraft || showShrine) ? (<td></td>) : ("")}
             <td></td>
           </tr>
         </thead>
@@ -944,7 +987,7 @@ function ModalTNFT({ onClose }) {
   useEffect(() => {
     setNFT(dataSetLocal);
     setContent(dataSetLocal.itables.it);
-  }, [dataSetLocal, TotalCostDisplay, TryChecked, selectedBoostTab, boostTypeFilters, boostCategoryFilters]);
+  }, [dataSetLocal, TotalCostDisplay, TryChecked, selectedBoostTab, boostTypeFilters, boostCategoryFilters, nftPriceCols]);
 
   const tableStyle = {
     flexDirection: tableFlexDirection,
@@ -1034,6 +1077,18 @@ function ModalTNFT({ onClose }) {
             </div>
           </div>
           <div style={viewBarStyle}>
+            <DList
+              options={NFT_PRICE_COLUMN_OPTIONS}
+              value={nftPriceCols}
+              multiple={true}
+              closeOnSelect={false}
+              emitEvent={false}
+              onChange={handleNftPriceColsChange}
+              listIcon="./options.png"
+              iconOnly={true}
+              height={28}
+              menuMinWidth={160}
+            />
             <button class="button"
               onClick={() => setTableFlexDirection(dir => dir === 'row' ? 'column' : 'row')}
             >
@@ -1135,3 +1190,5 @@ function timmeto1(inputTime) {
 }
 
 export default ModalTNFT;
+
+

@@ -6,9 +6,17 @@ export default function AnimalTable() {
     const prod1StickyContentRef = useRef(null);
     const [prod1StickyWidth, setProd1StickyWidth] = useState(52);
     const measureProdStickyWidth = () => {
-        const measured = prod1StickyContentRef.current?.scrollWidth || 0;
+        const measuredByRef = prod1StickyContentRef.current?.scrollWidth || 0;
+        let measuredByRows = 0;
+        if (typeof document !== "undefined") {
+            const prod1Nodes = document.querySelectorAll(".animal-table .animal-prod1-value");
+            prod1Nodes.forEach((node) => {
+                measuredByRows = Math.max(measuredByRows, node.scrollWidth || 0);
+            });
+        }
+        const measured = Math.max(measuredByRef, measuredByRows);
         if (measured > 0) {
-            setProd1StickyWidth(Math.ceil(measured) + 2);
+            setProd1StickyWidth(Math.ceil(measured) + 6);
         }
     };
     useEffect(() => {
@@ -189,6 +197,7 @@ export default function AnimalTable() {
                                 className="tdcenter animal-prod1-sticky"
                             >
                                 <span
+                                    className="animal-prod1-value"
                                     ref={isFirstAnimalTable && rowIndex === 0 ? prod1StickyContentRef : null}
                                     style={{ display: "inline-flex", alignItems: "center", gap: "2px" }}
                                 >
@@ -210,6 +219,8 @@ export default function AnimalTable() {
                                     yieldPerCycle: prod1,
                                     foodQty: food,
                                     foodName: foodname,
+                                    foodCycleCost: foodcostRaw,
+                                    foodCycleMarketCost: foodcostp2pRaw,
                                     currentLvl: xlvl,
                                     buyCropsCostU: prod1costuwithfoodp2pRaw,
                                     marketCostU: prod1costp2pRaw,
@@ -233,6 +244,8 @@ export default function AnimalTable() {
                                     yieldPerCycle: prod2,
                                     foodQty: food,
                                     foodName: foodname,
+                                    foodCycleCost: foodcostRaw,
+                                    foodCycleMarketCost: foodcostp2pRaw,
                                     currentLvl: xlvl,
                                     buyCropsCostU: prod2costuwithfoodp2pRaw,
                                     marketCostU: prod2costp2pRaw,

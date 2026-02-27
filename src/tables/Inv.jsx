@@ -228,7 +228,7 @@ export default function InvTable() {
                         const pTrad = buildngf[building].costp2pt;
                         return (
                             <tr key={index}>
-                                {xListeCol[0][1] === 1 ? (<td></td>) : ("")}
+                                {/* {xListeCol[0][1] === 1 ? (<td></td>) : ("")} */}
                                 <td id="iccolumn"><i><img src={ico} alt={''} className="itico" /></i></td>
                                 <td></td>
                                 <td style={{ display: 'none' }}></td>
@@ -273,7 +273,7 @@ export default function InvTable() {
                 <table className="table">
                     <thead>
                         <tr>
-                            {xListeCol[0][1] === 1 ? (<th className="thcenter tooltipcell" onClick={(e) => handleTooltip("hoard", "th", "", e)}>Hoard</th>) : ("")}
+                            {/* {xListeCol[0][1] === 1 ? (<th className="thcenter tooltipcell" onClick={(e) => handleTooltip("hoard", "th", "", e)}>Hoard</th>) : ("")} */}
                             <th className="th-icon">   </th>
                             <th className="thcenter">
                                 <DList
@@ -390,6 +390,8 @@ export default function InvTable() {
                                 <div>Daily {imgSFL}</div>
                                 <div><img src={imgexchng} alt={''} title="Marketplace" style={{ width: '20px', height: '20px' }} /></div>
                             </th>) : ("")}
+                            {xListeCol[21]?.[1] === 1 ? (<th className="thcenter tooltipcell"
+                                onClick={(e) => handleTooltip("gainh", "th", "", e)}>Gain/h</th>) : ("")}
                             {xListeCol[17][1] === 1 ? (<th className="thcenter tooltipcell" style={{ color: `rgb(160, 160, 160)` }}
                                 onClick={(e) => handleTooltip("dailymax", "th", "", e)}>DailyMax<div style={{ fontSize: "10px" }}>average</div></th>) : ("")}
                         </tr>
@@ -585,13 +587,13 @@ function setInvContent(sortedInventoryItems, totCost, totShop, totTrader, totNif
             const istock = cobj ? cobj.stock : 0;
             const ifrmit = cobj ? cobj.farmit : 0;
             const ibuyit = cobj ? cobj.buyit : 0;
-            const previousQuantity = Number(cobj?.prevstock || 0);
-            const pquant = previousQuantity;
+            // const previousQuantity = Number(cobj?.prevstock || 0);
+            // const pquant = previousQuantity;
             const itemQuantity = item === "Flower" ? it["Flower"].quant : quantity;
-            const difference = itemQuantity - pquant;
-            const absDifference = Math.abs(difference);
-            const isNegativeDifference = difference < 0;
-            const hoardPercentage = Math.floor((absDifference / maxh) * 100);
+            // const difference = itemQuantity - pquant;
+            // const absDifference = Math.abs(difference);
+            // const isNegativeDifference = difference < 0;
+            // const hoardPercentage = Math.floor((absDifference / maxh) * 100);
             const bswarm = item === "Honey" && it["Honey"].swarm;
             const needslove = (item === "Egg" || item === "Milk" || item === "Wool") && it[item].needlove;
             const issick = (item === "Egg" || item === "Milk" || item === "Wool") && it[item].issick;
@@ -787,6 +789,7 @@ function setInvContent(sortedInventoryItems, totCost, totShop, totTrader, totNif
             //const Dsfl = (xDsfl - convPricep) * dailyprodmx;
             //const Dsfl = cobj?.buyit ? 0 : (xDsfl - convPricep) * (!TryChecked ? iharvestdmax : iharvestdmaxtry);
             const Dsfl = (!TryChecked ? cobj.dailysfl : cobj.dailysfltry);
+            const gainH = (!TryChecked ? cobj.gainh : cobj.gainhtry) || 0;
             //const titleTrad = selectedQuant !== "unit" ? Math.ceil(iQuant / itradmax) + " * (" + itradmax + " * " + puTrad + " - 0.25$)" : "";
             const titleTrad = ""; // selectedQuant !== 'unit' ? frmtNb(Math.ceil(iQuant / itradmax)) + ` x (${frmtNb(itradmax)} x ${frmtNb(puTrad)}) - ${frmtNb(TaxTradSfl)}SFL(0.25$)` : "";
             const titleNifty = ""; // selectedQuant !== "unit" ? frmtNb(iQuant * 0.7) + " x " + frmtNb(puNifty) + " - 5%" : "";
@@ -854,18 +857,9 @@ function setInvContent(sortedInventoryItems, totCost, totShop, totTrader, totNif
             return (
                 <>
                     <tr key={xIndex}>
-                        {xListeCol[0][1] === 1 ? (<td style={cellStyle}>
+                        {/* {xListeCol[0][1] === 1 ? (<td style={cellStyle}>
                             {PBar(itemQuantity, previousQuantity, maxh, 0)}
-                            {/* {maxh > 0 && (
-                                <div className={`progress-bar ${isNegativeDifference ? 'negative' : ''}`}>
-                                    <div className="progress" style={{ width: `${hoardPercentage}%` }}>
-                                        <span className="progress-text">
-                                            {isNegativeDifference ? `-${parseFloat(absDifference).toFixed(0)}` : `${parseFloat(difference).toFixed(0)}/${parseFloat(maxh > 1000 ? (maxh / 1000) : maxh).toFixed(0)}${maxh > 1000 ? "k" : ""}`}
-                                        </span>
-                                    </div>
-                                </div>
-                            )} */}
-                        </td>) : ("")}
+                        </td>) : ("")} */}
                         <td id="iccolumn" style={cellStyle}><i><img src={ico} alt={''} className="itico" /></i></td>
                         <td style={cellStyle}>
                             {xSeasonImg.map((value, index) => {
@@ -947,6 +941,10 @@ function setInvContent(sortedInventoryItems, totCost, totShop, totTrader, totNif
                         {xListeCol[16][1] === 1 ? (<td className="tdcenter tooltipcell" style={{ ...cellStyle, ...cellDSflStyle }}
                             title={titleDsfl} onClick={(e) => handleTooltip(item, "dailysfl", costp, e)}>
                             {parseFloat(Dsfl).toFixed(2)}</td>) : ("")}
+                        {xListeCol[21]?.[1] === 1 ? (<td className="tdcenter tooltipcell"
+                            onClick={(e) => handleTooltip(item, "gainh", { gainH: gainH, dailySfl: Dsfl }, e)}
+                            style={{ ...cellStyle, color: ColorValue(gainH, 0, 1) }}>
+                            {parseFloat(gainH).toFixed(2)}</td>) : ("")}
                         {xListeCol[17][1] === 1 ? (<td className="tdcenter" style={{ ...cellStyle, color: `rgb(160, 160, 160)` }}>{parseFloat(dailyprodmx).toFixed(2)}</td>) : ("")}
                     </tr>
                 </>
@@ -989,7 +987,7 @@ function isItemOnSelectedSeason(itemObj, selectedSeason) {
 function renderInvTotalCells({ xListeCol, selectedQuantity, totals, tprctN, tprctO }) {
     return (
         <>
-            {xListeCol[0][1] === 1 ? (<td className="ttcenter">TOTAL</td>) : ("")}
+            {/* {xListeCol[0][1] === 1 ? (<td className="ttcenter">TOTAL</td>) : ("")} */}
             <td className="td-icon">   </td>
             <td></td>
             <td style={{ display: 'none' }}>ID</td>
@@ -1018,6 +1016,7 @@ function renderInvTotalCells({ xListeCol, selectedQuantity, totals, tprctN, tprc
             {xListeCol[19][1] === 1 ? (<td className="ttcenter"></td>) : ("")}
             {xListeCol[15][1] === 1 ? (<td className="ttcenter" style={{ color: `rgb(160, 160, 160)` }}></td>) : ("")}
             {xListeCol[16][1] === 1 ? (<td className="ttcenter"></td>) : ("")}
+            {xListeCol[21]?.[1] === 1 ? (<td className="ttcenter"></td>) : ("")}
             {xListeCol[17][1] === 1 ? (<td className="ttcenter" style={{ color: `rgb(160, 160, 160)` }}></td>) : ("")}
         </>
     );
@@ -1054,6 +1053,8 @@ function getInvSortValue(sortBy, item, quantity, it, tryChecked, selectedPChange
             return Number(obj.tobharvest) || 0;
         case "dailysfl":
             return Number(tryChecked ? obj.dailysfltry : obj.dailysfl) || 0;
+        case "gainh":
+            return Number(tryChecked ? obj.gainhtry : obj.gainh) || 0;
         case "ready":
             return Number(obj.rdyat) || 0;
         case "pricechange":

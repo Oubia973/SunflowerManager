@@ -11,7 +11,8 @@ import Tooltip from "./tooltip/Tooltip.jsx";
 import DList from "./dlist.jsx";
 //import CounterInput from "./counterinput.js";
 import { FormControl, InputLabel, Select, MenuItem, Switch, FormControlLabel } from '@mui/material';
-import { frmtNb, filterTryit, formatUpdated } from './fct.js';
+import { frmtNb, filterTryit, formatUpdated, UpdatedSince } from './fct.js';
+import { computeGemsRatio } from './gemsRatio.js';
 
 import { AppCtx } from "./context/AppCtx";
 import PanelTable from "./tables/PanelTable";
@@ -89,9 +90,10 @@ const INV_COLUMNS_TEMPLATE = [
   ['Profit %', 1],
   ['When ready', 1],
   ['Price change', 1],
+  ['Gain/h', 0],
 ];
 const INV_COLUMNS_PICKER = [
-  { idx: 0, label: 'Hoard' },
+  // { idx: 0, label: 'Hoard' },
   { idx: 1, label: 'Item name' },
   { idx: 2, label: 'Quantity' },
   { idx: 3, label: 'Time' },
@@ -109,6 +111,7 @@ const INV_COLUMNS_PICKER = [
   { idx: 18, label: 'Profit %' },
   { idx: 19, label: 'When ready' },
   { idx: 20, label: 'Price change' },
+  { idx: 21, label: 'Gain/h' },
 ];
 const INV_SORT_OPTIONS_TEMPLATE = [
   { value: "none", label: "Default", idx: null },
@@ -125,6 +128,7 @@ const INV_SORT_OPTIONS_TEMPLATE = [
   { value: "harvest", label: "Harvest", idx: 13 },
   { value: "toharvest", label: "ToHarvest", idx: 14 },
   { value: "dailysfl", label: "Daily Flower", idx: 16 },
+  { value: "gainh", label: "Gain/h", idx: 21 },
   { value: "ready", label: "Ready", idx: 19 },
   { value: "pricechange", label: "Price change", idx: 20 },
 ];
@@ -183,12 +187,13 @@ const FISH_COLUMNS_TEMPLATE = [
   ['Percent by category', 1],
   ['XP', 1],
   ['Cost', 1],
+  ['Market', 1],
   ['XP/Flower', 1],
 ];
 const FISH_COLUMNS_PICKER = [
   { idx: 0, label: 'Category' },
   //{ idx: 1, label: 'Location' },
-  { idx: 2, label: 'Hoard' },
+  // { idx: 2, label: 'Hoard' },
   { idx: 3, label: 'Fish' },
   { idx: 4, label: 'Bait' },
   { idx: 5, label: 'Quantity' },
@@ -199,7 +204,8 @@ const FISH_COLUMNS_PICKER = [
   { idx: 10, label: '% by category' },
   { idx: 11, label: 'XP' },
   { idx: 12, label: 'Cost' },
-  { idx: 13, label: 'XP/Flower' },
+  { idx: 13, label: 'Market' },
+  { idx: 14, label: 'XP/Flower' },
 ];
 const CRUSTA_COLUMNS_TEMPLATE = [
   ['Tool', 1],
@@ -215,7 +221,7 @@ const CRUSTA_COLUMNS_TEMPLATE = [
 ];
 const CRUSTA_COLUMNS_PICKER = [
   { idx: 0, label: 'Tool' },
-  { idx: 1, label: 'Hoard' },
+  // { idx: 1, label: 'Hoard' },
   { idx: 2, label: 'Crustacean' },
   { idx: 3, label: 'Stock' },
   { idx: 4, label: 'Caught' },
@@ -224,6 +230,121 @@ const CRUSTA_COLUMNS_PICKER = [
   { idx: 7, label: 'Market' },
   { idx: 8, label: 'Grow' },
   { idx: 9, label: 'Ready' },
+];
+const PET_PETS_COLUMNS_TEMPLATE = [
+  ['Pet', 1],
+  ['Fetch', 1],
+  ['Supply', 1],
+  ['Lvl', 1],
+  ['Aura', 1],
+  ['Bib', 1],
+  ['Current Energy', 1],
+  ['Requests', 1],
+  ['Energy', 1],
+  ['Cost', 1],
+  ['Marketplace', 1],
+  ['Energy/SFL', 1],
+  ['Energy/Marketplace', 1],
+];
+const PET_PETS_COLUMNS_PICKER = [
+  { idx: 0, label: 'Pet' },
+  { idx: 1, label: 'Fetch' },
+  { idx: 2, label: 'Supply' },
+  { idx: 3, label: 'Lvl' },
+  { idx: 4, label: 'Aura' },
+  { idx: 5, label: 'Bib' },
+  { idx: 6, label: 'Current Energy' },
+  { idx: 7, label: 'Requests' },
+  { idx: 8, label: 'Energy' },
+  { idx: 9, label: 'Cost' },
+  { idx: 10, label: 'Marketplace' },
+  { idx: 11, label: 'Energy/SFL' },
+  { idx: 12, label: 'Energy/Marketplace' },
+];
+const PET_SHRINES_COLUMNS_TEMPLATE = [
+  ['Shrine', 1],
+  ['Components', 1],
+  ['Time', 1],
+  ['Cost', 1],
+  ['Marketplace', 1],
+  ['Supply', 1],
+  ['Boost', 1],
+];
+const PET_SHRINES_COLUMNS_PICKER = [
+  { idx: 0, label: 'Shrine' },
+  { idx: 1, label: 'Components' },
+  { idx: 2, label: 'Time' },
+  { idx: 3, label: 'Cost' },
+  { idx: 4, label: 'Marketplace' },
+  { idx: 5, label: 'Supply' },
+  { idx: 6, label: 'Boost' },
+];
+const PET_COMPONENTS_COLUMNS_TEMPLATE = [
+  ['Component', 1],
+  ['Quantity', 1],
+  ['Energy', 1],
+  ['Cost', 1],
+  ['Prod Marketplace', 1],
+  ['Marketplace', 1],
+  ['Fetched by', 1],
+  ['Used in Shrines', 1],
+];
+const PET_COMPONENTS_COLUMNS_PICKER = [
+  { idx: 0, label: 'Component' },
+  { idx: 1, label: 'Quantity' },
+  { idx: 2, label: 'Energy' },
+  { idx: 3, label: 'Cost' },
+  { idx: 4, label: 'Prod Marketplace' },
+  { idx: 5, label: 'Marketplace' },
+  { idx: 6, label: 'Fetched by' },
+  { idx: 7, label: 'Used in Shrines' },
+];
+const CROPMACHINE_COLUMNS_TEMPLATE = [
+  ['Select', 1],
+  ['Name', 1],
+  ['Time', 1],
+  ['Seeds', 1],
+  ['Harvest Average', 1],
+  ['Harvest Cost', 1],
+  ['Oil', 1],
+  ['Oil Cost', 1],
+  ['Total Cost', 1],
+  ['Marketplace', 1],
+  ['Profit', 1],
+  ['Gain/h', 1],
+  ['Daily SFL', 1],
+];
+const CROPMACHINE_COLUMNS_PICKER = [
+  { idx: 0, label: 'Select' },
+  { idx: 1, label: 'Name' },
+  { idx: 2, label: 'Time' },
+  { idx: 3, label: 'Seeds' },
+  { idx: 4, label: 'Harvest Avg' },
+  { idx: 5, label: 'Harvest Cost' },
+  { idx: 6, label: 'Oil' },
+  { idx: 7, label: 'Oil Cost' },
+  { idx: 8, label: 'Total Cost' },
+  { idx: 9, label: 'Marketplace' },
+  { idx: 10, label: 'Profit' },
+  { idx: 11, label: 'Gain/h' },
+  { idx: 12, label: 'Daily SFL' },
+];
+const EXPAND_COLUMNS_TEMPLATE = [
+  ['Level', 1],
+  ['Bumpkin', 1],
+  ['From / To', 1],
+  ['Nodes', 1],
+  ['Time', 1],
+  ['Resources', 1],
+  ['Value', 1],
+];
+const EXPAND_COLUMNS_PICKER = [
+  { idx: 1, label: 'Bumpkin' },
+  { idx: 2, label: 'From / To' },
+  { idx: 3, label: 'Nodes' },
+  { idx: 4, label: 'Time' },
+  { idx: 5, label: 'Resources' },
+  { idx: 6, label: 'Value' },
 ];
 const ACTIVITY_COLUMNS_TEMPLATE = [
   ['From', 1],
@@ -309,6 +430,8 @@ function App() {
     customQuantFetch: {},
     petFetchSelection: {},
     petFetchSelectionInitDone: false,
+    petRequestSelection: {},
+    petRequestSelectionInitDone: false,
     cstPrices: {},
     toCM: {},
     selectedHomeBlocks: {},
@@ -317,6 +440,10 @@ function App() {
     xListeColCook: COOK_COLUMNS_TEMPLATE,
     xListeColFish: FISH_COLUMNS_TEMPLATE,
     xListeColCrusta: CRUSTA_COLUMNS_TEMPLATE,
+    xListeColCropMachine: CROPMACHINE_COLUMNS_TEMPLATE,
+    xListeColPetPets: PET_PETS_COLUMNS_TEMPLATE,
+    xListeColPetShrines: PET_SHRINES_COLUMNS_TEMPLATE,
+    xListeColPetComponents: PET_COMPONENTS_COLUMNS_TEMPLATE,
     xListeColFlower: [['Seed', 1],
     ['Flower name', 1],
     ['Breeding', 1],
@@ -341,11 +468,7 @@ function App() {
     ['Prod 2 Cost P2P', 1],
     ['1 love', 1],
     ['2 love', 1]],
-    xListeColExpand: [['From / To', 1],
-    ['LVL requirement', 1],
-    ['Ressources requirement', 1],
-    ['Nodes', 1],
-    ['Cost', 1]],
+    xListeColExpand: EXPAND_COLUMNS_TEMPLATE,
     xListeColActivity: ACTIVITY_COLUMNS_TEMPLATE,
     xListeColActivityItem: ACTIVITY_ITEM_COLUMNS_TEMPLATE,
     xListeColActivityQuest: ACTIVITY_QUEST_COLUMNS_TEMPLATE,
@@ -364,7 +487,14 @@ function App() {
       const enabled = cur && (cur[1] === 1 || cur[1] === 0) ? cur[1] : tpl[1];
       return [tpl[0], enabled];
     });
-    const currentFishCols = Array.isArray(next.xListeColFish) ? next.xListeColFish : [];
+    const currentFishColsRaw = Array.isArray(next.xListeColFish) ? next.xListeColFish : [];
+    const currentFishCols = currentFishColsRaw.length === 14
+      ? [
+        ...currentFishColsRaw.slice(0, 13),
+        ['Market', 1],
+        currentFishColsRaw[13],
+      ]
+      : currentFishColsRaw;
     next.xListeColFish = FISH_COLUMNS_TEMPLATE.map((tpl, i) => {
       const cur = Array.isArray(currentFishCols[i]) ? currentFishCols[i] : null;
       const enabled = cur && (cur[1] === 1 || cur[1] === 0) ? cur[1] : tpl[1];
@@ -373,6 +503,47 @@ function App() {
     const currentCrustaCols = Array.isArray(next.xListeColCrusta) ? next.xListeColCrusta : [];
     next.xListeColCrusta = CRUSTA_COLUMNS_TEMPLATE.map((tpl, i) => {
       const cur = Array.isArray(currentCrustaCols[i]) ? currentCrustaCols[i] : null;
+      const enabled = cur && (cur[1] === 1 || cur[1] === 0) ? cur[1] : tpl[1];
+      return [tpl[0], enabled];
+    });
+    const currentExpandColsRaw = Array.isArray(next.xListeColExpand) ? next.xListeColExpand : [];
+    const currentExpandCols = currentExpandColsRaw.length === 5
+      ? [
+        currentExpandColsRaw[0], // Level
+        currentExpandColsRaw[1], // Bumpkin
+        currentExpandColsRaw[2], // From/To
+        currentExpandColsRaw[3], // Nodes
+        currentExpandColsRaw[3], // Time (legacy was tied to Nodes)
+        currentExpandColsRaw[4], // Resources
+        currentExpandColsRaw[4], // Value (legacy was tied to Resources)
+      ]
+      : currentExpandColsRaw;
+    next.xListeColExpand = EXPAND_COLUMNS_TEMPLATE.map((tpl, i) => {
+      const cur = Array.isArray(currentExpandCols[i]) ? currentExpandCols[i] : null;
+      const enabled = i === 0 ? 1 : (cur && (cur[1] === 1 || cur[1] === 0) ? cur[1] : tpl[1]);
+      return [tpl[0], enabled];
+    });
+    const currentCropMachineCols = Array.isArray(next.xListeColCropMachine) ? next.xListeColCropMachine : [];
+    next.xListeColCropMachine = CROPMACHINE_COLUMNS_TEMPLATE.map((tpl, i) => {
+      const cur = Array.isArray(currentCropMachineCols[i]) ? currentCropMachineCols[i] : null;
+      const enabled = cur && (cur[1] === 1 || cur[1] === 0) ? cur[1] : tpl[1];
+      return [tpl[0], enabled];
+    });
+    const currentPetPetsCols = Array.isArray(next.xListeColPetPets) ? next.xListeColPetPets : [];
+    next.xListeColPetPets = PET_PETS_COLUMNS_TEMPLATE.map((tpl, i) => {
+      const cur = Array.isArray(currentPetPetsCols[i]) ? currentPetPetsCols[i] : null;
+      const enabled = cur && (cur[1] === 1 || cur[1] === 0) ? cur[1] : tpl[1];
+      return [tpl[0], enabled];
+    });
+    const currentPetShrinesCols = Array.isArray(next.xListeColPetShrines) ? next.xListeColPetShrines : [];
+    next.xListeColPetShrines = PET_SHRINES_COLUMNS_TEMPLATE.map((tpl, i) => {
+      const cur = Array.isArray(currentPetShrinesCols[i]) ? currentPetShrinesCols[i] : null;
+      const enabled = cur && (cur[1] === 1 || cur[1] === 0) ? cur[1] : tpl[1];
+      return [tpl[0], enabled];
+    });
+    const currentPetComponentsCols = Array.isArray(next.xListeColPetComponents) ? next.xListeColPetComponents : [];
+    next.xListeColPetComponents = PET_COMPONENTS_COLUMNS_TEMPLATE.map((tpl, i) => {
+      const cur = Array.isArray(currentPetComponentsCols[i]) ? currentPetComponentsCols[i] : null;
       const enabled = cur && (cur[1] === 1 || cur[1] === 0) ? cur[1] : tpl[1];
       return [tpl[0], enabled];
     });
@@ -492,6 +663,57 @@ function App() {
       .map((c) => String(c.idx)),
     [ui?.xListeColCrusta]
   );
+  const cropMachinePickerOptions = useMemo(
+    () => CROPMACHINE_COLUMNS_PICKER.map((c) => ({ value: String(c.idx), label: c.label })),
+    []
+  );
+  const cropMachinePickerValue = useMemo(
+    () => CROPMACHINE_COLUMNS_PICKER
+      .filter((c) => ui?.xListeColCropMachine?.[c.idx]?.[1] === 1)
+      .map((c) => String(c.idx)),
+    [ui?.xListeColCropMachine]
+  );
+  const expandPickerOptions = useMemo(
+    () => EXPAND_COLUMNS_PICKER.map((c) => ({ value: String(c.idx), label: c.label })),
+    []
+  );
+  const expandPickerValue = useMemo(
+    () => EXPAND_COLUMNS_PICKER
+      .filter((c) => ui?.xListeColExpand?.[c.idx]?.[1] === 1)
+      .map((c) => String(c.idx)),
+    [ui?.xListeColExpand]
+  );
+  const activePetColumnsPicker = useMemo(() => {
+    if (ui?.petView === "shrines") {
+      return {
+        template: PET_SHRINES_COLUMNS_TEMPLATE,
+        picker: PET_SHRINES_COLUMNS_PICKER,
+        stateKey: "xListeColPetShrines",
+      };
+    }
+    if (ui?.petView === "components") {
+      return {
+        template: PET_COMPONENTS_COLUMNS_TEMPLATE,
+        picker: PET_COMPONENTS_COLUMNS_PICKER,
+        stateKey: "xListeColPetComponents",
+      };
+    }
+    return {
+      template: PET_PETS_COLUMNS_TEMPLATE,
+      picker: PET_PETS_COLUMNS_PICKER,
+      stateKey: "xListeColPetPets",
+    };
+  }, [ui?.petView]);
+  const petPickerOptions = useMemo(
+    () => (activePetColumnsPicker?.picker || []).map((c) => ({ value: String(c.idx), label: c.label })),
+    [activePetColumnsPicker]
+  );
+  const petPickerValue = useMemo(
+    () => (activePetColumnsPicker?.picker || [])
+      .filter((c) => ui?.[activePetColumnsPicker?.stateKey]?.[c.idx]?.[1] === 1)
+      .map((c) => String(c.idx)),
+    [activePetColumnsPicker, ui]
+  );
   useEffect(() => {
     const current = ui?.cookSortBy || "none";
     if (!cookSortOptions.some((o) => o.value === current)) {
@@ -509,10 +731,12 @@ function App() {
   const [deliveriesData, setdeliveriesData] = useState([]);
   const [priceData, setpriceData] = useState([]);
   const [tooltipData, setTooltipData] = useState(null);
+  const [expandLoading, setExpandLoading] = useState(false);
   const progressTimerRef = useRef(null);
   const [searchProgress, setSearchProgress] = useState(0);
   const [activeTimers, setActiveTimers] = useState([]);
   const pendingSaveRef = useRef(false);
+  const expandRequestSeqRef = useRef(0);
   const farmSectionHashesRef = useRef({});
   const [reqState, setReqState] = useState("");
   const [cdButton, setcdButton] = useState(false);
@@ -1338,7 +1562,7 @@ function App() {
       if (dataSetTrades.itables === undefined) return;
       const { it, fish, flower } = dataSetTrades.itables;
       const { nft, nftw } = dataSetTrades.boostables;
-      const data = Object.values(ftrades);
+      const data = Object.values(ftrades).sort((a, b) => Number(Boolean(b?.fulfilledAt)) - Number(Boolean(a?.fulfilledAt)));
       const vegetableNames = data.map((entry) => Object.keys(entry.items)[0]);
       //const vegetablePrices = data.map((entry) => Object.values(entry.items)[0]);
       const exchangeimg = <img src={imgexchng} alt="" className="itico" title="Listings" />;
@@ -1429,8 +1653,11 @@ function App() {
     const include = ["core", "inventory", "orders"];
     if (["home", "animal", "cropmachine", "pet"].includes(selectedInv)) { include.push("yields"); }
     if (["inv", "animal", "pet", "market", "activity", "map", "factions"].includes(selectedInv)) { include.push("boosts"); }
-    if (["market", "activity", "factions"].includes(selectedInv)) { include.push("trades"); }
+    include.push("trades");
     if (selectedInv === "map") { include.push("map"); }
+    if (selectedInv === "toplists") { include.push("toplists"); }
+    const knownHashes = { ...(farmSectionHashesRef.current || {}) };
+    delete knownHashes.trades;
     let vHeaders = onlyPrices ? {
       onlyprices: "true",
     } : {
@@ -1438,7 +1665,7 @@ function App() {
       options: dataSet.options,
       tryitarrays: tryItArrays,
       include: [...new Set(include)],
-      knownHashes: farmSectionHashesRef.current,
+      knownHashes,
     };
     //console.log("dataSetFarm dans getPrices :", dataSetFarm);
     const response = await fetch(API_URL + "/getdatacrypto", {
@@ -1486,10 +1713,13 @@ function App() {
           dataSet.options.coinsRatio = responseData?.bestCoinRatio?.ratio || dataSet.options.coinsRatio;
           refreshOptions = true;
         }
-        if (respData?.gemsRatio > 0) {
-          dataSet.options.gemsRatio = frmData.gemsRatio;
+        const nextGemsRatio = computeGemsRatio(
+          dataSet?.options?.gemsPack || 7400,
+          dataSet?.options?.usdSfl
+        );
+        if (nextGemsRatio > 0 && Number(dataSet?.options?.gemsRatio || 0) !== nextGemsRatio) {
+          dataSet.options.gemsRatio = nextGemsRatio;
           refreshOptions = true;
-          //console.log("update gemsRatio");
         }
         if (refreshOptions) {
           const newOptions = { ...dataSet.options };
@@ -1519,6 +1749,15 @@ function App() {
       const usdwithdraw = frmtNb(Number(dataSet?.sflwithdraw || 0) * Number(priceData[2]));
       dataSet.usdwithdraw = usdwithdraw;
       dataSet.options.usdSfl = responseData.priceData[2];
+      const nextGemsRatio = computeGemsRatio(
+        dataSet?.options?.gemsPack || 7400,
+        dataSet?.options?.usdSfl
+      );
+      if (nextGemsRatio > 0 && Number(dataSet?.options?.gemsRatio || 0) !== nextGemsRatio) {
+        const newOptions = { ...dataSet.options, gemsRatio: nextGemsRatio };
+        dataSet.options = newOptions;
+        setOptions(newOptions);
+      }
       //NFTPrice();
       //xinitprc = true;
       setReqState('');
@@ -1715,6 +1954,7 @@ function App() {
     { value: "map", label: "Map", iconSrc: "./icon/ui/world.png" },
     { value: "expand", label: "Expand", iconSrc: "./icon/tools/hammer.png" },
     { value: "factions", label: "Factions", iconSrc: "./icon/ui/factions.webp" },
+    { value: "toplists", label: "Lists", iconSrc: "./icon/ui/trophy.png" },
     { value: "market", label: "Market", iconSrc: imgexchng },
     ...(dataSet.options.isAbo
       ? [{ value: "activity", label: "Activity", iconSrc: "./icon/ui/stopwatch.png" }]
@@ -1799,7 +2039,7 @@ function App() {
                 pointerEvents: 'none',
                 fontSize: '9px',
                 color: 'gray',
-              }}>{dataSet?.updated || ""}</div>
+              }}>{farmData?.updated ? (<UpdatedSince unixTime={farmData?.updated} />) : ""}</div>
               {farmData.balance ? (
                 <div className="vertical" style={{ transform: 'translate(105px, 0%)' }}>
                   <div className="horizontal">
@@ -1904,6 +2144,7 @@ function App() {
                   className={selectedInv === "market" ? "header-market-select" : "header-page-select"}
                   width={130}
                   height={25}
+                  maxListHeight={null}
                 />
                 {selectedInv === "animal" && (
                   <DList
@@ -1930,18 +2171,111 @@ function App() {
                     height={20}
                   />
                 )}
-                {selectedInv === "pet" && (
+                {selectedInv === "expand" && (
+                  <>
+                    <DList
+                      name="selectedExpandType"
+                      title="Island"
+                      options={[
+                        { value: "basic", label: "Basic" },
+                        { value: "spring", label: "Spring" },
+                        { value: "desert", label: "Desert" },
+                        { value: "volcano", label: "Volcan" },
+                      ]}
+                      value={ui.selectedExpandType}
+                      onChange={handleUIChange}
+                      height={20}
+                    />
+                    {expandLoading ? (
+                      <img
+                        src="./icon/ui/syncing.gif"
+                        alt="Loading island data"
+                        className="itico"
+                        style={{ width: 14, height: 14, opacity: 0.9 }}
+                      />
+                    ) : null}
+                    <DList
+                      options={expandPickerOptions}
+                      value={expandPickerValue}
+                      multiple={true}
+                      closeOnSelect={false}
+                      emitEvent={false}
+                      onChange={(selectedValues) => {
+                        const selectedSet = new Set((selectedValues || []).map(String));
+                        const next = (ui.xListeColExpand || EXPAND_COLUMNS_TEMPLATE).map((col, idx) => {
+                          const isPickerCol = EXPAND_COLUMNS_PICKER.some((c) => c.idx === idx);
+                          if (!isPickerCol) return col;
+                          return [col[0], selectedSet.has(String(idx)) ? 1 : 0];
+                        });
+                        setUIField("xListeColExpand", next);
+                      }}
+                      listIcon="./options.png"
+                      iconOnly={true}
+                      height={28}
+                      menuMinWidth={220}
+                    />
+                  </>
+                )}
+                {selectedInv === "cropmachine" && (
                   <DList
-                    name="petView"
-                    options={[
-                      { value: "pets", label: "Pets", iconSrc: imgpet },
-                      { value: "shrines", label: "Shrines", iconSrc: imgshrine },
-                      { value: "components", label: "Fetch", iconSrc: imgacorn },
-                    ]}
-                    value={ui.petView}
-                    onChange={handleUIChange}
-                    height={20}
+                    options={cropMachinePickerOptions}
+                    value={cropMachinePickerValue}
+                    multiple={true}
+                    closeOnSelect={false}
+                    emitEvent={false}
+                    onChange={(selectedValues) => {
+                      const selectedSet = new Set((selectedValues || []).map(String));
+                      const next = (ui.xListeColCropMachine || CROPMACHINE_COLUMNS_TEMPLATE).map((col, idx) => {
+                        const isPickerCol = CROPMACHINE_COLUMNS_PICKER.some((c) => c.idx === idx);
+                        if (!isPickerCol) return col;
+                        return [col[0], selectedSet.has(String(idx)) ? 1 : 0];
+                      });
+                      setUIField("xListeColCropMachine", next);
+                    }}
+                    listIcon="./options.png"
+                    iconOnly={true}
+                    height={28}
+                    menuMinWidth={220}
                   />
+                )}
+                {selectedInv === "pet" && (
+                  <>
+                    <DList
+                      name="petView"
+                      options={[
+                        { value: "pets", label: "Pets", iconSrc: imgpet },
+                        { value: "shrines", label: "Shrines", iconSrc: imgshrine },
+                        { value: "components", label: "Fetch", iconSrc: imgacorn },
+                      ]}
+                      value={ui.petView}
+                      onChange={handleUIChange}
+                      height={20}
+                    />
+                    <DList
+                      options={petPickerOptions}
+                      value={petPickerValue}
+                      multiple={true}
+                      closeOnSelect={false}
+                      emitEvent={false}
+                      onChange={(selectedValues) => {
+                        const selectedSet = new Set((selectedValues || []).map(String));
+                        const picker = activePetColumnsPicker?.picker || [];
+                        const template = activePetColumnsPicker?.template || [];
+                        const stateKey = activePetColumnsPicker?.stateKey;
+                        if (!stateKey) return;
+                        const next = (ui?.[stateKey] || template).map((col, idx) => {
+                          const isPickerCol = picker.some((c) => c.idx === idx);
+                          if (!isPickerCol) return col;
+                          return [col[0], selectedSet.has(String(idx)) ? 1 : 0];
+                        });
+                        setUIField(stateKey, next);
+                      }}
+                      listIcon="./options.png"
+                      iconOnly={true}
+                      height={28}
+                      menuMinWidth={220}
+                    />
+                  </>
                 )}
                 {selectedInv === "fish" && (
                   <>
@@ -2185,40 +2519,6 @@ function App() {
         dataSet: dataSet,
         vversion: bvversion,
         lastID: lastID,
-        /* inputValue: inputValue,
-        isOpen: isOpen,
-        TryChecked: TryChecked,
-        cstPrices: cstPrices,
-        customSeedCM: customSeedCM,
-        customQuantFetch: customQuantFetch,
-        toCM: toCM,
-        inputFromLvl: inputFromLvl,
-        inputToLvl: inputToLvl,
-        selectedInv: selectedInv,
-        selectedCurr: selectedCurr,
-        selectedDsfl: selectedDsfl,
-        selectedQuantity: selectedQuantity,
-        selectedQuant: selectedQuant,
-        selectedQuantityCook: selectedQuantityCook,
-        selectedQuantCook: selectedQuantCook,
-        selectedQuantFish: selectedQuantFish,
-        xListeCol: xListeCol,
-        xListeColCook: xListeColCook,
-        xListeColFish: xListeColFish,
-        xListeColExpand: xListeColExpand,
-        xListeColActivity: xListeColActivity,
-        xListeColActivityItem: xListeColActivityItem,
-        TryChecked: false, //TryChecked,
-        CostChecked: CostChecked,
-        bFarmit: bFarmitArray,
-        bCookit: bCookitArray,
-        bTrynft: bTrynftArray,
-        bTrynftw: bTrynftwArray,
-        bTrybuild: bTrybuildArray,
-        bTryskill: bTryskillArray,
-        bTryskilllgc: bTryskilllgcArray,
-        bTrybud: bTrybudArray,
-        fruitPlanted: fruitPlantedArray, */
       };
       var dataToStoreString = JSON.stringify(dataToStore);
       //document.cookie = "sflman=" + dataToStoreString + ";expires=31 Dec 2024 23:59:59 UTC;";
@@ -2261,52 +2561,6 @@ function App() {
         } catch {
           setUI(uiDefaults);
         }
-        //setUI(loadedData.ui);
-        //setInputValue(loadedData.inputValue);
-        //dataSet.options = loadedData.xoptions;
-        /* setInputKeep(dataSet.options.inputKeep);
-        lastClickedInputKeep.current = dataSet.options.inputKeep;
-        setInputMaxBB(dataSet.options.inputMaxBB);
-        //vinputMaxBB = loadedData.inputMaxBB;
-        //dataSet.inputMaxBB = loadedData.inputMaxBB;
-        setInputFarmTime(dataSet.options.inputFarmTime);
-        setIsOpen(loadedData.isOpen || []);
-        setTryChecked(loadedData.TryChecked || false);
-        setCstPrices(loadedData.cstPrices);
-        setcustomSeedCM(loadedData.customSeedCM);
-        setcustomQuantFetch(loadedData.customQuantFetch);
-        settoCM(loadedData.toCM); */
-        //bBuyit = loadedData.bBuyit.reduce((acc, item) => { acc[item.name] = item.value; return acc; }, {});
-        //bSpottry = loadedData.bSpottry.reduce((acc, item) => { acc[item.name] = item.value; return acc; }, {});
-        //vinputFarmTime = loadedData.inputFarmTime;
-        //dataSet.inputFarmTime = loadedData.inputFarmTime;
-        //setInputAnimalLvl(dataSet.options.inputAnimalLvl);
-        //vinputAnimalLvl = loadedData.inputAnimalLvl;
-        //dataSet.inputAnimalLvl = loadedData.inputAnimalLvl;
-        //coinsRatio = loadedData.coinsRatio || 320;
-        //dataSet.options.coinsRatio = loadedData.coinsRatio || 320;
-        /* setInputFromLvl(loadedData.inputFromLvl);
-        setInputToLvl(loadedData.inputToLvl);
-        //setSelectedInv(loadedData.selectedInv);
-        setSelectedInv("home");
-        setSelectedCurr(loadedData.selectedCurr);
-        setSelectedDsfl(loadedData.selectedDsfl);
-        setSelectedQuantity(loadedData.selectedQuantity);
-        setSelectedQuant(loadedData.selectedQuant);
-        setSelectedQuantityCook(loadedData.selectedQuantityCook);
-        setSelectedQuantCook(loadedData.selectedQuantCook);
-        setSelectedQuantFish(loadedData.selectedQuantFish);
-        loadedData.xListeCol[16][1] = 1;
-        loadedData.xListeCol[7][1] = 0;
-        loadedData.xListeCol[8][1] = 0;
-        loadedData.xListeCol[9][1] = 0;
-        setXListeCol(loadedData.xListeCol);
-        setXListeColCook(loadedData.xListeColCook && loadedData.xListeColCook);
-        setXListeColFish(loadedData.xListeColFish && loadedData.xListeColFish);
-        setXListeColExpand(loadedData.xListeColExpand && loadedData.xListeColExpand);
-        setXListeColActivity(loadedData.xListeColActivity && loadedData.xListeColActivity);
-        setXListeColActivityItem(loadedData.xListeColActivityItem && loadedData.xListeColActivityItem);
-        */
       } else {
         DefaultOptions();
       }
@@ -2333,6 +2587,7 @@ function App() {
       if (!dataSet.options?.animalLvl?.Sheep) { dataSet.options.animalLvl.Sheep = 7 }
       if (!dataSet.options?.usePriceFood) { dataSet.options.usePriceFood = 1 }
       if (!dataSet.options?.oilFood) { dataSet.options.oilFood = 0 }
+      if (dataSet.options?.chumFishCost === undefined) { dataSet.options.chumFishCost = 0 }
       setOptions(dataSet.options);
     }
   }
@@ -2359,25 +2614,37 @@ function App() {
     }
   }
   async function getFromToExpand(xfrom, xto, xtype) {
-    const responseExpand = await fetch(API_URL + "/getfromtoexpand", {
-      method: 'GET',
-      headers: {
-        frmid: dataSet.farmId,
-        from: xfrom,
-        to: xto,
-        type: xtype,
-        spot: dataSetFarm.spot || 0
+    const reqSeq = ++expandRequestSeqRef.current;
+    setExpandLoading(true);
+    try {
+      const responseExpand = await fetch(API_URL + "/getfromtoexpand", {
+        method: 'GET',
+        headers: {
+          frmid: dataSet.farmId,
+          from: xfrom,
+          to: xto,
+          type: xtype,
+          spot: dataSetFarm.spot || 0
+        }
+      });
+      if (responseExpand.ok) {
+        const responseDataExp = await responseExpand.json();
+        if (reqSeq === expandRequestSeqRef.current) {
+          //console.log(responseData);
+          //setpriceData(JSON.parse(JSON.stringify(responseData.priceData)));
+          //setfromtoexpand(responseDataExp);
+          //setUIField("fromtoexpand", responseDataExp);
+          dataSet.fromtoexpand = responseDataExp;
+        }
+      } else {
+        console.log(`Error : ${responseExpand.status}`);
       }
-    });
-    if (responseExpand.ok) {
-      const responseDataExp = await responseExpand.json();
-      //console.log(responseData);
-      //setpriceData(JSON.parse(JSON.stringify(responseData.priceData)));
-      //setfromtoexpand(responseDataExp);
-      //setUIField("fromtoexpand", responseDataExp);
-      dataSet.fromtoexpand = responseDataExp;
-    } else {
-      console.log(`Error : ${responseExpand.status}`);
+    } catch (error) {
+      console.log("getFromToExpand error", error);
+    } finally {
+      if (reqSeq === expandRequestSeqRef.current) {
+        setExpandLoading(false);
+      }
     }
   }
   function refreshDataSet(dataSetRefresh) {

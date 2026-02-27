@@ -38,7 +38,7 @@ export default function FactionsTable() {
   const [factions, setFactions] = useState(null);
   const [loading, setLoading] = useState(false);
   const [factionsDate, setFactionsDate] = useState(null);
-  const TEN_MIN = 10 * 60 * 1000;
+  const TEN_MIN = 1 * 60 * 1000;
 
   async function getFactions(dataSetFarm, API_URL) {
     const farmId = dataSetFarm?.frmid;
@@ -224,7 +224,7 @@ function FactionCard({ factionKey, factionData, dataSet, dataSetFarm, imgExchng 
               {showContributingMember ? (
                 <span className="factions-contrib">
                   <img src={contributingIcon} alt="" className="itico" />
-                  Contributing member
+                  Boost active
                 </span>
               ) : null}
             </div>

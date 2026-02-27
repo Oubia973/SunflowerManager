@@ -10,11 +10,11 @@ export default function MapTable() {
         const { it } = dataSetFarm.itables;
         let minYield = Infinity;
         let minYieldGH = Infinity;
-        let cropMachineDone = false;
-        let greenhouseDone = false;
         const isGA = nftw["Green Amulet"].isactive;
-        const imgcropmachine = "./icon/building/stage1_collector_empty.webp";
-        const imggreenhouse = "./icon/building/greenhouse.webp";
+        const BUILDING_OVERLAYS = {
+            "crop machine": { src: "./icon/building/stage1_collector_empty.webp", w: 4, h: 5, top: "-50%" },
+            greenhouse: { src: "./icon/building/greenhouse.webp", w: 4, h: 4, top: "-50%" },
+        };
         const imgbee = <img src="./icon/ui/bee.webp" alt={''} title="Bee swarm" style={{ position: 'absolute', transform: 'translate(20%, -110%)', width: '14px', height: '14px' }} />;
         const minX = Math.min(...Object.keys(isleMap).map(x => parseInt(x)));
         const minY = Math.min(...Object.values(isleMap).flatMap(row => Object.keys(row).map(y => parseInt(y))));
@@ -22,11 +22,8 @@ export default function MapTable() {
         const maxY = Math.max(...Object.values(isleMap).flatMap(row => Object.keys(row).map(y => parseInt(y))));
         const adjustedIsleMap = Array.from({ length: maxX - minX + 1 }, () => ({}));
         let rdyAtValues = [];
-        let lastCropMachineX = -1;
-        let lastCropMachineY = -1;
-        let lastGreenhouseX = -1;
-        let lastGreenhouseY = -1;
-        let greenprocIndices = [];
+        const overlayAnchors = {};
+        // let greenprocIndices = [];
         let lastGreenProc = 0;
         let cropIndexTotal = 0;
         let cropIndex = 0;
@@ -45,12 +42,12 @@ export default function MapTable() {
                 }
                 if (typeNode === "greenhouse" && Number.isFinite(amountValue)) {
                     minYieldGH = amountValue < minYieldGH ? amountValue : minYieldGH;
-                    lastGreenhouseX = adjustedX;
-                    lastGreenhouseY = adjustedY;
                 }
-                if (typeNode === "crop machine") {
-                    lastCropMachineX = adjustedX;
-                    lastCropMachineY = adjustedY;
+                if (BUILDING_OVERLAYS[typeNode]) {
+                    const currentAnchor = overlayAnchors[typeNode];
+                    if (!currentAnchor || adjustedX < currentAnchor.x || (adjustedX === currentAnchor.x && adjustedY > currentAnchor.y)) {
+                        overlayAnchors[typeNode] = { x: adjustedX, y: adjustedY };
+                    }
                 }
             });
         });
@@ -59,6 +56,7 @@ export default function MapTable() {
         rdyAtValues.forEach((value, index) => {
             rdyAtMap.set(value, index);
         });
+        /*
         adjustedIsleMap.forEach((row, x) => {
             Object.keys(row).forEach(y => {
                 const item = row[y];
@@ -73,45 +71,46 @@ export default function MapTable() {
         let rngColor = [];
         let rngColor2 = [];
         let rngColor3 = [];
+        */
         let lastStart = 0;
-        const previousColors = [];
-        function getBackgroundColor(index) {
-            let start = 0;
-            let end = rdyAtValues.length - 1;
-            for (let i = 0; i < greenprocIndices.length; i++) {
-                if (index <= greenprocIndices[i]) {
-                    end = greenprocIndices[i];
-                    break;
-                }
-                start = greenprocIndices[i];
-                lastStart = start;
-            }
-            const ratio = (index - start) / (end - start);
-            if (!rngColor[end]) {
-                let xR, xG, xB, isUnique;
-                let min = 0;
-                let max = 256;
-                do {
-                    xR = Math.floor(Math.random() * 156) + 100;
-                    xG = Math.floor(Math.random() * 156) + 100;
-                    xB = Math.floor(Math.random() * 156) + 100;
-                    min = Math.min(xR, xG, xB);
-                    max = Math.max(xR, xG, xB);
-                    isUnique = (max - min >= 50);
-                    for (let prev of previousColors.slice(-5)) {
-                        let diff = Math.abs(prev.xR - xR) + Math.abs(prev.xG - xG) + Math.abs(prev.xB - xB);
-                        if (diff < 100) {
-                            isUnique = false;
-                            break;
-                        }
-                    }
-                } while (!isUnique);
-                rngColor[end] = xR;
-                rngColor2[end] = xG;
-                rngColor3[end] = xB;
-            }
-            return `rgba(${rngColor[end]}, ${rngColor2[end]}, ${rngColor3[end]}, ${ratio})`;
-        }
+        // const previousColors = [];
+        // function getBackgroundColor(index) {
+        //     let start = 0;
+        //     let end = rdyAtValues.length - 1;
+        //     for (let i = 0; i < greenprocIndices.length; i++) {
+        //         if (index <= greenprocIndices[i]) {
+        //             end = greenprocIndices[i];
+        //             break;
+        //         }
+        //         start = greenprocIndices[i];
+        //         lastStart = start;
+        //     }
+        //     const ratio = (index - start) / (end - start);
+        //     if (!rngColor[end]) {
+        //         let xR, xG, xB, isUnique;
+        //         let min = 0;
+        //         let max = 256;
+        //         do {
+        //             xR = Math.floor(Math.random() * 156) + 100;
+        //             xG = Math.floor(Math.random() * 156) + 100;
+        //             xB = Math.floor(Math.random() * 156) + 100;
+        //             min = Math.min(xR, xG, xB);
+        //             max = Math.max(xR, xG, xB);
+        //             isUnique = (max - min >= 50);
+        //             for (let prev of previousColors.slice(-5)) {
+        //                 let diff = Math.abs(prev.xR - xR) + Math.abs(prev.xG - xG) + Math.abs(prev.xB - xB);
+        //                 if (diff < 100) {
+        //                     isUnique = false;
+        //                     break;
+        //                 }
+        //             }
+        //         } while (!isUnique);
+        //         rngColor[end] = xR;
+        //         rngColor2[end] = xG;
+        //         rngColor3[end] = xB;
+        //     }
+        //     return `rgba(${rngColor[end]}, ${rngColor2[end]}, ${rngColor3[end]}, ${ratio})`;
+        // }
         const table = Array.from({ length: maxY - minY + 1 }, () => Array(maxX - minX + 1).fill(null));
         adjustedIsleMap.forEach((row, x) => {
             Object.keys(row).forEach(y => {
@@ -124,7 +123,7 @@ export default function MapTable() {
                 const GreenprocGH = (itemType === "greenhouse") && (item.amount > minYieldGH + 8);
                 const colorAmount = (Greenproc || GreenprocGH) ? 'red' : 'white';
                 const rdyAtIndex = rdyAtMap.get(item.rdyAt);
-                const backColor = (it[itemType]?.cat === "crop" && isGA) ? getBackgroundColor(rdyAtIndex) : 'transparent';
+                // const backColor = (it[itemType]?.cat === "crop" && isGA) ? getBackgroundColor(rdyAtIndex) : 'transparent';
                 const mapX = item?.x || "";
                 const mapY = item?.y || "";
                 if (Greenproc) {
@@ -140,15 +139,34 @@ export default function MapTable() {
                 const isSwarm = item.swarm && imgbee;
                 const toReset = item.reset && item.reset;
                 const gaProc = item?.gaproc ? "X" : "";
-                cropMachineDone = (x === lastCropMachineX && y === lastCropMachineY);
-                greenhouseDone = (x === lastGreenhouseX && y === lastGreenhouseY);
-                //const ximgcropmachine = (item.type === "crop machine" && cropMachineDone === true) ? <img src={imgcropmachine} className="image-overflow" /> : "";
-                //const ximggreenhouse = (item.type === "greenhouse" && greenhouseDone === true) ? <img src={imggreenhouse} className="image-overflow" /> : "";
+                const overlayCfg = BUILDING_OVERLAYS[item.type];
+                const overlayAnchor = overlayAnchors[item.type];
+                const isOverlayAnchor = !!(overlayCfg && overlayAnchor && overlayAnchor.x === x && overlayAnchor.y === Number(y));
                 table[tableY][tableX] = (
-                    <td key={`${tableX}-${tableY}`} style={{ position: 'relative', backgroundColor: backColor }} title={typeOrName}>
-                        {/* {ximgcropmachine}
-              {ximggreenhouse} */}
-                        <img src={item.img} style={{ width: '22px', height: '22px' }} />
+                    <td key={`${tableX}-${tableY}`} style={{
+                        position: 'relative',
+                        // backgroundColor: backColor,
+                        backgroundColor: 'transparent',
+                        overflow: 'visible'
+                    }} title={typeOrName}>
+                        {isOverlayAnchor ? (
+                            <img
+                                src={overlayCfg.src}
+                                alt=""
+                                style={{
+                                    position: 'absolute',
+                                    top: overlayCfg.top || '0%',
+                                    left: '0%',
+                                    width: `${overlayCfg.w * 100}%`,
+                                    height: `${overlayCfg.h * 100}%`,
+                                    objectFit: 'contain',
+                                    pointerEvents: 'none',
+                                    opacity: 0.5,
+                                    zIndex: 0,
+                                }}
+                            />
+                        ) : null}
+                        <img src={item.img} style={{ width: '22px', height: '22px', position: 'relative', zIndex: 1 }} />
                         <span style={{
                             position: 'absolute',
                             top: '50%',
@@ -158,7 +176,8 @@ export default function MapTable() {
                             backgroundColor: 'rgba(0, 0, 0, 0.4)',
                             padding: '0px 0px',
                             borderRadius: '0px',
-                            fontSize: '11px'
+                            fontSize: '11px',
+                            zIndex: 2,
                         }}>
                             {isSwarm}
                             {amount}
@@ -172,7 +191,8 @@ export default function MapTable() {
                             backgroundColor: 'rgba(0, 0, 0, 0.4)',
                             padding: '0px 0px',
                             borderRadius: '0px',
-                            fontSize: '11px'
+                            fontSize: '11px',
+                            zIndex: 2,
                         }}>
                             {toReset}{gaProc}
                             {(item.type === "crop" && isGA === 1 && (Greenproc || isLastCrop)) && cropIndex}

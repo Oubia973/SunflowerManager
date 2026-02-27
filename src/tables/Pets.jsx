@@ -7,12 +7,16 @@ export default function PetsTable() {
   const {
     data: { dataSet, dataSetFarm },
     ui: {
-      xListeColBounty,
+      xListeColPetPets,
+      xListeColPetShrines,
+      xListeColPetComponents,
       petView,
       selectedQuantFetch,
       customQuantFetch,
       petFetchSelection,
       petFetchSelectionInitDone,
+      petRequestSelection,
+      petRequestSelectionInitDone,
       TryChecked
     },
     actions: {
@@ -87,6 +91,101 @@ export default function PetsTable() {
     if (typeof raw === "string" && validItems.includes(raw)) return [raw];
     return [];
   };
+  const REQUEST_SLOTS = ["easy1", "medium1", "medium2", "hard1", "hard2"];
+  const getFeedTier = (feed) => {
+    if (typeof feed?.tier === "string" && (feed.tier === "easy" || feed.tier === "medium" || feed.tier === "hard")) return feed.tier;
+    const e = Number(feed?.energy || 0);
+    if (e >= 300) return "hard";
+    if (e >= 100) return "medium";
+    return "easy";
+  };
+  const getFeedSlot = (feed) => {
+    if (typeof feed?.slot === "string" && REQUEST_SLOTS.includes(feed.slot)) return feed.slot;
+    const tier = getFeedTier(feed);
+    if (tier === "easy") return "easy1";
+    if (tier === "medium") return "medium1";
+    return "hard1";
+  };
+  const getSelectedRequestSlotMapForPet = (petName, petData) => {
+    const feeds = Array.isArray(petData?.feeds) ? petData.feeds : Array.isArray(Pets?.[petName]?.feeds) ? Pets[petName].feeds : [];
+    const slotMapDefault = { easy1: false, medium1: false, medium2: false, hard1: false, hard2: false };
+    feeds.forEach((feed) => {
+      const slot = getFeedSlot(feed);
+      slotMapDefault[slot] = true;
+    });
+    const raw = petRequestSelection?.[petName];
+    if (raw && typeof raw === "object" && !Array.isArray(raw)) {
+      const next = { ...slotMapDefault };
+      REQUEST_SLOTS.forEach((slot) => {
+        if (Object.prototype.hasOwnProperty.call(raw, slot)) {
+          next[slot] = !!raw[slot];
+        }
+      });
+      // Backward compatibility: old tier map {easy,medium,hard}
+      if (Object.prototype.hasOwnProperty.call(raw, "easy")) next.easy1 = !!raw.easy;
+      if (Object.prototype.hasOwnProperty.call(raw, "medium")) { next.medium1 = !!raw.medium; next.medium2 = !!raw.medium; }
+      if (Object.prototype.hasOwnProperty.call(raw, "hard")) { next.hard1 = !!raw.hard; next.hard2 = !!raw.hard; }
+      return next;
+    }
+    // Legacy compatibility: previous selection stored request names.
+    if (Array.isArray(raw)) {
+      const next = { easy1: false, medium1: false, medium2: false, hard1: false, hard2: false };
+      feeds.forEach((feed) => {
+        if (raw.includes(feed?.name)) {
+          next[getFeedSlot(feed)] = true;
+        }
+      });
+      return Object.values(next).some(Boolean) ? next : slotMapDefault;
+    }
+    if (typeof raw === "string") {
+      const next = { easy1: false, medium1: false, medium2: false, hard1: false, hard2: false };
+      feeds.forEach((feed) => {
+        if (feed?.name === raw) {
+          next[getFeedSlot(feed)] = true;
+        }
+      });
+      return Object.values(next).some(Boolean) ? next : slotMapDefault;
+    }
+    return slotMapDefault;
+  };
+  const getSelectedRequestTotals = (petName, petData, coinsRatio) => {
+    const selectedSlotMap = getSelectedRequestSlotMapForPet(petName, petData);
+    const feeds = Array.isArray(petData?.feeds) ? petData.feeds : [];
+    let selectedCostCoins = 0;
+    let selectedCostMarket = 0;
+    let selectedEnergyTotal = 0;
+    const selectedDetails = [];
+    feeds.forEach((feed) => {
+      const slot = getFeedSlot(feed);
+      const tier = getFeedTier(feed);
+      if (!selectedSlotMap?.[slot]) return;
+      const feedName = feed?.name;
+      const costCoins = Number(feed?.costsfl || 0);
+      const market = Number(feed?.costp2p || 0);
+      const energy = Number(feed?.energy || 0);
+      selectedCostCoins += costCoins;
+      selectedCostMarket += market;
+      selectedEnergyTotal += energy;
+      selectedDetails.push({
+        name: feedName || "",
+        slot,
+        tier,
+        img: feed?.img || "./icon/nft/na.png",
+        energy,
+        cost: costCoins / coinsRatio,
+        market,
+      });
+    });
+    return {
+      selectedReq: selectedDetails.map((d) => d.name).filter(Boolean),
+      selectedSlots: Object.keys(selectedSlotMap).filter((k) => selectedSlotMap[k]),
+      selectedCostCoins,
+      selectedCostSfl: selectedCostCoins / coinsRatio,
+      selectedCostMarket,
+      selectedEnergyTotal,
+      selectedDetails,
+    };
+  };
   React.useEffect(() => {
     if (petFetchSelectionInitDone) return;
     if (!petit || Object.keys(petit).length === 0) return;
@@ -123,7 +222,33 @@ export default function PetsTable() {
     setUIField("petFetchSelection", defaults);
     setUIField("petFetchSelectionInitDone", true);
   }, [petFetchSelectionInitDone, petFetchSelection, petit, Pets, setUIField]);
+  React.useEffect(() => {
+    if (petRequestSelectionInitDone) return;
+    if (!Pets || Object.keys(Pets).length === 0) return;
+    const currentSelection = petRequestSelection || {};
+    if (Object.keys(currentSelection).length > 0) {
+      setUIField("petRequestSelectionInitDone", true);
+      return;
+    }
+    const defaults = {};
+    const ownedPets = getOwnedPets();
+    ownedPets.forEach(([petName, petData]) => {
+      const feeds = Array.isArray(petData?.feeds) ? petData.feeds : [];
+      if (feeds.length > 0) {
+        const slotMap = { easy1: false, medium1: false, medium2: false, hard1: false, hard2: false };
+        feeds.forEach((feed) => {
+          const slot = getFeedSlot(feed);
+          slotMap[slot] = true;
+        });
+        defaults[petName] = slotMap;
+      }
+    });
+    setUIField("petRequestSelection", defaults);
+    setUIField("petRequestSelectionInitDone", true);
+  }, [petRequestSelectionInitDone, petRequestSelection, Pets, setUIField]);
+  const isColVisible = (cols, idx) => cols?.[idx]?.[1] === 1;
   if (petView === "pets") {
+    const petCols = xListeColPetPets || [];
     const categories = Object.keys(CATEGORY_ITEMS).flatMap((cat) => {
       const petsInCat = Object.entries(Pets || {}).filter(([, p]) => p?.cat === cat && p?.minNrgSfl);
       if (petsInCat.length === 0) return [{ cat, petName: null }];
@@ -147,36 +272,71 @@ export default function PetsTable() {
       const fetchItems = getFetchItemsForCat(cat);
       const selectedFetchList = getSelectedFetchListForPet(rowPetName || cat, cat);
       const isOwnedCat = !!rowPetName;
-      for (let petName in Pets) {
-        if (Pets[petName].cat === cat && Pets[petName].minNrgSfl && (!rowPetName || petName === rowPetName)) {
-          requests.push(...(Pets[petName].req || []));
-          for (let reqp in Pets[petName].feeds) {
-            const feed = Pets[petName].feeds[reqp];
-            petFeeds.push(
-              <React.Fragment key={reqp}>
-                <span onClick={(e) => handleTooltip(feed.name, "cookcost", 1, e)}>
-                  <img
-                    src={feed.img}
-                    alt=""
-                    className="itico"
-                    title={feed.name}
-                  />
-                  {/* {frmtNb(feed.costsfl)} */}
-                </span>
-              </React.Fragment>
-            );
+      const rowPet = rowPetName ? Pets?.[rowPetName] : null;
+      const selectedSlotMap = rowPetName ? getSelectedRequestSlotMapForPet(rowPetName, rowPet) : { easy1: true, medium1: true, medium2: true, hard1: true, hard2: true };
+      if (rowPet && rowPet.cat === cat && rowPet.minNrgSfl) {
+        const reqTotals = getSelectedRequestTotals(rowPetName, rowPet, dataSet.options.coinsRatio);
+        requests.push(...(reqTotals.selectedReq || []));
+        const feeds = Array.isArray(rowPet.feeds) ? rowPet.feeds : [];
+        petFeeds = feeds.map((feed, reqp) => {
+          const feedSlot = getFeedSlot(feed);
+          const feedTier = getFeedTier(feed);
+          const isChecked = !!selectedSlotMap?.[feedSlot];
+          return (
+            <button
+              key={`${rowPetName}-${reqp}-${feed?.name || "req"}-${feedSlot}`}
+              type="button"
+              title={`${feed?.name || ""} [${feedSlot}]${isChecked ? " (selected)" : ""}`}
+              onClick={() => {
+                setUIField("petRequestSelection", (prev) => ({
+                  ...(prev || {}),
+                  [rowPetName]: {
+                    ...selectedSlotMap,
+                    [feedSlot]: !isChecked,
+                  },
+                }));
+              }}
+              style={{
+                marginRight: 4,
+                padding: 0,
+                border: isChecked ? "1px solid #7ea76b" : "1px solid transparent",
+                borderRadius: 3,
+                background: "transparent",
+                cursor: "pointer",
+                lineHeight: 0,
+              }}
+            >
+              <img
+                src={feed?.img || "./icon/nft/na.png"}
+                alt=""
+                className="itico"
+                title={`${feed?.name || ""} [${feedSlot}]`}
+              />
+            </button>
+          );
+        });
+        if (Pets[cat]) { supply = Pets[cat].supply || 0; }
+        petLvl = rowPet.lvl || 0;
+        aura = rowPet.aura || "";
+        bib = rowPet?.bib === "Collar" ? "+5xp" : rowPet?.bib === "Gold Necklace" ? "+10xp" : "";
+        curNrg = rowPet.curnrg || 0;
+        const isBaseEnergyInfinity = !Number.isFinite(rowPet[key("nrgsfl")]) && Number(rowPet[key("nrgsfl")]) > 0;
+        foodCostTotal = reqTotals.selectedCostCoins;
+        foodCostMTotal = reqTotals.selectedCostMarket;
+        totalNrg = Number(reqTotals.selectedEnergyTotal || 0);
+        energySfl = isBaseEnergyInfinity
+          ? Infinity
+          : (foodCostTotal > 0 ? ((totalNrg / foodCostTotal) * dataSet.options.coinsRatio) : 0);
+        energyMSfl = isBaseEnergyInfinity
+          ? Infinity
+          : (foodCostMTotal > 0 ? (totalNrg / foodCostMTotal) : 0);
+      } else {
+        for (let petName in Pets) {
+          if (Pets[petName].cat === cat && Pets[petName].minNrgSfl) {
+            requests.push(...(Pets[petName].req || []));
+            if (Pets[cat]) { supply = Pets[cat].supply || 0; }
+            break;
           }
-          if (Pets[cat]) { supply = Pets[cat].supply || 0; }
-          //petExp = Pets[petName].exp || 0;
-          petLvl = Pets[petName].lvl || 0;
-          aura = Pets[petName].aura || "";
-          bib = Pets[petName]?.bib === "Collar" ? "+5xp" : Pets[petName]?.bib === "Gold Necklace" ? "+10xp" : "";
-          foodCostTotal = Pets[petName][key("costsfl")] || 0;
-          foodCostMTotal = Pets[petName].costp2p || 0;
-          energySfl = (Pets[petName][key("nrgsfl")] || 0) * dataSet.options.coinsRatio;
-          energyMSfl = Pets[petName][key("nrgsflp2p")] || 0;
-          totalNrg = Pets[petName][key("totnrg")] || 0;
-          curNrg = Pets[petName].curnrg || 0;
         }
       }
       const itemIcons = fetchItems.map(comp => {
@@ -220,22 +380,22 @@ export default function PetsTable() {
       return (
         <tr key={`${cat}-${rowPetName || "none"}`}>
           <td className="tdcenter" id="iccolumn">{catImg}</td>
-          <td className="tditem">{(rowPetName && Pets[rowPetName]?.type === "nft") ? cat : (rowPetName || cat)}</td>
-          <td className="tdcenter">{itemIcons.length ? itemIcons : <i>N/A</i>}</td>
-          <td className="tdcenter" style={{ padding: "0 10px" }}>{supply ? supply : ""}</td>
-          <td className="tdcenter" style={{ padding: "0 10px" }}>{petLvl > 0 ? petLvl : ""}</td>
-          <td className="tdcenter" style={{ padding: "0 10px" }}>{aura}</td>
-          <td className="tdcenter" style={{ padding: "0 10px" }}>{bib}</td>
-          <td className="tdcenter" style={{ padding: "0 10px" }}>{curNrg > 0 ? curNrg : ""}</td>
+          {isColVisible(petCols, 0) ? <td className="tditem">{(rowPetName && Pets[rowPetName]?.type === "nft") ? cat : (rowPetName || cat)}</td> : null}
+          {isColVisible(petCols, 1) ? <td className="tdcenter">{itemIcons.length ? itemIcons : <i>N/A</i>}</td> : null}
+          {isColVisible(petCols, 2) ? <td className="tdcenter" style={{ padding: "0 10px" }}>{supply ? supply : ""}</td> : null}
+          {isColVisible(petCols, 3) ? <td className="tdcenter" style={{ padding: "0 10px" }}>{petLvl > 0 ? petLvl : ""}</td> : null}
+          {isColVisible(petCols, 4) ? <td className="tdcenter" style={{ padding: "0 10px" }}>{aura}</td> : null}
+          {isColVisible(petCols, 5) ? <td className="tdcenter" style={{ padding: "0 10px" }}>{bib}</td> : null}
+          {isColVisible(petCols, 6) ? <td className="tdcenter" style={{ padding: "0 10px" }}>{curNrg > 0 ? curNrg : ""}</td> : null}
           {/* <td className="tdcenter" style={{ padding: "0 10px" }}>{petExp > 0 ? petExp : ""}</td> */}
-          <td className="tdcenter tooltipcell" style={{ fontSize: "12px" }}>{petFeeds}</td>
-          <td className="tdcenter" style={{ padding: "0 10px" }}>{totalNrg > 0 ? totalNrg : ""}</td>
-          <td className="tdcenter tooltipcell" style={{ padding: "0 10px" }} onClick={hasRequestTooltip ? (e) => handleTooltip(requests, "cookcost", 1, e) : undefined}>
-            {petFeeds.length ? frmtNb(foodCostTotal / dataSet.options.coinsRatio) : ""}</td>
-          <td className="tdcenter tooltipcell" style={{ padding: "0 10px" }} onClick={hasRequestTooltip ? (e) => handleTooltip(requests, "cookcost", 1, e) : undefined}
-          >{petFeeds.length ? frmtNb(foodCostMTotal) : ""}</td>
-          <td className="tdcenter" style={{ padding: "0 10px" }}>{petFeeds.length > 0 ? (energySfl > 0 ? frmtNb(energySfl) : "ꝏ") : ""}</td>
-          <td className="tdcenter" style={{ padding: "0 10px" }}>{(energyMSfl > 0 && foodCostMTotal > 0) ? frmtNb(energyMSfl) : ""}</td>
+          {isColVisible(petCols, 7) ? <td className="tdcenter tooltipcell" style={{ fontSize: "12px" }}>{petFeeds}</td> : null}
+          {isColVisible(petCols, 8) ? <td className="tdcenter" style={{ padding: "0 10px" }}>{totalNrg > 0 ? totalNrg : ""}</td> : null}
+          {isColVisible(petCols, 9) ? <td className="tdcenter tooltipcell" style={{ padding: "0 10px" }} onClick={hasRequestTooltip ? (e) => handleTooltip(requests, "cookcost", 1, e) : undefined}>
+            {petFeeds.length ? frmtNb(foodCostTotal / dataSet.options.coinsRatio) : ""}</td> : null}
+          {isColVisible(petCols, 10) ? <td className="tdcenter tooltipcell" style={{ padding: "0 10px" }} onClick={hasRequestTooltip ? (e) => handleTooltip(requests, "cookcost", 1, e) : undefined}
+          >{petFeeds.length ? frmtNb(foodCostMTotal) : ""}</td> : null}
+          {isColVisible(petCols, 11) ? <td className="tdcenter" style={{ padding: "0 10px" }}>{petFeeds.length > 0 ? (Number.isFinite(energySfl) ? (energySfl > 0 ? frmtNb(energySfl) : "") : "inf") : ""}</td> : null}
+          {isColVisible(petCols, 12) ? <td className="tdcenter" style={{ padding: "0 10px" }}>{petFeeds.length > 0 ? (Number.isFinite(energyMSfl) ? ((energyMSfl > 0 && foodCostMTotal > 0) ? frmtNb(energyMSfl) : "") : "inf") : ""}</td> : null}
         </tr>
       );
     });
@@ -244,20 +404,20 @@ export default function PetsTable() {
         <thead>
           <tr>
             <th className="thcenter"></th>
-            <th className="thcenter">Pet</th>
-            <th className="thcenter">Fetch</th>
-            <th className="thcenter">Supply</th>
-            <th className="thcenter">Lvl</th>
-            <th className="thcenter">Aura</th>
-            <th className="thcenter">Bib</th>
-            <th className="thcenter">Current <img src="./icon/ui/lightning.png" alt="" className="itico" title="Energy" /></th>
+            {isColVisible(petCols, 0) ? <th className="thcenter">Pet</th> : null}
+            {isColVisible(petCols, 1) ? <th className="thcenter">Fetch</th> : null}
+            {isColVisible(petCols, 2) ? <th className="thcenter">Supply</th> : null}
+            {isColVisible(petCols, 3) ? <th className="thcenter">Lvl</th> : null}
+            {isColVisible(petCols, 4) ? <th className="thcenter">Aura</th> : null}
+            {isColVisible(petCols, 5) ? <th className="thcenter">Bib</th> : null}
+            {isColVisible(petCols, 6) ? <th className="thcenter">Current <img src="./icon/ui/lightning.png" alt="" className="itico" title="Energy" /></th> : null}
             {/* <th className="thcenter">Exp</th> */}
-            <th className="thcenter">Requests</th>
-            <th className="thcenter"><img src="./icon/ui/lightning.png" alt="" className="itico" title="Energy" /></th>
-            <th className="thcenter">Cost</th>
-            <th className="thcenter">{imgExchng}</th>
-            <th className="thcenter"><img src="./icon/ui/lightning.png" alt="" className="itico" title="Energy" />/{imgSFL}</th>
-            <th className="thcenter"><img src="./icon/ui/lightning.png" alt="" className="itico" title="Energy" />/{imgExchng}</th>
+            {isColVisible(petCols, 7) ? <th className="thcenter">Requests</th> : null}
+            {isColVisible(petCols, 8) ? <th className="thcenter"><img src="./icon/ui/lightning.png" alt="" className="itico" title="Energy" /></th> : null}
+            {isColVisible(petCols, 9) ? <th className="thcenter">Cost</th> : null}
+            {isColVisible(petCols, 10) ? <th className="thcenter">{imgExchng}</th> : null}
+            {isColVisible(petCols, 11) ? <th className="thcenter"><img src="./icon/ui/lightning.png" alt="" className="itico" title="Energy" />/{imgSFL}</th> : null}
+            {isColVisible(petCols, 12) ? <th className="thcenter"><img src="./icon/ui/lightning.png" alt="" className="itico" title="Energy" />/{imgExchng}</th> : null}
           </tr>
         </thead>
         <tbody>{rows}</tbody>
@@ -265,6 +425,7 @@ export default function PetsTable() {
     );
   }
   if (petView === "shrines") {
+    const shrineCols = xListeColPetShrines || [];
     const shNames = Object.keys(shrine);
     const rows = shNames.map(shName => {
       let compTotal = 0;
@@ -292,13 +453,13 @@ export default function PetsTable() {
       return (
         <tr key={shName}>
           <td className="tdcenter" id="iccolumn"><img src={simg} alt="" className="nftico" /></td>
-          <td className="tditem">{shName}</td>
-          <td className="tdcenter">{compIcons.length ? compIcons : <i>N/A</i>}</td>
-          <td className="tditem">{time}</td>
-          <td className="tdcenter tooltipcell" style={{ padding: "0 10px" }} onClick={(e) => handleTooltip(shName, "shrinecost", 1, e)}>{compTotal > 0 ? frmtNb(compTotal) : ""}</td>
-          <td className="tdcenter tooltipcell" style={{ padding: "0 10px" }} onClick={(e) => handleTooltip(shName, "shrinecost", 1, e)}>{compMTotal > 0 ? frmtNb(compMTotal) : ""}</td>
-          <td className="tdcenter">{supply}</td>
-          <td className="tditem">{boost}</td>
+          {isColVisible(shrineCols, 0) ? <td className="tditem">{shName}</td> : null}
+          {isColVisible(shrineCols, 1) ? <td className="tdcenter">{compIcons.length ? compIcons : <i>N/A</i>}</td> : null}
+          {isColVisible(shrineCols, 2) ? <td className="tditem">{time}</td> : null}
+          {isColVisible(shrineCols, 3) ? <td className="tdcenter tooltipcell" style={{ padding: "0 10px" }} onClick={(e) => handleTooltip(shName, "shrinecost", 1, e)}>{compTotal > 0 ? frmtNb(compTotal) : ""}</td> : null}
+          {isColVisible(shrineCols, 4) ? <td className="tdcenter tooltipcell" style={{ padding: "0 10px" }} onClick={(e) => handleTooltip(shName, "shrinecost", 1, e)}>{compMTotal > 0 ? frmtNb(compMTotal) : ""}</td> : null}
+          {isColVisible(shrineCols, 5) ? <td className="tdcenter">{supply}</td> : null}
+          {isColVisible(shrineCols, 6) ? <td className="tditem">{boost}</td> : null}
         </tr>
       );
     });
@@ -307,13 +468,13 @@ export default function PetsTable() {
         <thead>
           <tr>
             <th className="thcenter"></th>
-            <th className="thcenter">Shrine</th>
-            <th className="thcenter">Components</th>
-            <th className="thcenter">Time</th>
-            <th className="thcenter">Cost</th>
-            <th className="thcenter">{imgExchng}</th>
-            <th className="thcenter">Supply</th>
-            <th className="thcenter">Boost</th>
+            {isColVisible(shrineCols, 0) ? <th className="thcenter">Shrine</th> : null}
+            {isColVisible(shrineCols, 1) ? <th className="thcenter">Components</th> : null}
+            {isColVisible(shrineCols, 2) ? <th className="thcenter">Time</th> : null}
+            {isColVisible(shrineCols, 3) ? <th className="thcenter">Cost</th> : null}
+            {isColVisible(shrineCols, 4) ? <th className="thcenter">{imgExchng}</th> : null}
+            {isColVisible(shrineCols, 5) ? <th className="thcenter">Supply</th> : null}
+            {isColVisible(shrineCols, 6) ? <th className="thcenter">Boost</th> : null}
           </tr>
         </thead>
         <tbody>{rows}</tbody>
@@ -321,6 +482,7 @@ export default function PetsTable() {
     );
   }
   if (petView === "components") {
+    const compCols = xListeColPetComponents || [];
     //const petit = dataSetFarm?.petit || {};
     //const shrine = dataSetFarm?.shrine || {};
     const ownedCats = new Set(getOwnedPets().map(([, p]) => p?.cat).filter(Boolean));
@@ -360,7 +522,14 @@ export default function PetsTable() {
             const isSelectedForComp = selectedListForPet.includes(c);
             if (isSelectedForComp) hasSelectedForComp = true;
             if (!isSelectedForComp) continue;
-            const ipetNrg = selectedQuantFetch === "pets" ? Pets[petName]?.[key("totnrg")] : selectedQuantFetch === "petst" ? Pets[petName]?.curnrg : 0;
+            const reqTotals = getSelectedRequestTotals(petName, Pets[petName], dataSet.options.coinsRatio);
+            const dailySelectedNrg = Number(reqTotals.selectedEnergyTotal || 0);
+            const curEnergy = Number(Pets[petName]?.curnrg || 0);
+            const ipetNrg = selectedQuantFetch === "pets"
+              ? dailySelectedNrg
+              : selectedQuantFetch === "petst"
+                ? curEnergy
+                : 0;
             const myield = Number(Pets[petName]?.yieldByItem?.[c] || 1);
             totalComp += ((ipetNrg || 0) / cinfo.energy) * myield;
             totalNrg += ipetNrg || 0;
@@ -411,31 +580,33 @@ export default function PetsTable() {
             : customVal;
       //const iQuant = (selectedQuantFetch === "pets" || selectedQuantFetch === "petst") ? Math.floor(totalComp) : selectedQuantFetch === "stock" ? cstock : customQuantFetch[index];
       const iNrg = (selectedQuantFetch === "pets" || selectedQuantFetch === "petst") ? totalNrg : energy * iQuant;
-      const iCost = unitCost * iQuant;
-      const iMarket = cp2pt * iQuant;
       const producerPets = Object.entries(Pets || {})
         .filter(([, petData]) => !!petData?.minNrgSfl && catArr.includes(petData?.cat))
         .map(([petName, petData]) => {
           const selectedListForPet = getSelectedFetchListForPet(petName, petData?.cat);
           const isSelectedForComp = selectedListForPet.includes(c);
           const contributesNow = isSelectedForComp;
+          const reqTotals = getSelectedRequestTotals(petName, petData, dataSet.options.coinsRatio);
+          const selectedDailyNrg = Number(reqTotals.selectedEnergyTotal || 0);
+          const fullDailyNrg = Number(petData?.[key("totnrg")] || 0);
           const petEnergyNow = selectedQuantFetch === "pets"
-            ? Number(petData?.[key("totnrg")] || 0)
+            ? selectedDailyNrg
             : selectedQuantFetch === "petst"
               ? Number(petData?.curnrg || 0)
               : 0;
-          const petEnergyBase = Number(petData?.[key("totnrg")] || petData?.curnrg || 0);
+          const petEnergyBase = Number(selectedQuantFetch === "petst" ? fullDailyNrg : selectedDailyNrg);
           const petYield = Number(petData?.yieldByItem?.[c] || 1);
           const petQtyNow = contributesNow && energy > 0 ? ((petEnergyNow / energy) * petYield) : 0;
-          const petReqCost = Number(petData?.[key("costsfl")] || 0) / dataSet.options.coinsRatio;
-          const petReqMarket = Number(petData?.costp2p || 0);
-          const reqEnergyTotal = Number(petData?.[key("totnrg")] || 0);
-          const reqDetails = Object.values(petData?.feeds || {}).map((feed) => ({
-            name: feed?.name || "",
-            img: feed?.img || "./icon/nft/na.png",
-            cost: Number(feed?.costsfl || 0) / dataSet.options.coinsRatio,
-            market: Number(feed?.costp2p || feed?.costp2pt || 0),
-          }));
+          const reqEnergyTotal = Number(selectedDailyNrg || 0);
+          const petReqCost = Number(reqTotals.selectedCostSfl || 0);
+          const petReqMarket = Number(reqTotals.selectedCostMarket || 0);
+          const reqDetails = reqTotals.selectedDetails;
+          const qtyFromReqEnergy = (energy > 0) ? ((reqEnergyTotal / energy) * petYield) : 0;
+          const unitProdCost = qtyFromReqEnergy > 0 ? (petReqCost / qtyFromReqEnergy) : 0;
+          const unitProdMarket = qtyFromReqEnergy > 0 ? (petReqMarket / qtyFromReqEnergy) : 0;
+          const energyDen = reqEnergyTotal > 0 ? reqEnergyTotal : 0;
+          const petCostNow = (contributesNow && energyDen > 0) ? (petEnergyNow * (petReqCost / energyDen)) : 0;
+          const petMarketNow = (contributesNow && energyDen > 0) ? (petEnergyNow * (petReqMarket / energyDen)) : 0;
           return {
             petName,
             cat: petData?.cat || "",
@@ -443,22 +614,62 @@ export default function PetsTable() {
             img: petData?.img || CATEGORY_IMG[petData?.cat] || "./icon/nft/na.png",
             selected: isSelectedForComp,
             contributesNow,
+            energyNow: Number(petEnergyNow || 0),
             qtyNow: Number(petQtyNow || 0),
             energyBase: Number(petEnergyBase || 0),
             yieldBase: Number(petYield || 1),
             reqCost: Number(petReqCost || 0),
             reqMarket: Number(petReqMarket || 0),
             reqEnergyTotal: Number(reqEnergyTotal || 0),
+            unitProdCost: Number(unitProdCost || 0),
+            unitProdMarket: Number(unitProdMarket || 0),
+            costNow: Number(petCostNow || 0),
+            marketNow: Number(petMarketNow || 0),
             reqDetails,
           };
         });
+      const dynamicCostTotal = producerPets.reduce((acc, p) => acc + Number(p?.costNow || 0), 0);
+      const dynamicProdMarketTotal = producerPets.reduce((acc, p) => acc + Number(p?.marketNow || 0), 0);
+      const selectedProducersForUnit = producerPets.filter((p) => !!p?.contributesNow);
+      const cheapestFallbackProducer = producerPets
+        .filter((p) => Number(p?.unitProdCost || 0) > 0)
+        .sort((a, b) => Number(a?.unitProdCost || 0) - Number(b?.unitProdCost || 0))[0];
+      const baseProducersForUnit = selectedProducersForUnit.length > 0
+        ? selectedProducersForUnit
+        : (cheapestFallbackProducer ? [cheapestFallbackProducer] : []);
+      const selectedUnitProdCost = baseProducersForUnit.length > 0
+        ? (baseProducersForUnit.reduce((acc, p) => acc + Number(p?.unitProdCost || 0), 0) / baseProducersForUnit.length)
+        : 0;
+      const selectedUnitProdMarket = baseProducersForUnit.length > 0
+        ? (baseProducersForUnit.reduce((acc, p) => acc + Number(p?.unitProdMarket || 0), 0) / baseProducersForUnit.length)
+        : 0;
+      const dynamicUnitProdCost = totalComp > 0 ? (dynamicCostTotal / totalComp) : 0;
+      const dynamicUnitProdMarket = totalComp > 0 ? (dynamicProdMarketTotal / totalComp) : 0;
+      const unitProdCostForMode = (selectedQuantFetch === "pets" || selectedQuantFetch === "petst")
+        ? (dynamicUnitProdCost > 0 ? dynamicUnitProdCost : (selectedUnitProdCost > 0 ? selectedUnitProdCost : unitCost))
+        : (selectedUnitProdCost > 0 ? selectedUnitProdCost : unitCost);
+      const unitProdMarketForMode = (selectedQuantFetch === "pets" || selectedQuantFetch === "petst")
+        ? (dynamicUnitProdMarket > 0 ? dynamicUnitProdMarket : selectedUnitProdMarket)
+        : selectedUnitProdMarket;
+      const iCost = unitProdCostForMode * iQuant;
+      const iProdMarket = unitProdMarketForMode * iQuant;
+      // Marketplace column is the buy price of the fetched component itself.
+      const iMarket = cp2pt * iQuant;
+      const unitCostDisplay = iQuant > 0
+        ? (iCost / iQuant)
+        : (selectedUnitProdCost > 0 ? selectedUnitProdCost : unitCost);
+      const unitProdMarketDisplay = iQuant > 0
+        ? (iProdMarket / iQuant)
+        : selectedUnitProdMarket;
       const fetchCostTooltip = {
         quantMode: selectedQuantFetch,
         quantity: Number(iQuant || 0),
         energyUnit: Number(energy || 0),
         energyTotal: Number(iNrg || 0),
-        unitCost: Number(unitCost || 0),
+        unitCost: Number(unitCostDisplay || 0),
         totalCost: Number(iCost || 0),
+        unitProdMarket: Number(unitProdMarketDisplay || 0),
+        totalProdMarket: Number(iProdMarket || 0),
         unitMarket: Number(cp2pt || 0),
         totalMarket: Number(iMarket || 0),
         producers: producerPets,
@@ -466,8 +677,8 @@ export default function PetsTable() {
       return (
         <tr key={c}>
           <td id="iccolumn"><img src={cimg} alt="" className="nodico" /></td>
-          <td className="tditem">{c}</td>
-          {xListeColBounty[2][1] === 1 ? selectedQuantFetch === "custom" ?
+          {isColVisible(compCols, 0) ? <td className="tditem">{c}</td> : null}
+          {isColVisible(compCols, 1) ? selectedQuantFetch === "custom" ?
             (<td className="tdcenter">
               <input
                 type="text"
@@ -479,17 +690,18 @@ export default function PetsTable() {
                 onChange={handleUIChange}
               /></td>) :
             (<td className="tdcenter">{selectedQuantFetch === "pets" ? Number(iQuant || 0).toFixed(2) : frmtNb(iQuant)}</td>) : ("")}
-          <td className="tdcenter" style={{ padding: "0 10px" }}>{frmtNb(iNrg)}</td>
-          <td className="tdcenter tooltipcell" style={{ padding: "0 10px" }} onClick={(e) => handleTooltip(c, "fetchcost", fetchCostTooltip, e)}>{iCost > 0 ? frmtNb(iCost) : ""}</td>
-          <td className="tdcenter" style={{ padding: "0 10px" }}>{frmtNb(iMarket)}</td>
-          <td className="tdcenter">
+          {isColVisible(compCols, 2) ? <td className="tdcenter" style={{ padding: "0 10px" }}>{frmtNb(iNrg)}</td> : null}
+          {isColVisible(compCols, 3) ? <td className="tdcenter tooltipcell" style={{ padding: "0 10px" }} onClick={(e) => handleTooltip(c, "fetchcost", fetchCostTooltip, e)}>{iCost > 0 ? frmtNb(iCost) : ""}</td> : null}
+          {isColVisible(compCols, 4) ? <td className="tdcenter tooltipcell" style={{ padding: "0 10px" }} onClick={(e) => handleTooltip(c, "fetchcost", fetchCostTooltip, e)}>{iProdMarket > 0 ? frmtNb(iProdMarket) : ""}</td> : null}
+          {isColVisible(compCols, 5) ? <td className="tdcenter tooltipcell" style={{ padding: "0 10px" }} onClick={(e) => handleTooltip(c, "fetchcost", fetchCostTooltip, e)}>{frmtNb(iMarket)}</td> : null}
+          {isColVisible(compCols, 6) ? <td className="tdcenter">
             {c === "Moonfur"
               ? (selectedCatIcons.length ? selectedCatIcons : "All NFT")
               : c === "Acorn"
                 ? (selectedCatIcons.length ? selectedCatIcons : "All")
                 : (catIcons.length ? catIcons : <i>N/A</i>)}
-          </td>
-          <td className="tdcenter">{c === "Acorn" ? "All" : shrineBadges.length ? shrineBadges : <i>N/A</i>}</td>
+          </td> : null}
+          {isColVisible(compCols, 7) ? <td className="tdcenter">{c === "Acorn" ? "All" : shrineBadges.length ? shrineBadges : <i>N/A</i>}</td> : null}
         </tr>
       );
     });
@@ -498,8 +710,8 @@ export default function PetsTable() {
         <thead>
           <tr>
             <th className="th-icon"></th>
-            <th className="thcenter">Component</th>
-            {xListeColBounty[2][1] === 1 ? <th className="thcenter">
+            {isColVisible(compCols, 0) ? <th className="thcenter">Component</th> : null}
+            {isColVisible(compCols, 1) ? <th className="thcenter">
               {/* <div className="selectquantityback"><FormControl variant="standard" id="formselectquant" className="selectquant" size="small">
                 <InputLabel>Quantity</InputLabel>
                 <Select name="selectedQuantFetch" value={selectedQuantFetch} onChange={handleUIChange} onClick={(e) => e.stopPropagation()}>
@@ -522,11 +734,12 @@ export default function PetsTable() {
                 height={28}
               />
             </th> : null}
-            <th className="thcenter"><img src="./icon/ui/lightning.png" alt="" className="itico" title="Energy" /></th>
-            <th className="thcenter">Cost</th>
-            <th className="thcenter">{imgExchng}</th>
-            <th className="thcenter">Fetched by</th>
-            <th className="thcenter">Used in Shrines</th>
+            {isColVisible(compCols, 2) ? <th className="thcenter"><img src="./icon/ui/lightning.png" alt="" className="itico" title="Energy" /></th> : null}
+            {isColVisible(compCols, 3) ? <th className="thcenter">Cost</th> : null}
+            {isColVisible(compCols, 4) ? <th className="thcenter">Prod {imgExchng}</th> : null}
+            {isColVisible(compCols, 5) ? <th className="thcenter">{imgExchng}</th> : null}
+            {isColVisible(compCols, 6) ? <th className="thcenter">Fetched by</th> : null}
+            {isColVisible(compCols, 7) ? <th className="thcenter">Used in Shrines</th> : null}
           </tr>
         </thead>
         <tbody>{rows}</tbody>
@@ -534,3 +747,4 @@ export default function PetsTable() {
     );
   }
 }
+

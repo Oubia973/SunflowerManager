@@ -125,6 +125,21 @@ export function formatUpdated(unixTime) {
     (remMinutes ? ` ${remMinutes} min` : "") +
     " ago";
 }
+export function UpdatedSince({ unixTime, intervalMs = 1000 }) {
+  const textRef = useRef(null);
+  useEffect(() => {
+    const update = () => {
+      if (!textRef.current) return;
+      textRef.current.textContent = formatUpdated(unixTime);
+    };
+    update();
+    const tsNum = Number(unixTime);
+    if (!Number.isFinite(tsNum) || tsNum <= 0) return;
+    const timer = setInterval(update, intervalMs);
+    return () => clearInterval(timer);
+  }, [unixTime, intervalMs]);
+  return <span ref={textRef}>{formatUpdated(unixTime)}</span>;
+}
 export function timeToDays(time) {
   if(!time) return;
   const parts = time.split(":").map(Number);
@@ -332,3 +347,4 @@ export function formatKNumber(n) {
   }
   return String(n);
 }
+

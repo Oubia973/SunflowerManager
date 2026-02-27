@@ -351,9 +351,9 @@ export default function CookTable() {
                     {xListeColCook[7][1] === 1 ? <td className="tdcenter">{ixphcomp}</td> : null}
                     {xListeColCook[8][1] === 1 ? <td className="tdcenter" style={CellXPSflStyle}>{frmtNb(ixpsfl)}</td> : null}
                     {xListeColCook[9][1] === 1 ? <td className="tdcenter tooltipcell"
-                        onClick={(e) => handleTooltip(item, "cookcost", selectedQuantCook !== "unit" ? iQuant : 1, e)}>{frmtNb(icost)}</td> : null}
+                        onClick={(e) => handleTooltip(item, "cookcost", selectedQuantCook !== "unit" ? Math.max(1, iQuant) : 1, e)}>{frmtNb(icost)}</td> : null}
                     {xListeColCook[10][1] === 1 ? <td className="tdcenter tooltipcell"
-                        onClick={(e) => handleTooltip(item, "cookcost", selectedQuantCook !== "unit" ? iQuant : 1, e)}>{frmtNb(icostp2p)}</td> : null}
+                        onClick={(e) => handleTooltip(item, "cookcost", selectedQuantCook !== "unit" ? Math.max(1, iQuant) : 1, e)}>{frmtNb(icostp2p)}</td> : null}
                     {xListeColCook[11][1] === 1 ? Object.values(sortedCompo).map((itemName, itIndex) => (
                         <td className="tdcenterbrd" style={{ fontSize: '12px' }} key={itemName}>
                             {cobjCompo[itemName] ? cobjCompo[itemName] * (selectedQuantCook === "unit" ? 1 : iQuant) : ""}

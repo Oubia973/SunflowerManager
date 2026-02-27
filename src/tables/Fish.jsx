@@ -1,7 +1,7 @@
-import React, { useEffect, useRef, useState } from "react";
+﻿import React, { useEffect, useRef, useState } from "react";
 import { useAppCtx } from "../context/AppCtx";
 import { FormControl, InputLabel, Select, MenuItem } from '@mui/material';
-import { PBar, formatdate } from '../fct.js';
+import { PBar, formatdate, frmtNb } from '../fct.js';
 import DList from "../dlist.jsx";
 
 export default function FishTable() {
@@ -33,12 +33,27 @@ export default function FishTable() {
     },
     actions: {
       handleUIChange,
+      handleOptionChange,
       handleTooltip,
     },
   } = useAppCtx();
+  const { tool, it } = dataSetFarm.itables;
+  function key(name) {
+    if (name === "isactive") return TryChecked ? "tryit" : "isactive";
+    return TryChecked ? name + "try" : name;
+  }
   const fishingDetails = dataSetFarm?.Fish || {};
+  const countChumCost = !!dataSet?.options?.chumFishCost;
   const reelCasts = fishingDetails?.casts ?? 0;
   const reelCastMax = TryChecked ? fishingDetails?.fishcastmaxtry ?? 0 : fishingDetails?.fishcastmax ?? 0;
+  const costCast = TryChecked ? fishingDetails?.fishcastcosttry ?? 0 : fishingDetails?.fishcastcost ?? 0;
+  const costCastM = (((tool["Rod"][key("sfl")] / dataSet.options.coinsRatio))
+    + (tool["Rod"].Wood * it["Wood"].costp2pt)
+    + (tool["Rod"].Stone * it["Stone"].costp2pt));
+  const reelCost = (costCast * reelCasts) / dataSet.options.coinsRatio;
+  const reelCostM = (costCastM * reelCasts);
+  const reelCostMax = (costCast * reelCastMax) / dataSet.options.coinsRatio;
+  const reelCostMaxM = (costCastM * reelCastMax);
   useEffect(() => {
     if (fishView !== "fish") return;
     const updateFishHeaderTop = () => {
@@ -58,6 +73,7 @@ export default function FishTable() {
       var totXPfsh = 0;
       var totCaught = 0;
       var totCost = 0;
+      var totCostM = 0;
       const inventoryMap = farmData?.inventory || {};
       const fishNames = Object.keys(fish);
       const sortedInventoryItems = fishNames.map(item => {
@@ -83,14 +99,14 @@ export default function FishTable() {
         const ilocat = cobj ? cobj.locations : '';
         const xBaits = ibait.split("/");
         const icaught = cobj ? cobj.caught : '';
-        const previousQuantity = Number(cobj?.prevstock || 0);
-        const pquant = previousQuantity;
+        // const previousQuantity = Number(cobj?.prevstock || 0);
+        // const pquant = previousQuantity;
         const itemQuantity = Number(quantity || 0);
-        const difference = itemQuantity - pquant;
-        const absDifference = Math.abs(difference);
-        const isNegativeDifference = difference < 0;
-        const maxh = cobj?.hoard || 100;
-        const hoardPercentage = Math.floor((absDifference / maxh) * 100);
+        // const difference = itemQuantity - pquant;
+        // const absDifference = Math.abs(difference);
+        // const isNegativeDifference = difference < 0;
+        // const maxh = cobj?.hoard || 100;
+        // const hoardPercentage = Math.floor((absDifference / maxh) * 100);
         const ichum = cobj ? cobj.chum : '';
         const ichumimgs = cobj ? cobj.chumimgs : '';
         const xChums = ichum.split("*");
@@ -119,9 +135,22 @@ export default function FishTable() {
           return null;
         }
         const iperiod = xPeriodImg;
-        var icost = cobj ? ((!TryChecked ? cobj.cost : cobj.costtry) / dataSet.options.coinsRatio) : '';
+        const fishMyield = Number(TryChecked ? (cobj.myieldtry ?? cobj.myield ?? 1) : (cobj.myield ?? 1)) || 1;
+        const chumCostCoinsKey = Number(cobj?.[key("cheaperchumCost")] ?? cobj?.cheaperchumCost ?? 0);
+        const chumCostMarketKey = Number(cobj?.[key("cheaperchumCostp2pt")] ?? cobj?.cheaperchumCostp2pt ?? 0);
+        const chumUnitCostRaw = chumCostCoinsKey / dataSet.options.coinsRatio;
+        const chumUnitCostRawM = chumCostMarketKey;
+        let icost = cobj ? (Number(!TryChecked ? cobj.cost : cobj.costtry) / dataSet.options.coinsRatio) : 0;
+        let icostM = cobj ? Number(!TryChecked ? (cobj.costp2pt ?? 0) : (cobj.costp2pttry ?? cobj.costp2pt ?? 0)) : 0;
+        if (countChumCost && fishMyield > 0) {
+          icost += (chumUnitCostRaw / fishMyield);
+          icostM += (chumUnitCostRawM / fishMyield);
+        }
+        icost = Number.isFinite(icost) ? Math.max(0, icost) : 0;
+        const fishUnitCostRaw = icost;
+        const fishUnitMarketRaw = icostM;
         const iQuant = itemQuantity;
-        const ixp = cobj ? selectedQuantFish === "unit" ? (!TryChecked ? cobj.xp : cobj.xptry) : parseFloat((!TryChecked ? cobj.xp : cobj.xptry) * iQuant).toFixed(1) : 0;
+        const ixp = cobj ? selectedQuantFish === "unit" ? (!TryChecked ? (cobj.xp || 0) : (cobj.xptry || 0)) : parseFloat((!TryChecked ? (cobj.xp || 0) : (cobj.xptry || 0)) * iQuant).toFixed(1) : 0;
         const mapRare = cobj?.mapDropFish ? fish[cobj.mapDropFish] : null;
         const mapTooltip = cobj?.mapDropFish
           ? `Drop fragment for ${cobj.mapDropFish} (${cobj.mapDropChance || "?"}%)`
@@ -130,18 +159,37 @@ export default function FishTable() {
         totCaught += icaught;
         const iprct = cobj ? parseFloat(cobj.prct).toFixed(1) : '';
         let convPricep = 0;
+        let convPricepM = 0;
         if (selectedCurr === "SFL") {
           convPricep = icost;
+          convPricepM = icostM;
         }
         if (selectedCurr === "MATIC") {
           convPricep = (icost * priceData[2]) / priceData[1];
+          convPricepM = (icostM * priceData[2]) / priceData[1];
         }
         if (selectedCurr === "USDC") {
           convPricep = icost * priceData[2];
+          convPricepM = icostM * priceData[2];
         }
         icost = isNaN(convPricep) ? 0 : Number(convPricep);
+        icostM = isNaN(convPricepM) ? 0 : Number(convPricepM);
         totCost += icost * iQuant;
+        totCostM += icostM * iQuant;
         const xCost = selectedQuantFish === "unit" ? icost : icost * iQuant;
+        const xCostM = selectedQuantFish === "unit" ? icostM : icostM * iQuant;
+        const tooltipQty = selectedQuantFish === "unit" ? 1 : iQuant;
+        const fishCostTooltip = {
+          fishName: item,
+          qty: tooltipQty,
+          fishUnitCost: fishUnitCostRaw,
+          fishUnitMarket: fishUnitMarketRaw,
+          fishMyield: fishMyield,
+          includeChum: countChumCost,
+          chumName: (cobj?.[key("cheaperchum")] ?? cobj?.cheaperchum ?? ""),
+          chumUnitCost: chumUnitCostRaw,
+          chumUnitMarket: chumUnitCostRawM,
+        };
         const ixpsfl = isNaN(ixp / xCost) ? "" : ixp / xCost;
         xListeColFish[1][1] = 0;
         if (icat !== "Bait") {
@@ -149,18 +197,9 @@ export default function FishTable() {
             <tr key={index}>
               {xListeColFish[0][1] === 1 ? <td className="tdcenter">{icat}</td> : null}
               {xListeColFish[1][1] === 1 ? <td className="tdcenter">{ilocat}</td> : null}
-              {xListeColFish[2][1] === 1 ? (<td>
+              {/* {xListeColFish[2][1] === 1 ? (<td>
                 {PBar(itemQuantity, previousQuantity, maxh, 0)}
-                {/* {maxh > 0 && (
-                <div className={`progress-bar ${isNegativeDifference ? 'negative' : ''}`}>
-                  <div className="progress" style={{ width: `${hoardPercentage}%` }}>
-                    <span className="progress-text">
-                      {isNegativeDifference ? `-${parseFloat(absDifference).toFixed(0)}` : `${parseFloat(difference).toFixed(0)}/${parseFloat(maxh).toFixed(0)}`}
-                    </span>
-                  </div>
-                </div>
-              )} */}
-              </td>) : ("")}
+              </td>) : ("")} */}
               <td id="iccolumn"><i><img src={ico} alt={''} className="itico" /></i></td>
               {xListeColFish[3][1] === 1 ? <td className="tditem">{item}</td> : null}
               {xListeColFish[4][1] === 1 ? <td className="tdcenter">
@@ -191,8 +230,9 @@ export default function FishTable() {
                 })}</td> : null}
               {xListeColFish[10][1] === 1 ? <td className="tdcenter">{iprct}</td> : null}
               {xListeColFish[11][1] === 1 ? <td className="tdcenter">{isNaN(ixp) ? "" : parseFloat(ixp).toFixed(1)}</td> : null}
-              {xListeColFish[12][1] === 1 ? <td className="tdcenter">{parseFloat(xCost).toFixed(3)}</td> : null}
-              {xListeColFish[13][1] === 1 ? <td className="tdcenter">{isNaN(parseFloat(ixpsfl).toFixed(1)) ? "" : parseFloat(ixpsfl).toFixed(1)}</td> : null}
+              {xListeColFish[12][1] === 1 ? <td className="tdcenter tooltipcell" onClick={(e) => handleTooltip(item, "fishcost", fishCostTooltip, e)}>{parseFloat(xCost).toFixed(3)}</td> : null}
+              {xListeColFish[13][1] === 1 ? <td className="tdcenter tooltipcell" onClick={(e) => handleTooltip(item, "fishcost", fishCostTooltip, e)}>{parseFloat(xCostM).toFixed(3)}</td> : null}
+              {xListeColFish[14][1] === 1 ? <td className="tdcenter">{isNaN(parseFloat(ixpsfl).toFixed(1)) ? "" : parseFloat(ixpsfl).toFixed(1)}</td> : null}
             </tr>
           );
         }
@@ -213,8 +253,22 @@ export default function FishTable() {
             flexWrap: "wrap",
           }}
         >
-          <span style={{ fontSize: "12px", whiteSpace: "nowrap" }}>Reel {reelCasts}/{reelCastMax}</span>
-          <span style={{ fontSize: "12px", whiteSpace: "nowrap" }}>
+          <span style={{ fontSize: "12px", whiteSpace: "nowrap", display: "inline-flex", alignItems: "center", gap: "2px" }}>Reel: {reelCasts}/{reelCastMax}</span>
+          <span
+            className="tooltipcell"
+            onClick={(e) => handleTooltip("Rod", "crustaceancost", reelCasts, e)}
+            style={{ fontSize: "12px", whiteSpace: "nowrap", cursor: "pointer", display: "inline-flex", alignItems: "center", gap: "2px" }}
+          >
+            Cost: {frmtNb(reelCost)}/{frmtNb(reelCostMax)}{imgSFL}
+          </span>
+          <span
+            className="tooltipcell"
+            onClick={(e) => handleTooltip("Rod", "crustaceancost", reelCastMax, e)}
+            style={{ fontSize: "12px", whiteSpace: "nowrap", cursor: "pointer", display: "inline-flex", alignItems: "center", gap: "2px" }}
+          >
+            {frmtNb(reelCostM)}/{frmtNb(reelCostMaxM)}{imgExchng}
+          </span>
+          <span style={{ fontSize: "12px", whiteSpace: "nowrap", display: "inline-flex", alignItems: "center", gap: "2px" }}>
             {earthwormquant}{earthwormbait} {grubquant}{grubbait} {redwigglerquant}{redwigglerbait}
           </span>
         </div>
@@ -252,7 +306,7 @@ export default function FishTable() {
               <tr ref={fishHeaderRowRef}>
                 {xListeColFish[0][1] === 1 ? <th className="thcenter" >Category</th> : null}
                 {xListeColFish[1][1] === 1 ? <th className="thcenter" >Location</th> : null}
-                {xListeColFish[2][1] === 1 ? <th className="thcenter" >Hoard</th> : null}
+                {/* {xListeColFish[2][1] === 1 ? <th className="thcenter" >Hoard</th> : null} */}
                 <th className="th-icon">   </th>
                 {xListeColFish[3][1] === 1 ? <th className="thcenter" >Fish</th> : null}
                 {xListeColFish[4][1] === 1 ? <th className="thcenter" >Bait</th> : null}
@@ -306,24 +360,36 @@ export default function FishTable() {
                   />
                 </th> : null}
                 {xListeColFish[12][1] === 1 ? <th className="thcenter" >Cost</th> : null}
-                {xListeColFish[13][1] === 1 ? <th className="thcenter" >XP/SFL</th> : null}
+                {xListeColFish[13][1] === 1 ? <th className="thcenter" >{imgExchng}</th> : null}
+                {xListeColFish[14][1] === 1 ? <th className="thcenter" >XP/SFL</th> : null}
               </tr>
               <tr key="total">
                 {xListeColFish[0][1] === 1 ? <td className="tdcenter">Total</td> : null}
                 {xListeColFish[1][1] === 1 ? <td className="tdcenter"></td> : null}
-                {xListeColFish[2][1] === 1 ? <td className="tdcenter"></td> : null}
+                {/* {xListeColFish[2][1] === 1 ? <td className="tdcenter"></td> : null} */}
                 <td></td>
                 {xListeColFish[3][1] === 1 ? <td className="tdcenter"></td> : null}
                 {xListeColFish[4][1] === 1 ? <td className="tdcenter"></td> : null}
                 {xListeColFish[5][1] === 1 ? <td className="tdcenter"></td> : null}
                 {xListeColFish[6][1] === 1 ? <td className="tdcenter">{totCaught}</td> : null}
                 {xListeColFish[7][1] === 1 ? <td className="tdcenter"></td> : null}
-                {xListeColFish[8][1] === 1 ? <td className="tdcenter"></td> : null}
+                {xListeColFish[8][1] === 1 ? <td className="tdcenter">
+                  <label style={{ display: "inline-flex", alignItems: "center", gap: "4px", fontSize: "11px" }}>
+                    <input
+                      type="checkbox"
+                      checked={countChumCost}
+                      name="chumFishCost"
+                      onChange={handleOptionChange}
+                    />
+                    count
+                  </label>
+                </td> : null}
                 {xListeColFish[9][1] === 1 ? <td className="tdcenter"></td> : null}
                 {xListeColFish[10][1] === 1 ? <td className="tdcenter"></td> : null}
                 {xListeColFish[11][1] === 1 ? <td className="tdcenter">{(selectedQuantFish !== "unit") ? parseFloat(totXPfsh).toFixed(1) : ""}</td> : null}
                 {xListeColFish[12][1] === 1 ? <td className="tdcenter">{(selectedQuantFish !== "unit") ? parseFloat(totCost).toFixed(1) : ""}</td> : null}
-                {xListeColFish[13][1] === 1 ? <td className="tdcenter"></td> : null}
+                {xListeColFish[13][1] === 1 ? <td className="tdcenter">{(selectedQuantFish !== "unit") ? parseFloat(totCostM).toFixed(1) : ""}</td> : null}
+                {xListeColFish[14][1] === 1 ? <td className="tdcenter"></td> : null}
               </tr>
             </thead>
             <tbody>
@@ -355,14 +421,14 @@ export default function FishTable() {
         const ichum = cobj ? cobj.chum : '';
         const itime = cobj?.rdyat ? formatdate(cobj.rdyat) : '';
         const igrow = cobj ? cobj.grow : '';
-        const previousQuantity = Number(cobj?.prevstock || 0);
-        const pquant = previousQuantity || 0;
+        // const previousQuantity = Number(cobj?.prevstock || 0);
+        // const pquant = previousQuantity || 0;
         const itemQuantity = Number(cobj?.instock ?? quantity ?? 0);
-        const difference = itemQuantity - pquant;
-        const absDifference = Math.abs(difference);
-        const isNegativeDifference = difference < 0;
-        const maxh = cobj?.hoard || 100;
-        const hoardPercentage = Math.floor((absDifference / maxh) * 100);
+        // const difference = itemQuantity - pquant;
+        // const absDifference = Math.abs(difference);
+        // const isNegativeDifference = difference < 0;
+        // const maxh = cobj?.hoard || 100;
+        // const hoardPercentage = Math.floor((absDifference / maxh) * 100);
         var icost = cobj ? ((!TryChecked ? cobj.cost : cobj.costtry) / dataSet.options.coinsRatio) : '';
         var icostm = cobj ? (!TryChecked ? (cobj.costp2pt || 0) : (cobj.costp2pttry ?? cobj.costp2pt ?? 0)) : 0;
         const iQuant = selectedQuantCrusta === "unit" ? 1 : (itemQuantity || 0);
@@ -394,7 +460,7 @@ export default function FishTable() {
         return (
           <tr key={index}>
             {xListeColCrusta[0][1] === 1 ? <td className="tdcenter">{itool}</td> : null}
-            {xListeColCrusta[1][1] === 1 ? (<td>{PBar(itemQuantity, previousQuantity, maxh, 0)}</td>) : ("")}
+            {/* {xListeColCrusta[1][1] === 1 ? (<td>{PBar(itemQuantity, previousQuantity, maxh, 0)}</td>) : ("")} */}
             <td id="iccolumn"><i><img src={ico} alt={''} className="itico" /></i></td>
             {xListeColCrusta[2][1] === 1 ? <td className="tditem">{item}</td> : null}
             {xListeColCrusta[3][1] === 1 ? <td className="tdcenter">{itemQuantity || ''}</td> : null}
@@ -426,7 +492,7 @@ export default function FishTable() {
             <thead>
               <tr>
                 {xListeColCrusta[0][1] === 1 ? <th className="thcenter" >Tool</th> : null}
-                {xListeColCrusta[1][1] === 1 ? <th className="thcenter" >Hoard</th> : null}
+                {/* {xListeColCrusta[1][1] === 1 ? <th className="thcenter" >Hoard</th> : null} */}
                 <th className="th-icon">   </th>
                 {xListeColCrusta[2][1] === 1 ? <th className="thcenter" >Crustacean</th> : null}
                 {xListeColCrusta[3][1] === 1 ? <th className="thcenter" >Stock</th> : null}
@@ -451,7 +517,7 @@ export default function FishTable() {
               </tr>
               <tr key="total">
                 {xListeColCrusta[0][1] === 1 ? <td className="tdcenter">Total</td> : null}
-                {xListeColCrusta[1][1] === 1 ? <td className="tdcenter"></td> : null}
+                {/* {xListeColCrusta[1][1] === 1 ? <td className="tdcenter"></td> : null} */}
                 <td></td>
                 {xListeColCrusta[2][1] === 1 ? <td className="tditem"></td> : null}
                 {xListeColCrusta[3][1] === 1 ? <td className="tdcenter"></td> : null}
@@ -473,3 +539,6 @@ export default function FishTable() {
     }
   }
 }
+
+
+
