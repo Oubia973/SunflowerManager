@@ -1411,6 +1411,8 @@ const Tooltip = ({ onClose, item, context, value, clickPosition, dataSet, dataSe
                     const petEnergyNow = Number(p?.energyNow || 0);
                     const petLabel = p?.isNft ? (p?.cat || p?.petName || "") : (p?.petName || "");
                     const petYieldBase = Number(p?.yieldBase || 1);
+                    const itemYield = Number(p?.yieldItem || 1);
+                    const petYieldBonus = Number(p?.yieldPetBonus || 0);
                     const petQtyFromReqEnergy = (energyUnit > 0) ? ((petReqEnergyTotal / energyUnit) * petYieldBase) : 0;
                     const petCostPerUnit = petQtyFromReqEnergy > 0 ? (petReqCost / petQtyFromReqEnergy) : 0;
                     const petMarketPerUnit = petQtyFromReqEnergy > 0 ? (petReqMarket / petQtyFromReqEnergy) : 0;
@@ -1419,7 +1421,7 @@ const Tooltip = ({ onClose, item, context, value, clickPosition, dataSet, dataSe
                         <div key={p.petName} style={{ marginTop: 6 }}>
                             <div style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
                                 <img src={p.img || imgna} alt={p.petName || ""} style={{ width: "18px", height: "18px" }} />
-                                <span>{petLabel}</span>
+                                <span><b>{petLabel}</b></span>
                             </div>
                             <div>{frmtNb(energyUnit)}{imgEnergy} for {petYieldBase}{itemImg}</div>
                             <div>{reqLine.length ? reqLine : "N/A"} {reqLine.length ? <>{frmtNb(petReqCost)}{imgsfl} for {frmtNb(petReqEnergyTotal)}{imgEnergy}</> : null}

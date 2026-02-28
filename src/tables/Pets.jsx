@@ -27,6 +27,7 @@ export default function PetsTable() {
     img: {
       imgSFL,
       imgExchng,
+      imgbuyit
     }
   } = useAppCtx();
   const { Pets } = dataSetFarm;
@@ -79,7 +80,7 @@ export default function PetsTable() {
     });
   });
   const getOwnedPets = () => Object.entries(Pets || {})
-    .filter(([, p]) => !!p?.cat && !!p?.minNrgSfl);
+    .filter(([, p]) => !!p?.cat && !!p?.[key("minNrgSfl")]);
   const getFetchItemsForCat = (cat) => {
     const items = CATEGORY_ITEMS[cat] || [];
     return items.filter((comp) => comp !== "Fossil Shell" && !!petit?.[comp]);
@@ -107,7 +108,7 @@ export default function PetsTable() {
     return "hard1";
   };
   const getSelectedRequestSlotMapForPet = (petName, petData) => {
-    const feeds = Array.isArray(petData?.feeds) ? petData.feeds : Array.isArray(Pets?.[petName]?.feeds) ? Pets[petName].feeds : [];
+    const feeds = Array.isArray(petData?.[key("feeds")]) ? petData[key("feeds")] : Array.isArray(Pets?.[petName]?.[key("feeds")]) ? Pets[petName][key("feeds")] : [];
     const slotMapDefault = { easy1: false, medium1: false, medium2: false, hard1: false, hard2: false };
     feeds.forEach((feed) => {
       const slot = getFeedSlot(feed);
@@ -150,7 +151,7 @@ export default function PetsTable() {
   };
   const getSelectedRequestTotals = (petName, petData, coinsRatio) => {
     const selectedSlotMap = getSelectedRequestSlotMapForPet(petName, petData);
-    const feeds = Array.isArray(petData?.feeds) ? petData.feeds : [];
+    const feeds = Array.isArray(petData?.[key("feeds")]) ? petData[key("feeds")] : [];
     let selectedCostCoins = 0;
     let selectedCostMarket = 0;
     let selectedEnergyTotal = 0;
@@ -250,7 +251,7 @@ export default function PetsTable() {
   if (petView === "pets") {
     const petCols = xListeColPetPets || [];
     const categories = Object.keys(CATEGORY_ITEMS).flatMap((cat) => {
-      const petsInCat = Object.entries(Pets || {}).filter(([, p]) => p?.cat === cat && p?.minNrgSfl);
+      const petsInCat = Object.entries(Pets || {}).filter(([, p]) => p?.cat === cat && p?.[key("minNrgSfl")]);
       if (petsInCat.length === 0) return [{ cat, petName: null }];
       return petsInCat.map(([petName]) => ({ cat, petName }));
     });
@@ -258,7 +259,6 @@ export default function PetsTable() {
       let foodCostTotal = 0;
       let foodCostMTotal = 0;
       const catImgPath = CATEGORY_IMG[cat] || "./icon/nft/na.png";
-      const catImg = <img src={catImgPath} alt="" className="nftico" title={cat} />;
       let curNrg = 0;
       let petLvl = 0;
       let energySfl = 0;
@@ -272,12 +272,14 @@ export default function PetsTable() {
       const fetchItems = getFetchItemsForCat(cat);
       const selectedFetchList = getSelectedFetchListForPet(rowPetName || cat, cat);
       const isOwnedCat = !!rowPetName;
+      const iconGreyStyle = isOwnedCat ? {} : { opacity: 0.35 };
+      const catImg = <img src={catImgPath} alt="" className="nftico" title={cat} style={iconGreyStyle} />;
       const rowPet = rowPetName ? Pets?.[rowPetName] : null;
       const selectedSlotMap = rowPetName ? getSelectedRequestSlotMapForPet(rowPetName, rowPet) : { easy1: true, medium1: true, medium2: true, hard1: true, hard2: true };
-      if (rowPet && rowPet.cat === cat && rowPet.minNrgSfl) {
+      if (rowPet && rowPet.cat === cat && rowPet[key("minNrgSfl")]) {
         const reqTotals = getSelectedRequestTotals(rowPetName, rowPet, dataSet.options.coinsRatio);
         requests.push(...(reqTotals.selectedReq || []));
-        const feeds = Array.isArray(rowPet.feeds) ? rowPet.feeds : [];
+        const feeds = Array.isArray(rowPet[key("feeds")]) ? rowPet[key("feeds")] : [];
         petFeeds = feeds.map((feed, reqp) => {
           const feedSlot = getFeedSlot(feed);
           const feedTier = getFeedTier(feed);
@@ -332,7 +334,7 @@ export default function PetsTable() {
           : (foodCostMTotal > 0 ? (totalNrg / foodCostMTotal) : 0);
       } else {
         for (let petName in Pets) {
-          if (Pets[petName].cat === cat && Pets[petName].minNrgSfl) {
+          if (Pets[petName].cat === cat && Pets[petName][key("minNrgSfl")]) {
             requests.push(...(Pets[petName].req || []));
             if (Pets[cat]) { supply = Pets[cat].supply || 0; }
             break;
@@ -345,7 +347,7 @@ export default function PetsTable() {
         if (!isOwnedCat) {
           return (
             <span key={comp} title={comp} style={{ marginRight: 4, display: "inline-flex", alignItems: "center" }}>
-              <img src={cimg} alt="" className="itico" />
+              <img src={cimg} alt="" className="itico" style={iconGreyStyle} />
             </span>
           );
         }
@@ -415,7 +417,7 @@ export default function PetsTable() {
             {isColVisible(petCols, 7) ? <th className="thcenter">Requests</th> : null}
             {isColVisible(petCols, 8) ? <th className="thcenter"><img src="./icon/ui/lightning.png" alt="" className="itico" title="Energy" /></th> : null}
             {isColVisible(petCols, 9) ? <th className="thcenter">Cost</th> : null}
-            {isColVisible(petCols, 10) ? <th className="thcenter">{imgExchng}</th> : null}
+            {isColVisible(petCols, 10) ? <th className="thcenter">Prod {imgbuyit}</th> : null}
             {isColVisible(petCols, 11) ? <th className="thcenter"><img src="./icon/ui/lightning.png" alt="" className="itico" title="Energy" />/{imgSFL}</th> : null}
             {isColVisible(petCols, 12) ? <th className="thcenter"><img src="./icon/ui/lightning.png" alt="" className="itico" title="Energy" />/{imgExchng}</th> : null}
           </tr>
@@ -507,17 +509,38 @@ export default function PetsTable() {
       const cinfo = petit[c] || {};
       const cimg = cinfo.img || "./icon/nft/na.png";
       const energy = cinfo.energy || 0;
+      const itemMyield = Number(cinfo[key("myield")] ?? cinfo.myield ?? 1) || 1;
       const unitCost = Number(cinfo[key("cost")] || 0) / dataSet.options.coinsRatio;
       const cp2pt = cinfo.costp2pt || 0;
       const cstock = cinfo.instock || 0;
+      const byPetYield = cinfo[key("bypet")] ?? cinfo.bypet ?? {};
       const catArr = compToCats[c] || [];
       const shrineArr = compToShrines[c] || [];
+      const selectedPetYields = Object.entries(Pets || {})
+        .filter(([petName, petData]) => {
+          if (!petData?.cat || !catArr.includes(petData.cat)) return false;
+          if (!petData?.[key("minNrgSfl")]) return false;
+          const selectedList = getSelectedFetchListForPet(petName, petData.cat);
+          return selectedList.includes(c);
+        })
+        .map(([petName]) => ({
+          petName,
+          y: Number(byPetYield?.[petName]?.y ?? 0),
+          d: Array.isArray(byPetYield?.[petName]?.d) ? byPetYield[petName].d : [],
+        }));
+      const bestSelectedPetYield = selectedPetYields.reduce((best, cur) => {
+        if (!best) return cur;
+        if (cur.y > best.y) return cur;
+        if (cur.y === best.y && cur.petName < best.petName) return cur;
+        return best;
+      }, null);
+      const displayedYield = Number(bestSelectedPetYield?.y ?? itemMyield) || itemMyield;
       let totalComp = 0;
       let totalNrg = 0;
       const catIcons = catArr.map(cat => {
         let hasSelectedForComp = false;
         for (let petName in Pets) {
-          if (Pets[petName].cat === cat && Pets[petName].minNrgSfl) {
+          if (Pets[petName].cat === cat && Pets[petName][key("minNrgSfl")]) {
             const selectedListForPet = getSelectedFetchListForPet(petName, cat);
             const isSelectedForComp = selectedListForPet.includes(c);
             if (isSelectedForComp) hasSelectedForComp = true;
@@ -530,7 +553,7 @@ export default function PetsTable() {
               : selectedQuantFetch === "petst"
                 ? curEnergy
                 : 0;
-            const myield = Number(Pets[petName]?.yieldByItem?.[c] || 1);
+            const myield = Number(byPetYield?.[petName]?.y ?? itemMyield) || itemMyield;
             totalComp += ((ipetNrg || 0) / cinfo.energy) * myield;
             totalNrg += ipetNrg || 0;
           }
@@ -548,7 +571,7 @@ export default function PetsTable() {
       const selectedCatIcons = catArr
         .filter((cat) => ownedCats.has(cat) && Object.entries(Pets || {}).some(([petName, petData]) => (
           petData?.cat === cat
-          && petData?.minNrgSfl
+          && petData?.[key("minNrgSfl")]
           && getSelectedFetchListForPet(petName, cat).includes(c)
         )))
         .map((cat) => {
@@ -581,7 +604,7 @@ export default function PetsTable() {
       //const iQuant = (selectedQuantFetch === "pets" || selectedQuantFetch === "petst") ? Math.floor(totalComp) : selectedQuantFetch === "stock" ? cstock : customQuantFetch[index];
       const iNrg = (selectedQuantFetch === "pets" || selectedQuantFetch === "petst") ? totalNrg : energy * iQuant;
       const producerPets = Object.entries(Pets || {})
-        .filter(([, petData]) => !!petData?.minNrgSfl && catArr.includes(petData?.cat))
+        .filter(([, petData]) => !!petData?.[key("minNrgSfl")] && catArr.includes(petData?.cat))
         .map(([petName, petData]) => {
           const selectedListForPet = getSelectedFetchListForPet(petName, petData?.cat);
           const isSelectedForComp = selectedListForPet.includes(c);
@@ -595,7 +618,9 @@ export default function PetsTable() {
               ? Number(petData?.curnrg || 0)
               : 0;
           const petEnergyBase = Number(selectedQuantFetch === "petst" ? fullDailyNrg : selectedDailyNrg);
-          const petYield = Number(petData?.yieldByItem?.[c] || 1);
+          const itemYield = itemMyield;
+          const petYield = Number(byPetYield?.[petName]?.y ?? itemYield) || itemYield;
+          const petBonusYield = Math.max(0, petYield - itemYield);
           const petQtyNow = contributesNow && energy > 0 ? ((petEnergyNow / energy) * petYield) : 0;
           const reqEnergyTotal = Number(selectedDailyNrg || 0);
           const petReqCost = Number(reqTotals.selectedCostSfl || 0);
@@ -618,6 +643,8 @@ export default function PetsTable() {
             qtyNow: Number(petQtyNow || 0),
             energyBase: Number(petEnergyBase || 0),
             yieldBase: Number(petYield || 1),
+            yieldItem: Number(itemYield || 1),
+            yieldPetBonus: Number(petBonusYield || 0),
             reqCost: Number(petReqCost || 0),
             reqMarket: Number(petReqMarket || 0),
             reqEnergyTotal: Number(reqEnergyTotal || 0),
@@ -674,6 +701,14 @@ export default function PetsTable() {
         totalMarket: Number(iMarket || 0),
         producers: producerPets,
       };
+      const yieldTooltip = {
+        type: "petityield",
+        totalYield: Number(displayedYield || 1),
+        details: bestSelectedPetYield?.d?.length
+          ? bestSelectedPetYield.d
+          : (cinfo?.[key("myielddetail")] ?? cinfo?.myielddetail ?? []),
+        petName: bestSelectedPetYield?.petName || null,
+      };
       return (
         <tr key={c}>
           <td id="iccolumn"><img src={cimg} alt="" className="nodico" /></td>
@@ -691,17 +726,18 @@ export default function PetsTable() {
               /></td>) :
             (<td className="tdcenter">{selectedQuantFetch === "pets" ? Number(iQuant || 0).toFixed(2) : frmtNb(iQuant)}</td>) : ("")}
           {isColVisible(compCols, 2) ? <td className="tdcenter" style={{ padding: "0 10px" }}>{frmtNb(iNrg)}</td> : null}
-          {isColVisible(compCols, 3) ? <td className="tdcenter tooltipcell" style={{ padding: "0 10px" }} onClick={(e) => handleTooltip(c, "fetchcost", fetchCostTooltip, e)}>{iCost > 0 ? frmtNb(iCost) : ""}</td> : null}
-          {isColVisible(compCols, 4) ? <td className="tdcenter tooltipcell" style={{ padding: "0 10px" }} onClick={(e) => handleTooltip(c, "fetchcost", fetchCostTooltip, e)}>{iProdMarket > 0 ? frmtNb(iProdMarket) : ""}</td> : null}
-          {isColVisible(compCols, 5) ? <td className="tdcenter tooltipcell" style={{ padding: "0 10px" }} onClick={(e) => handleTooltip(c, "fetchcost", fetchCostTooltip, e)}>{frmtNb(iMarket)}</td> : null}
-          {isColVisible(compCols, 6) ? <td className="tdcenter">
+          {isColVisible(compCols, 3) ? <td className="tdcenter tooltipcell" style={{ padding: "0 10px" }} onClick={(e) => handleTooltip(c, "trynft", yieldTooltip, e)}>{frmtNb(displayedYield)}</td> : null}
+          {isColVisible(compCols, 4) ? <td className="tdcenter tooltipcell" style={{ padding: "0 10px" }} onClick={(e) => handleTooltip(c, "fetchcost", fetchCostTooltip, e)}>{iCost > 0 ? frmtNb(iCost) : ""}</td> : null}
+          {isColVisible(compCols, 5) ? <td className="tdcenter tooltipcell" style={{ padding: "0 10px" }} onClick={(e) => handleTooltip(c, "fetchcost", fetchCostTooltip, e)}>{iProdMarket > 0 ? frmtNb(iProdMarket) : ""}</td> : null}
+          {isColVisible(compCols, 6) ? <td className="tdcenter tooltipcell" style={{ padding: "0 10px" }} onClick={(e) => handleTooltip(c, "fetchcost", fetchCostTooltip, e)}>{frmtNb(iMarket)}</td> : null}
+          {isColVisible(compCols, 7) ? <td className="tdcenter">
             {c === "Moonfur"
               ? (selectedCatIcons.length ? selectedCatIcons : "All NFT")
               : c === "Acorn"
                 ? (selectedCatIcons.length ? selectedCatIcons : "All")
                 : (catIcons.length ? catIcons : <i>N/A</i>)}
           </td> : null}
-          {isColVisible(compCols, 7) ? <td className="tdcenter">{c === "Acorn" ? "All" : shrineBadges.length ? shrineBadges : <i>N/A</i>}</td> : null}
+          {isColVisible(compCols, 8) ? <td className="tdcenter">{c === "Acorn" ? "All" : shrineBadges.length ? shrineBadges : <i>N/A</i>}</td> : null}
         </tr>
       );
     });
@@ -735,11 +771,12 @@ export default function PetsTable() {
               />
             </th> : null}
             {isColVisible(compCols, 2) ? <th className="thcenter"><img src="./icon/ui/lightning.png" alt="" className="itico" title="Energy" /></th> : null}
-            {isColVisible(compCols, 3) ? <th className="thcenter">Cost</th> : null}
-            {isColVisible(compCols, 4) ? <th className="thcenter">Prod {imgExchng}</th> : null}
-            {isColVisible(compCols, 5) ? <th className="thcenter">{imgExchng}</th> : null}
-            {isColVisible(compCols, 6) ? <th className="thcenter">Fetched by</th> : null}
-            {isColVisible(compCols, 7) ? <th className="thcenter">Used in Shrines</th> : null}
+            {isColVisible(compCols, 3) ? <th className="thcenter">Yield</th> : null}
+            {isColVisible(compCols, 4) ? <th className="thcenter">Cost</th> : null}
+            {isColVisible(compCols, 5) ? <th className="thcenter">Prod {imgbuyit}</th> : null}
+            {isColVisible(compCols, 6) ? <th className="thcenter">{imgExchng}</th> : null}
+            {isColVisible(compCols, 7) ? <th className="thcenter">Fetched by</th> : null}
+            {isColVisible(compCols, 8) ? <th className="thcenter">Used in Shrines</th> : null}
           </tr>
         </thead>
         <tbody>{rows}</tbody>
@@ -747,4 +784,3 @@ export default function PetsTable() {
     );
   }
 }
-

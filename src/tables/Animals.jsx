@@ -45,6 +45,7 @@ export default function AnimalTable() {
             imgexchng,
             imgExchng,
             imgna,
+            imgbuyit
         }
     } = useAppCtx();
     useEffect(() => {
@@ -275,12 +276,12 @@ export default function AnimalTable() {
                         {xListeColAnimals[6][1] === 1 ? <th className="thcenter">{imgExchng}</th> : null}
                         {xListeColAnimals[7][1] === 1 ? <th className="thcenterbrdleft" title="Prod cost per unit">{prod1img2}Cost/u</th> : null}
                         {xListeColAnimals[8][1] === 1 ? <th className="thcenter" title="Coef market / production"> % </th> : null}
-                        {xListeColAnimals[8][1] === 1 ? <th className="thcenter" title="Prod cost per unit buying food at market">Buy<div>crops</div></th> : null}
+                        {xListeColAnimals[8][1] === 1 ? <th className="thcenter" title="Prod cost per unit buying food at market">Prod {imgbuyit}</th> : null}
                         {xListeColAnimals[8][1] === 1 ? <th className="thcenter" title="Coef market / production buying food comp at p2p"> % </th> : null}
                         {xListeColAnimals[8][1] === 1 ? <th className="thcenter" title="Market price per unit">{imgExchng}</th> : null}
                         {xListeColAnimals[9][1] === 1 ? <th className="thcenterbrdleft" title="Prod cost per unit">{prod2img2}Cost/u</th> : null}
                         {xListeColAnimals[10][1] === 1 ? <th className="thcenter" title="Coef market / production"> % </th> : null}
-                        {xListeColAnimals[10][1] === 1 ? <th className="thcenter" title="Prod cost per unit buying food at market">Buy<div>crops</div></th> : null}
+                        {xListeColAnimals[10][1] === 1 ? <th className="thcenter" title="Prod cost per unit buying food at market">Prod {imgbuyit}</th> : null}
                         {xListeColAnimals[10][1] === 1 ? <th className="thcenter" title="Coef market / production buying food comp at p2p"> % </th> : null}
                         {xListeColAnimals[10][1] === 1 ? <th className="thcenterbrdright" title="Market price per unit">{imgExchng}</th> : null}
                     </tr>

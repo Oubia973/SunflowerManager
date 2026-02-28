@@ -22,7 +22,7 @@ export default function FlowerTable() {
             const ibreedimgs = cobj ? cobj.breedimgs : '';
             const xBreeds = ibreed.split("*");
             const xBreedsImg = ibreedimgs.split("*");
-            const iquant = cobj.quant > 0 ? cobj.quant : '';
+            const iquant = cobj.instock > 0 ? cobj.instock : '';
             const ihrvstd = cobj.harvested > 0 ? cobj.harvested : '';
             const itime = cobj.time ? timeToDays(TryChecked ? cobj.timetry : cobj.time) : '';
             let growingQuant = 0;

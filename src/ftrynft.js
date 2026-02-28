@@ -69,6 +69,8 @@ const BOOST_ITEM_CATEGORY_ALIASES = {
   treasure: "dig",
   treasures: "dig",
   bounty: "dig",
+  pet: "pet",
+  pets: "pet",
 };
 const NFT_PRICE_COLUMN_OPTIONS = [
   { value: "opensea", label: "OpenSea", iconSrc: "./icon/ui/openseaico.png" },
@@ -288,6 +290,8 @@ function ModalTNFT({ onClose }) {
     if (/\b(compost|fertili[sz]er)\b/.test(txt)) { inferred.push("compost"); }
     if (/\b(bud|buds)\b/.test(txt)) { inferred.push("bud"); }
     if (/\b(shrine|shrines)\b/.test(txt)) { inferred.push("shrine"); }
+    if (/\b(pet|pets)\b/.test(txt)) { inferred.push("pet"); }
+    if (/\b(wood|chop|tree)\b/.test(txt)) { inferred.push("wood"); }
     return inferred;
   };
   const resolveItemCategoryTokens = (boostItemTokens) => {

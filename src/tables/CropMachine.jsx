@@ -23,6 +23,7 @@ export default function CropMachineTable() {
             imgsfl,
             imgcoins,
             imgExchng,
+            imgbuyit
         }
     } = useAppCtx();
     if (dataSetFarm?.itables?.it && dataSetFarm?.CropMachine && dataSet?.options) {

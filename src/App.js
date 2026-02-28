@@ -283,6 +283,7 @@ const PET_COMPONENTS_COLUMNS_TEMPLATE = [
   ['Component', 1],
   ['Quantity', 1],
   ['Energy', 1],
+  ['Yield', 1],
   ['Cost', 1],
   ['Prod Marketplace', 1],
   ['Marketplace', 1],
@@ -293,11 +294,12 @@ const PET_COMPONENTS_COLUMNS_PICKER = [
   { idx: 0, label: 'Component' },
   { idx: 1, label: 'Quantity' },
   { idx: 2, label: 'Energy' },
-  { idx: 3, label: 'Cost' },
-  { idx: 4, label: 'Prod Marketplace' },
-  { idx: 5, label: 'Marketplace' },
-  { idx: 6, label: 'Fetched by' },
-  { idx: 7, label: 'Used in Shrines' },
+  { idx: 3, label: 'Yield' },
+  { idx: 4, label: 'Cost' },
+  { idx: 5, label: 'Prod Marketplace' },
+  { idx: 6, label: 'Marketplace' },
+  { idx: 7, label: 'Fetched by' },
+  { idx: 8, label: 'Used in Shrines' },
 ];
 const CROPMACHINE_COLUMNS_TEMPLATE = [
   ['Select', 1],
@@ -1170,7 +1172,7 @@ function App() {
         ? (it[item]?.dailycycletry ?? it[item]?.dailycycle ?? 0)
         : (it[item]?.dailycycle ?? 0);
 
-      if (dc > 0) next[item] = dc;
+      if (dc > 0) next[item] = Math.ceil(Number(dc));
     }
     setUI((prev) => ({
       ...prev,
@@ -1930,8 +1932,8 @@ function App() {
     for (const item in it) {
       const dc = it[item]?.dailycycle ?? 0;
       const dcTry = it[item]?.dailycycletry ?? dc;
-      if (dc > 0) nextHrvst[item] = dc;
-      if (dcTry > 0) nextHrvstTry[item] = dcTry;
+      if (dc > 0) nextHrvst[item] = Math.ceil(Number(dc));
+      if (dcTry > 0) nextHrvstTry[item] = Math.ceil(Number(dcTry));
     }
     setUI((prev) => ({
       ...prev,

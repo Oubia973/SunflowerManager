@@ -16,6 +16,7 @@ export default function CraftTable() {
             imgcoins,
             imgExchng,
             imgna,
+            imgbuyit
         }
     } = useAppCtx();
     if (dataSetFarm?.itables?.it && dataSetFarm?.itables?.flower && dataSetFarm?.itables?.bounty && dataSetFarm?.itables?.craft) {
@@ -27,7 +28,7 @@ export default function CraftTable() {
             const itemName = element;
             const ico = <img src={cobj.img} alt={''} className="nftico" title={itemName} />;
             const itime = TryChecked ? cobj.timetry : cobj.time;
-            const stock = cobj.stock > 0 ? cobj.stock : '';
+            const stock = cobj.instock > 0 ? cobj.instock : '';
             const icost = TryChecked ? cobj.costtry / dataSet.options.coinsRatio : cobj.cost / dataSet.options.coinsRatio;
             const icostm = cobj.costp2pt;
             let icompoimg = [];
@@ -66,8 +67,8 @@ export default function CraftTable() {
                     {xListeColBounty[1][1] === 1 ? <th className="thcenter">Stock</th> : null}
                     {xListeColBounty[2][1] === 1 ? <th className="thcenter">Time</th> : null}
                     {xListeColBounty[3][1] === 1 ? <th className="thcenter">Compos</th> : null}
-                    {xListeColBounty[4][1] === 1 ? <th className="thcenter">Prod {imgSFL}</th> : null}
-                    {xListeColBounty[5][1] === 1 ? <th className="thcenter">{imgExchng}</th> : null}
+                    {xListeColBounty[4][1] === 1 ? <th className="thcenter">Cost</th> : null}
+                    {xListeColBounty[5][1] === 1 ? <th className="thcenter">Prod {imgbuyit}</th> : null}
                 </tr>
             </thead>
         );

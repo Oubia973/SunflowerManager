@@ -574,6 +574,11 @@ function setInvContent(sortedInventoryItems, totCost, totShop, totTrader, totNif
             const iharvestdmaxtry = cobj.harvestdmaxtry ? cobj.harvestdmaxtry : 0;
             const dailyprodmx = !TryChecked ? iharvestdmax : iharvestdmaxtry;
             const idailycycle = !TryChecked ? cobj.dailycycle : cobj.dailycycletry;
+            const idailycycleNum = Number(idailycycle);
+            const hrvMaxControl = Number.isFinite(idailycycleNum) ? Math.max(1, Math.ceil(idailycycleNum)) : 1;
+            const hrvMaxDisplay = Number.isFinite(Number(idailycycle))
+                ? (Number.isInteger(Number(idailycycle)) ? Number(idailycycle) : Number(idailycycle).toFixed(1))
+                : idailycycle;
             //if(!xHrvst[item]) {setUIField(TryChecked ? `xHrvsttry.${[item]}` : `xHrvst.${[item]}`, idailycycle)}
             const irestockmax = cobj.restockmax ? cobj.restockmax : 0;
             const irestockmaxtry = cobj.restockmaxtry ? cobj.restockmaxtry : 0;
@@ -660,7 +665,10 @@ function setInvContent(sortedInventoryItems, totCost, totShop, totTrader, totNif
                             ? customPrice
                             : itemQuantity;
             const hrvstFieldName = TryChecked ? `xHrvsttry.${item}` : `xHrvst.${item}`;
-            const hrvstFieldValue = TryChecked ? (xHrvsttry?.[item] ?? idailycycle) : (xHrvst?.[item] ?? idailycycle);
+            const hrvstRaw = TryChecked ? (xHrvsttry?.[item] ?? idailycycle) : (xHrvst?.[item] ?? idailycycle);
+            const hrvstFieldValue = Number.isFinite(Number(hrvstRaw))
+                ? Math.max(1, Math.min(hrvMaxControl, Math.ceil(Number(hrvstRaw))))
+                : hrvMaxControl;
             /* const iQuant = selectedQuantity === "daily" ? (ifrmit === 1 ? dailyprod : 0) - iburn : selectedQuantity === "blockbuck" ?
                 BBprod : selectedQuantity === "custom" ? (cstPrices[xIndex]) : itemQuantity; */
             var Ttax = 0; //Math.ceil(iQuant / itradmax) * 0.25;
@@ -876,15 +884,18 @@ function setInvContent(sortedInventoryItems, totCost, totShop, totTrader, totNif
                                 onChange={handleUIChange}
                             />
                         </td>) : ("")}
-                        {selectedQuantity === "daily" ? (<td className="tdcenter" style={cellStyle}>{idailycycle}</td>) : ("")}
+                        {selectedQuantity === "daily" ? (<td className="tdcenter" style={cellStyle}>{hrvMaxDisplay}</td>) : ("")}
                         {selectedQuantity === "daily" ? (<td className="tdcenter" style={cellStyle}>
                             <CounterInput
                                 value={hrvstFieldValue}
-                                onChange={(newValue) =>
-                                    handleUIChange({ target: { name: hrvstFieldName, value: newValue } })
-                                }
+                                onChange={(newValue) => {
+                                    const nextValue = Number.isFinite(Number(newValue))
+                                        ? Math.max(1, Math.min(hrvMaxControl, Math.round(Number(newValue))))
+                                        : 1;
+                                    handleUIChange({ target: { name: hrvstFieldName, value: nextValue } });
+                                }}
                                 min={1}
-                                max={idailycycle}
+                                max={hrvMaxControl}
                             />
                         </td>) : ("")}
                         {xListeCol[2][1] === 1 ? (

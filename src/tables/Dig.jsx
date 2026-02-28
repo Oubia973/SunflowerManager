@@ -39,7 +39,7 @@ export default function DigTable() {
             const cobj = bounty[element];
             const bntName = element;
             const ico = <img src={cobj.img} alt={''} className="nodico" title={bntName} />;
-            const stock = cobj.stock > 0 ? cobj.stock : '';
+            const stock = cobj.instock > 0 ? cobj.instock : '';
             const icost = TryChecked ? cobj.costtry : cobj.cost;
             const xcoinsRatio = (selectedDigCur === "sfl" ? dataSet.options.coinsRatio : 1);
             const value = (icost > 0 && !it[bntName]) ? parseFloat((icost * stock) / xcoinsRatio).toFixed(CurDec) : '';

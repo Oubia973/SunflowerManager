@@ -30,6 +30,7 @@ export default function FishTable() {
       imgSFL,
       imgExchng,
       imgna,
+      imgbuyit,
     },
     actions: {
       handleUIChange,
@@ -266,7 +267,7 @@ export default function FishTable() {
             onClick={(e) => handleTooltip("Rod", "crustaceancost", reelCastMax, e)}
             style={{ fontSize: "12px", whiteSpace: "nowrap", cursor: "pointer", display: "inline-flex", alignItems: "center", gap: "2px" }}
           >
-            {frmtNb(reelCostM)}/{frmtNb(reelCostMaxM)}{imgExchng}
+            {frmtNb(reelCostM)}/{frmtNb(reelCostMaxM)}{imgbuyit}
           </span>
           <span style={{ fontSize: "12px", whiteSpace: "nowrap", display: "inline-flex", alignItems: "center", gap: "2px" }}>
             {earthwormquant}{earthwormbait} {grubquant}{grubbait} {redwigglerquant}{redwigglerbait}
@@ -360,7 +361,7 @@ export default function FishTable() {
                   />
                 </th> : null}
                 {xListeColFish[12][1] === 1 ? <th className="thcenter" >Cost</th> : null}
-                {xListeColFish[13][1] === 1 ? <th className="thcenter" >{imgExchng}</th> : null}
+                {xListeColFish[13][1] === 1 ? <th className="thcenter" >Prod {imgbuyit}</th> : null}
                 {xListeColFish[14][1] === 1 ? <th className="thcenter" >XP/SFL</th> : null}
               </tr>
               <tr key="total">
@@ -511,7 +512,7 @@ export default function FishTable() {
                     height={28}
                   />
                 </th> : null}
-                {xListeColCrusta[7][1] === 1 ? <th className="thcenter" >{imgExchng}</th> : null}
+                {xListeColCrusta[7][1] === 1 ? <th className="thcenter" >Prod {imgbuyit}</th> : null}
                 {xListeColCrusta[8][1] === 1 ? <th className="thcenter" >Grow</th> : null}
                 {xListeColCrusta[9][1] === 1 ? <th className="thcenter" >Ready</th> : null}
               </tr>

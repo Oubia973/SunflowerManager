@@ -46,6 +46,7 @@ export default function CookTable() {
             imgSFL,
             imgExchng,
             imgna,
+            imgbuyit
         }
     } = useAppCtx();
     const levelReqTimerRef = useRef(null);
@@ -535,7 +536,7 @@ export default function CookTable() {
                       <MenuItem value="trader">Market</MenuItem>
                       <MenuItem value="nifty">Niftyswap</MenuItem>
                       <MenuItem value="opensea">OpenSea</MenuItem>
-                    </Select></FormControl></div> */}{imgExchng}</th> : null}
+                    </Select></FormControl></div> */}Prod {imgbuyit}</th> : null}
                             {xListeColCook[11][1] === 1 ? Object.values(sortedCompo).map((itemName, itIndex) => (
                                 <th className="thcenter" key={itemName}><i><img src={(it[itemName] ? it[itemName].img : fish[itemName] ? fish[itemName].img : bounty[itemName] ? bounty[itemName].img : pfood[itemName] ? pfood[itemName].img : imgna)} alt={itemName} className="itico" /></i></th>
                             )) : null}

@@ -179,6 +179,30 @@ const TryNftTooltip = ({
             </>
         );
     }
+    if (value && typeof value === "object" && value.type === "petityield") {
+        const details = Array.isArray(value.details) ? value.details : [];
+        const totalYield = Number(value.totalYield ?? Item?.[myieldortry] ?? 1) || 1;
+        txtItem = (
+            <>
+                <div>{imtemimg}{item} yield : {frmtNb(totalYield)}</div>
+                <div>Boosts & perks counted:</div>
+            </>
+        );
+        filteredBoosts = [];
+        extraBoosts = details
+            .filter((d) => (d?.n || "") !== "Base")
+            .map((d) => {
+                const name = d?.n || "Boost";
+                const amount = Number(d?.a || 0);
+                const boostImg = booststable?.[name]?.img;
+                const isPerk = /perk/i.test(name);
+                return {
+                    name,
+                    img: boostImg || (isPerk ? "./icon/ui/xp.png" : imgna),
+                    boost: `${amount >= 0 ? "+" : ""}${frmtNb(amount)} yield`,
+                };
+            });
+    }
 
     return (
         <div>
