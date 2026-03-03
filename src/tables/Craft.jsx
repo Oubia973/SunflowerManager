@@ -19,8 +19,9 @@ export default function CraftTable() {
             imgbuyit
         }
     } = useAppCtx();
-    if (dataSetFarm?.itables?.it && dataSetFarm?.itables?.flower && dataSetFarm?.itables?.bounty && dataSetFarm?.itables?.craft) {
-        const { it, flower, bounty, craft } = dataSetFarm.itables;
+    const craftTables = dataSetFarm?.craftData?.itables || dataSetFarm?.itables || {};
+    if (craftTables?.it && craftTables?.flower && craftTables?.bounty && craftTables?.craft) {
+        const { it, flower, bounty, craft } = craftTables;
         const Keys = Object.keys(craft);
         const imgCoins = <img src={imgcoins} alt={''} className="itico" title="Coins" />;
         const tableContent = Keys.map(element => {

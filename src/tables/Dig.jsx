@@ -20,8 +20,9 @@ export default function DigTable() {
             imgcoins,
         }
     } = useAppCtx();
-    if (dataSetFarm?.itables?.it && dataSetFarm?.itables?.bounty) {
-        const { it, bounty } = dataSetFarm.itables;
+    const bountyTables = dataSetFarm?.bountyData?.itables || dataSetFarm?.itables || {};
+    if (bountyTables?.it && bountyTables?.bounty) {
+        const { it, bounty } = bountyTables;
         const bountyKeys = Object.keys(bounty);
         let valueTotal = 0;
         let vTodayTotal = 0;

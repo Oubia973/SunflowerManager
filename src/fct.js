@@ -59,6 +59,17 @@ export function flattenCompoit(rawCompo) {
   return out;
 }
 
+export function mergeFarmStateDeep(prevFarm, nextFarm) {
+  const prev = prevFarm || {};
+  const next = { ...(nextFarm || {}) };
+  const merged = { ...prev, ...next };
+  if (next.frmData) merged.frmData = { ...(prev.frmData || {}), ...next.frmData };
+  if (next.itables) merged.itables = { ...(prev.itables || {}), ...next.itables };
+  if (next.boostables) merged.boostables = { ...(prev.boostables || {}), ...next.boostables };
+  if (next.constants) merged.constants = { ...(prev.constants || {}), ...next.constants };
+  return merged;
+}
+
 export function convTime(nombre) {
   if (nombre > 0 && nombre !== Infinity) {
     //if (nombre === "-Infinity" || nombre === "Infinity" || nombre === 0 || nombre === NaN) { return "00:00:00" }
@@ -245,20 +256,68 @@ export function Timer({ timestamp, index, onTimerFinish }) {
 }
 
 export function filterTryit(dataSet, toArray) {
-  const { it = {}, food = {} } = dataSet?.itables || {};
+  const tableSources = [
+    dataSet?.invData?.itables,
+    dataSet?.cookData?.itables,
+    dataSet?.fishData?.itables,
+    dataSet?.bountyData?.itables,
+    dataSet?.craftData?.itables,
+    dataSet?.flowerData?.itables,
+    dataSet?.expandPageData?.itables,
+    dataSet?.itables,
+  ].filter(Boolean);
+  const mergeTable = (tableName) => {
+    return tableSources.reduce((acc, src) => {
+      const table = src?.[tableName];
+      if (table && typeof table === "object") {
+        Object.entries(table).forEach(([itemName, itemValue]) => {
+          if (!Object.prototype.hasOwnProperty.call(acc, itemName)) {
+            acc[itemName] = itemValue;
+            return;
+          }
+          if (itemValue && typeof itemValue === "object" && !Array.isArray(itemValue)) {
+            acc[itemName] = {
+              ...(acc[itemName] || {}),
+              ...itemValue,
+            };
+          } else {
+            acc[itemName] = itemValue;
+          }
+        });
+      }
+      return acc;
+    }, {});
+  };
+  const it = mergeTable("it");
+  const food = mergeTable("food");
+  const pfood = mergeTable("pfood");
   const result = {};
-  const boostables = dataSet?.boostables;
+  const boostSources = [
+    dataSet?.invData?.boostables,
+    dataSet?.mapData?.boostables,
+    dataSet?.boostables,
+  ].filter(Boolean);
+  const boostables = boostSources.reduce((acc, src) => {
+    Object.keys(src || {}).forEach((boostableName) => {
+      acc[boostableName] = {
+        ...(acc[boostableName] || {}),
+        ...(src[boostableName] || {}),
+      };
+    });
+    return acc;
+  }, {});
   if (boostables) {
-    for (const boostableName in boostables) {
+    const expectedBoostTables = ["nft", "nftw", "skill", "skilllgc", "buildng", "bud", "shrine"];
+    expectedBoostTables.forEach((boostableName) => {
       let bTable = [];
-      const boostable = boostables[boostableName];
-      Object.entries(boostable).forEach(([item]) => { bTable[item] = boostable[item].tryit; });
+      const boostable = boostables?.[boostableName] || {};
+      Object.entries(boostable).forEach(([item]) => { bTable[item] = Number(boostable[item]?.tryit || 0); });
       const tableToArray = Object.entries(bTable)
-        .filter(([key, value]) => value !== 0)
+        .filter(([key, value]) => Number(value || 0) !== 0)
         .map(([key, value]) => ({ name: key, value }))
         .reduce((acc, item) => { acc[item.name] = item.value; return acc; }, {});
       result[boostableName] = tableToArray;
-    }
+    });
     let bFarm = {};
     let bCook = {};
     let bTryBuy = {};
@@ -267,21 +326,35 @@ export function filterTryit(dataSet, toArray) {
     let bTrySpot3 = {};
     Object.entries(it).forEach(([item]) => { bFarm[item] = it[item].farmit; });
     Object.entries(food).forEach(([item]) => { bCook[item] = food[item].cookit; });
+    Object.entries(pfood).forEach(([item]) => { bCook[item] = pfood[item].cookit; });
     Object.entries(it).forEach(([item]) => { bTryBuy[item] = it[item].buyit; });
     Object.entries(it).forEach(([item]) => { bTrySpot[item] = it[item].spottry; });
     Object.entries(it).forEach(([item]) => { bTrySpot2[item] = it[item].spot2try; });
     Object.entries(it).forEach(([item]) => { bTrySpot3[item] = it[item].spot3try; });
-    result.xbuyit = ConvToArray(bTryBuy);
+    result.xbuyit = ConvToArray(bTryBuy, true);
     result.xspottry = ConvToArray(bTrySpot);
     result.xspot2try = ConvToArray(bTrySpot2);
     result.xspot3try = ConvToArray(bTrySpot3);
-    result.xfarmit = ConvToArray(bFarm);
-    result.xcookit = ConvToArray(bCook);
+    result.xfarmit = ConvToArray(bFarm, true);
+    result.xcookit = ConvToArray(bCook, true);
   }
+  result.nft = result.nft || {};
+  result.nftw = result.nftw || {};
+  result.skill = result.skill || {};
+  result.skilllgc = result.skilllgc || {};
+  result.buildng = result.buildng || {};
+  result.bud = result.bud || {};
+  result.shrine = result.shrine || {};
+  result.xbuyit = result.xbuyit || {};
+  result.xspottry = result.xspottry || {};
+  result.xspot2try = result.xspot2try || {};
+  result.xspot3try = result.xspot3try || {};
+  result.xfarmit = result.xfarmit || {};
+  result.xcookit = result.xcookit || {};
   return result;
-  function ConvToArray(tableVar) {
+  function ConvToArray(tableVar, keepZeros = false) {
     const table = Object.entries(tableVar)
-      .filter(([key, value]) => value !== 0)
+      .filter(([key, value]) => keepZeros ? true : value !== 0)
       .map(([key, value]) => ({ name: key, value }))
       .reduce((acc, item) => { acc[item.name] = item.value; return acc; }, {});
     return table;
@@ -294,23 +367,28 @@ export function getMaxValue(value1, value2, value3) {
 };
 
 export function PBar(val, pval, max, left, width = 60) {
-  const maxh = max;
+  const maxNum = Number(max);
+  const maxh = Number.isFinite(maxNum) && maxNum > 0 ? maxNum : 0;
   const maxTxt = formatKNumber(maxh);
-  const previousQuantity = Math.ceil(pval);
-  const Quantity = Math.ceil(val) || 0;
-  const harvestLeft = left || 0;
+  const previousQuantityRaw = Number(pval);
+  const previousQuantity = Number.isFinite(previousQuantityRaw) ? Math.ceil(previousQuantityRaw) : 0;
+  const quantityRaw = Number(val);
+  const Quantity = Number.isFinite(quantityRaw) ? Math.ceil(quantityRaw) : 0;
+  const harvestLeftRaw = Number(left);
+  const harvestLeft = Number.isFinite(harvestLeftRaw) ? harvestLeftRaw : 0;
   const harvestLeftTxt = formatKNumber(harvestLeft);
   const difference = Quantity - previousQuantity;
   const differenceTxt = formatKNumber(difference);
   const absDifference = (difference);
   const isNegativeDifference = difference < 0;
+  const pctDivisor = maxh > 0 ? maxh : 1;
   const progressPct = Math.max(
     0,
-    Math.floor((absDifference / maxh) * 100)
+    Math.floor((absDifference / pctDivisor) * 100)
   );
   const harvestPct = Math.max(
     0,
-    Math.floor((harvestLeft / maxh) * 100)
+    Math.floor((harvestLeft / pctDivisor) * 100)
   );
   const safeHarvestPct = Math.min(harvestPct, 100 - progressPct) || 0;
   return (

@@ -51,6 +51,9 @@ export default function ActivityTable() {
     ]);
 
     if (selectedInv !== "activity") return null;
+    if (!dataSetFarm?.itables || !dataSetFarm?.boostables?.nft || !dataSetFarm?.boostables?.nftw || !dataSetFarm?.constants) {
+        return <div>Loading activity data...</div>;
+    }
 
     if (loading) return <div>Loading activity…</div>;
 

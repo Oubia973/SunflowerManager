@@ -1,9 +1,9 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { useAppCtx } from "./context/AppCtx";
 import { FormControl, Select, MenuItem, Switch, FormControlLabel } from '@mui/material';
 import CounterInput from "./counterinput.js";
 import DList from "./dlist.jsx";
-import { frmtNb, ColorValue, filterTryit } from './fct.js';
+import { frmtNb, ColorValue, mergeFarmStateDeep } from './fct.js';
 import Help from './fhelp.js';
 
 let helpImage = "./image/helptrynft.jpg";
@@ -88,10 +88,14 @@ function ModalTNFT({ onClose }) {
       handleTooltip,
       handleRefreshfTNFT,
     },
-    config: { API_URL },
+    config: { API_URL, tryitConfig },
   } = useAppCtx();
   const frmid = dataSet.options.farmId;
   const [dataSetLocal, setdataSetLocal] = useState(dataSetFarm);
+  const activeBaselineRef = useRef(JSON.parse(JSON.stringify(dataSetFarm || {})));
+  const deepClone = (obj) => JSON.parse(JSON.stringify(obj || {}));
+  const lastSentTryRef = useRef(null);
+  const hasTryNftTables = !!dataSetLocal?.boostables && !!dataSetLocal?.itables?.it;
   const [tableNFT, settableNFT] = useState([]);
   const [tableContent, settableContent] = useState([]);
   const [TotalCostDisplay, setTotalCostDisplay] = useState("market");
@@ -112,6 +116,17 @@ function ModalTNFT({ onClose }) {
   const closeModal = () => {
     onClose(dataSet, dataSetLocal);
   };
+  useEffect(() => {
+    if (!hasTryNftTables) return;
+    const baseIt = activeBaselineRef.current?.itables?.it;
+    if (!baseIt || Object.keys(baseIt).length < 1) {
+      activeBaselineRef.current = deepClone(dataSetLocal);
+    }
+    const sentIt = lastSentTryRef.current?.itables?.it;
+    if (!sentIt || Object.keys(sentIt).length < 1) {
+      lastSentTryRef.current = deepClone(dataSetLocal);
+    }
+  }, [hasTryNftTables, dataSetLocal]);
   const handleChangeTotalCostDisplay = (event) => {
     const selectedValue = event.target.value;
     setTotalCostDisplay(selectedValue);
@@ -125,12 +140,111 @@ function ModalTNFT({ onClose }) {
   const Refresh = async () => {
     if (cdButton) return;
     try {
-      const tryItArrays = filterTryit(dataSetLocal, true);
+      if (!tryitConfig || !Array.isArray(tryitConfig?.boostTables) || !tryitConfig?.itemTables) {
+        console.log("Tryit config missing");
+        return;
+      }
+      const cur = dataSetLocal || {};
+      const base = lastSentTryRef.current || dataSetLocal || {};
+      const tryItPacked = { mode: "idx-v1", tables: {} };
+      const getByPath = (obj, path) => {
+        return String(path || "").split(".").reduce((acc, key) => (acc ? acc[key] : undefined), obj);
+      };
+      const getPayloadOrderedKeys = (payloadKey) => {
+        if ((tryitConfig?.boostTables || []).includes(payloadKey)) {
+          return Object.keys(cur?.boostables?.[payloadKey] || {});
+        }
+        const tableCfg = tryitConfig?.itemTables?.[payloadKey];
+        const sources = Array.isArray(tableCfg?.sources) ? tableCfg.sources : [];
+        const keys = [];
+        const seen = new Set();
+        sources.forEach((sourcePath) => {
+          const table = getByPath(cur, sourcePath) || {};
+          Object.keys(table).forEach((itemKey) => {
+            if (seen.has(itemKey)) return;
+            seen.add(itemKey);
+            keys.push(itemKey);
+          });
+        });
+        return keys;
+      };
+      (tryitConfig?.boostTables || []).forEach((tableName) => {
+        const table = cur?.boostables?.[tableName] || {};
+        const baseTable = base?.boostables?.[tableName] || {};
+        const orderedKeys = getPayloadOrderedKeys(tableName);
+        const packedEntries = [];
+        orderedKeys.forEach((itemKey, idx) => {
+          const node = table?.[itemKey] || {};
+          const baseNode = baseTable?.[itemKey] || {};
+          const curVal = Number(node?.tryit || 0);
+          const baseVal = Number(baseNode?.tryit ?? baseNode?.isactive ?? 0);
+          if (curVal !== baseVal) {
+            packedEntries.push([idx, curVal]);
+          }
+        });
+        if (packedEntries.length > 0) {
+          tryItPacked.tables[tableName] = packedEntries;
+        }
+      });
+      Object.entries(tryitConfig?.itemTables || {}).forEach(([payloadKey, tableCfg]) => {
+        const field = tableCfg?.field;
+        const sources = Array.isArray(tableCfg?.sources) ? tableCfg.sources : [];
+        if (!field || sources.length < 1) return;
+        const orderedKeys = getPayloadOrderedKeys(payloadKey);
+        const packedEntries = [];
+        const readValueFromSources = (itemKey) => {
+          for (let i = 0; i < sources.length; i += 1) {
+            const table = getByPath(cur, sources[i]) || {};
+            if (Object.prototype.hasOwnProperty.call(table, itemKey)) {
+              return Number(table[itemKey]?.[field] || 0);
+            }
+          }
+          return 0;
+        };
+        const readBaseValueFromSources = (itemKey) => {
+          for (let i = 0; i < sources.length; i += 1) {
+            const table = getByPath(base, sources[i]) || {};
+            if (Object.prototype.hasOwnProperty.call(table, itemKey)) {
+              return Number(table[itemKey]?.[field] || 0);
+            }
+          }
+          return 0;
+        };
+        orderedKeys.forEach((itemKey, idx) => {
+          const curVal = readValueFromSources(itemKey);
+          const baseVal = readBaseValueFromSources(itemKey);
+          if (curVal !== baseVal) {
+            packedEntries.push([idx, curVal]);
+          }
+        });
+        if (packedEntries.length > 0) {
+          tryItPacked.tables[payloadKey] = packedEntries;
+        }
+      });
       const headers = {
         frmid: frmid,
-        options: dataSet.options,
-        tryitarrays: tryItArrays
+        options: {
+          ...dataSet.options,
+          username: dataSet?.options?.username || dataSet?.username || dataSetLocal?.username || "",
+        },
+        username: dataSet?.options?.username || dataSet?.username || dataSetLocal?.username || "",
+        tryitarrays: {},
+        tryitpacked: tryItPacked,
+        tryitMode: "delta",
+        include: ["core", "inventory", "boosts"],
+        page: "trynft",
+        knownHashes: (dataSetLocal?.sectionHashes && typeof dataSetLocal.sectionHashes === "object")
+          ? dataSetLocal.sectionHashes
+          : {},
+        knownTableHashes: (dataSetLocal?.tableHashes && typeof dataSetLocal.tableHashes === "object")
+          ? dataSetLocal.tableHashes
+          : {},
       };
+      //const bodyStr = JSON.stringify(headers);
+      //const tables = headers?.tryitpacked?.tables || {};
+      //const tableKeys = Object.keys(tables);
+      //const entries = tableKeys.reduce((n, k) => n + (Array.isArray(tables[k]) ? tables[k].length : 0), 0);
+      //console.log("settry req ko:", (bodyStr.length / 1024).toFixed(2), "tables:", tableKeys.length, "entries:", entries);
       const response = await fetch(API_URL + "/settry", {
         method: 'POST',
         headers: {
@@ -140,8 +254,11 @@ function ModalTNFT({ onClose }) {
       });
       if (response.ok) {
         const responseData = await response.json();
-        setdataSetLocal(responseData);
-        handleRefreshfTNFT(dataSet, responseData);
+        const mergedData = mergeFarmStateDeep(dataSetLocal, responseData);
+        setdataSetLocal(mergedData);
+        // Delta baseline must follow what we sent, not what server returned partially.
+        lastSentTryRef.current = deepClone(cur);
+        handleRefreshfTNFT(dataSet, mergedData);
       } else {
         if (response.status === 429) {
           console.log('Too many requests, wait a few seconds');
@@ -159,6 +276,8 @@ function ModalTNFT({ onClose }) {
   };
   const Reset = () => {
     try {
+      const baseline = activeBaselineRef.current || {};
+      const baselineIt = baseline?.itables?.it || {};
       const newDataSet = {
         ...dataSetLocal,
         boostables: {
@@ -179,9 +298,10 @@ function ModalTNFT({ onClose }) {
               key,
               {
                 ...value,
-                spottry: value.spot,
-                spot2try: value.spot2,
-                spot3try: value.spot3,
+                // Reset to active spots captured at modal load.
+                spottry: baselineIt?.[key]?.spot ?? value.spot ?? 0,
+                spot2try: baselineIt?.[key]?.spot2 ?? value.spot2 ?? 0,
+                spot3try: baselineIt?.[key]?.spot3 ?? value.spot3 ?? 0,
               },
             ])
           ),
@@ -562,6 +682,7 @@ function ModalTNFT({ onClose }) {
         const xmyield = TryChecked ? imyieldtry : imyield;
         const xharvest = TryChecked ? iharvesttry : iharvest;
         const xdsfl = TryChecked ? idsfltry : idsfl;
+        const isTieredNode = (item === "Wood" || item === "Stone" || item === "Iron" || item === "Gold");
         return (
           <tr key={index}>
             <td style={{ display: 'none' }}>{ido}</td>
@@ -605,7 +726,7 @@ function ModalTNFT({ onClose }) {
                 activate={TryChecked}
               />
             </td>
-            {xit[item][key("spot2")] !== undefined ? <td className="tdcenter">
+            {isTieredNode ? <td className="tdcenter">
               <CounterInput
                 value={xit[item][key("spot2")]}
                 onChange={value => handleSpottryChange(item, value, "2")}
@@ -614,7 +735,7 @@ function ModalTNFT({ onClose }) {
                 activate={TryChecked}
               />
             </td> : null}
-            {xit[item][key("spot3")] !== undefined ? <td className="tdcenter">
+            {isTieredNode ? <td className="tdcenter">
               <CounterInput
                 value={xit[item][key("spot3")]}
                 onChange={value => handleSpottryChange(item, value, "3")}
@@ -661,6 +782,10 @@ function ModalTNFT({ onClose }) {
     }
   }
   function setNFT(xdataSetFarm) {
+    if (!xdataSetFarm?.boostables) {
+      settableNFT([]);
+      return;
+    }
     const { nft, nftw, buildng, skill, skilllgc, bud, shrine } = xdataSetFarm.boostables;
     const showNFT = selectedBoostTab === "collectibles";
     const showNFTW = selectedBoostTab === "wearables";
@@ -989,9 +1114,10 @@ function ModalTNFT({ onClose }) {
     Refresh();
   }, []); */
   useEffect(() => {
+    if (!hasTryNftTables) { return; }
     setNFT(dataSetLocal);
     setContent(dataSetLocal.itables.it);
-  }, [dataSetLocal, TotalCostDisplay, TryChecked, selectedBoostTab, boostTypeFilters, boostCategoryFilters, nftPriceCols]);
+  }, [dataSetLocal, TotalCostDisplay, TryChecked, selectedBoostTab, boostTypeFilters, boostCategoryFilters, nftPriceCols, hasTryNftTables]);
 
   const tableStyle = {
     flexDirection: tableFlexDirection,
@@ -1144,28 +1270,32 @@ function ModalTNFT({ onClose }) {
             />
           </div>
         </div>
-        <div style={tableStyle}>
-          {(tableView === 'both' || tableView === 'left') && (
-            <div style={{
-              flex: 1,
-              overflow: 'auto',
-              minHeight: 0,
-              display: tableView === 'right' ? 'none' : 'block'
-            }}>
-              <table>{tableContent}</table>
-            </div>
-          )}
-          {(tableView === 'both' || tableView === 'right') && (
-            <div style={{
-              flex: 1,
-              overflow: 'auto',
-              minHeight: 0,
-              display: tableView === 'left' ? 'none' : 'block'
-            }}>
-              <table>{tableNFT}</table>
-            </div>
-          )}
-        </div>
+        {!hasTryNftTables ? (
+          <div style={{ padding: '12px 8px' }}>Loading TryNFT tables...</div>
+        ) : (
+          <div style={tableStyle}>
+            {(tableView === 'both' || tableView === 'left') && (
+              <div style={{
+                flex: 1,
+                overflow: 'auto',
+                minHeight: 0,
+                display: tableView === 'right' ? 'none' : 'block'
+              }}>
+                <table>{tableContent}</table>
+              </div>
+            )}
+            {(tableView === 'both' || tableView === 'right') && (
+              <div style={{
+                flex: 1,
+                overflow: 'auto',
+                minHeight: 0,
+                display: tableView === 'left' ? 'none' : 'block'
+              }}>
+                <table>{tableNFT}</table>
+              </div>
+            )}
+          </div>
+        )}
       </div>
       {/* {tooltipData && (
         <Tooltip

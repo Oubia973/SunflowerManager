@@ -41,36 +41,68 @@ export default function InvTable() {
             imgexchng,
         }
     } = useAppCtx();
-    if (dataSetFarm?.frmData?.spot && dataSetFarm?.frmData?.buildngf && dataSetFarm?.itables?.it && dataSetFarm?.itables?.tool) {
-        const { spot, buildngf } = dataSetFarm.frmData;
-        const { it, tool } = dataSetFarm.itables;
+    const invPageData = dataSetFarm?.invData || {};
+    const invFrmData = invPageData?.frmData || dataSetFarm?.frmData || {};
+    const invTables = dataSetFarm?.itables || invPageData?.itables || {};
+    const invBoostables = dataSetFarm?.boostables || invPageData?.boostables || {};
+    if (
+        invFrmData?.spot &&
+        invFrmData?.buildngf &&
+        invTables?.it &&
+        invTables?.tool &&
+        invBoostables?.nft &&
+        invBoostables?.buildng
+    ) {
+        const { spot, buildngf } = invFrmData;
+        const { it, tool } = invTables;
         const inventoryMap = farmData?.inventory || {};
         const itemOrder = Object.keys(it);
         //if (selectedQuantity === "daily") {
         function key(name) {
             return TryChecked ? name + "try" : name;
         }
+        const toNum = (v) => {
+            const n = Number(v);
+            return Number.isFinite(n) ? n : 0;
+        };
+        const getHrvCycles = (itemName) => {
+            const itemObj = it?.[itemName] || {};
+            const uiCycles = toNum(xhrvstortry?.[itemName]);
+            if (uiCycles > 0) return uiCycles;
+            const dc = toNum(TryChecked ? (itemObj.dailycycletry ?? itemObj.dailycycle) : itemObj.dailycycle);
+            return dc > 0 ? dc : 0;
+        };
         const burnortry = !TryChecked ? "burn" : "burntry";
         const xhrvstortry = !TryChecked ? xHrvst : xHrvsttry;
-        const sptStone = (it["Stone"]?.[key("spot")] - (it["Stone"]?.[key("spot2")] || 0) - (it["Stone"]?.[key("spot3")] || 0)) + ((it["Stone"]?.[key("spot2")] * 4) || 0) + ((it["Stone"]?.[key("spot3")] * 16) || 0);
-        const sptIron = (it["Iron"]?.[key("spot")] - (it["Iron"]?.[key("spot2")] || 0) - (it["Iron"]?.[key("spot3")] || 0)) + ((it["Iron"]?.[key("spot2")] * 4) || 0) + ((it["Iron"]?.[key("spot3")] * 16) || 0);
-        const sptGold = (it["Gold"]?.[key("spot")] - (it["Gold"]?.[key("spot2")] || 0) - (it["Gold"]?.[key("spot3")] || 0)) + ((it["Gold"]?.[key("spot2")] * 4) || 0) + ((it["Gold"]?.[key("spot3")] * 16) || 0);
-        const sptCrimstone = (it["Crimstone"]?.[key("spot")] - (it["Crimstone"]?.[key("spot2")] || 0) - (it["Crimstone"]?.[key("spot3")] || 0)) + ((it["Crimstone"]?.[key("spot2")] * 4) || 0) + ((it["Crimstone"]?.[key("spot3")] * 16) || 0);
-        const sptSunstone = (it["Sunstone"]?.[key("spot")] - (it["Sunstone"]?.[key("spot2")] || 0) - (it["Sunstone"]?.[key("spot3")] || 0)) + ((it["Sunstone"]?.[key("spot2")] * 4) || 0) + ((it["Sunstone"]?.[key("spot3")] * 16) || 0);
-        const sptOil = (it["Oil"]?.[key("spot")] - (it["Oil"]?.[key("spot2")] || 0) - (it["Oil"]?.[key("spot3")] || 0)) + ((it["Oil"]?.[key("spot2")] * 4) || 0) + ((it["Oil"]?.[key("spot3")] * 16) || 0);
-        const stoneSpot = it["Stone"].farmit * (xhrvstortry["Stone"] * sptStone);
-        const ironSpot = it["Iron"].farmit * (xhrvstortry["Iron"] * sptIron);
-        const goldSpot = it["Gold"].farmit * (xhrvstortry["Gold"] * sptGold);
-        const crimestoneSpot = it["Crimstone"].farmit * (xhrvstortry["Crimstone"] * sptCrimstone);
-        const sunstoneSpot = it["Sunstone"].farmit * (xhrvstortry["Sunstone"] * sptSunstone);
-        const oilSpot = it["Oil"].farmit * (xhrvstortry["Oil"] * sptOil);
+        const sptStone = (toNum(it["Stone"]?.[key("spot")]) - toNum(it["Stone"]?.[key("spot2")]) - toNum(it["Stone"]?.[key("spot3")])) + (toNum(it["Stone"]?.[key("spot2")]) * 4) + (toNum(it["Stone"]?.[key("spot3")]) * 16);
+        const sptIron = (toNum(it["Iron"]?.[key("spot")]) - toNum(it["Iron"]?.[key("spot2")]) - toNum(it["Iron"]?.[key("spot3")])) + (toNum(it["Iron"]?.[key("spot2")]) * 4) + (toNum(it["Iron"]?.[key("spot3")]) * 16);
+        const sptGold = (toNum(it["Gold"]?.[key("spot")]) - toNum(it["Gold"]?.[key("spot2")]) - toNum(it["Gold"]?.[key("spot3")])) + (toNum(it["Gold"]?.[key("spot2")]) * 4) + (toNum(it["Gold"]?.[key("spot3")]) * 16);
+        const sptCrimstone = (toNum(it["Crimstone"]?.[key("spot")]) - toNum(it["Crimstone"]?.[key("spot2")]) - toNum(it["Crimstone"]?.[key("spot3")])) + (toNum(it["Crimstone"]?.[key("spot2")]) * 4) + (toNum(it["Crimstone"]?.[key("spot3")]) * 16);
+        const sptSunstone = (toNum(it["Sunstone"]?.[key("spot")]) - toNum(it["Sunstone"]?.[key("spot2")]) - toNum(it["Sunstone"]?.[key("spot3")])) + (toNum(it["Sunstone"]?.[key("spot2")]) * 4) + (toNum(it["Sunstone"]?.[key("spot3")]) * 16);
+        const sptOil = (toNum(it["Oil"]?.[key("spot")]) - toNum(it["Oil"]?.[key("spot2")]) - toNum(it["Oil"]?.[key("spot3")])) + (toNum(it["Oil"]?.[key("spot2")]) * 4) + (toNum(it["Oil"]?.[key("spot3")]) * 16);
+        const stoneSpot = toNum(it["Stone"]?.farmit) * getHrvCycles("Stone") * sptStone;
+        const ironSpot = toNum(it["Iron"]?.farmit) * getHrvCycles("Iron") * sptIron;
+        const goldSpot = toNum(it["Gold"]?.farmit) * getHrvCycles("Gold") * sptGold;
+        const crimestoneSpot = toNum(it["Crimstone"]?.farmit) * getHrvCycles("Crimstone") * sptCrimstone;
+        const sunstoneSpot = toNum(it["Sunstone"]?.farmit) * getHrvCycles("Sunstone") * sptSunstone;
+        const oilSpot = toNum(it["Oil"]?.farmit) * getHrvCycles("Oil") * sptOil;
         const stoneToolfree = it["Stone"]?.[key("toolfree")];
         const crimstoneToolfree = it["Crimstone"]?.[key("toolfree")];
         const oilToolfree = it["Oil"]?.[key("toolfree")];
-        xBurning[burnortry]["Wood"] = (stoneSpot * tool[it["Stone"].tool]["Wood"] * !stoneToolfree) + (ironSpot * tool[it["Iron"].tool]["Wood"]) + (goldSpot * tool[it["Gold"].tool]["Wood"]) + (crimestoneSpot * tool[it["Crimstone"].tool]["Wood"] * !crimstoneToolfree) + (sunstoneSpot * tool[it["Sunstone"].tool]["Wood"]) + (oilSpot * tool[it["Oil"].tool]["Wood"] * !oilToolfree);
-        xBurning[burnortry]["Stone"] = (ironSpot * tool[it["Iron"].tool]["Stone"]);
-        xBurning[burnortry]["Iron"] = (goldSpot * tool[it["Gold"].tool]["Iron"]) + (oilSpot * tool[it["Oil"].tool]["Iron"] * !oilToolfree);
-        xBurning[burnortry]["Gold"] = (crimestoneSpot * tool[it["Crimstone"].tool]["Gold"] * !crimstoneToolfree) + (sunstoneSpot * tool[it["Sunstone"].tool]["Gold"]);
+        const stoneTool = tool?.[it["Stone"]?.tool] || {};
+        const ironTool = tool?.[it["Iron"]?.tool] || {};
+        const goldTool = tool?.[it["Gold"]?.tool] || {};
+        const crimstoneTool = tool?.[it["Crimstone"]?.tool] || {};
+        const sunstoneTool = tool?.[it["Sunstone"]?.tool] || {};
+        const oilTool = tool?.[it["Oil"]?.tool] || {};
+        xBurning[burnortry]["Wood"] = 0;
+        xBurning[burnortry]["Stone"] = 0;
+        xBurning[burnortry]["Iron"] = 0;
+        xBurning[burnortry]["Gold"] = 0;
+        xBurning[burnortry]["Wood"] = (stoneSpot * toNum(stoneTool["Wood"]) * !stoneToolfree) + (ironSpot * toNum(ironTool["Wood"])) + (goldSpot * toNum(goldTool["Wood"])) + (crimestoneSpot * toNum(crimstoneTool["Wood"]) * !crimstoneToolfree) + (sunstoneSpot * toNum(sunstoneTool["Wood"])) + (oilSpot * toNum(oilTool["Wood"]) * !oilToolfree);
+        xBurning[burnortry]["Stone"] = ironSpot * toNum(ironTool["Stone"]);
+        xBurning[burnortry]["Iron"] = (goldSpot * toNum(goldTool["Iron"])) + (oilSpot * toNum(oilTool["Iron"]) * !oilToolfree);
+        xBurning[burnortry]["Gold"] = (crimestoneSpot * toNum(crimstoneTool["Gold"]) * !crimstoneToolfree) + (sunstoneSpot * toNum(sunstoneTool["Gold"]));
         //}
         const baseInventoryItems = itemOrder.map(item => {
             const quantity = Number(it[item]?.instock ?? inventoryMap[item] ?? 0);
@@ -136,7 +168,7 @@ export default function InvTable() {
             tprctO: tprctcO,
         }) : ("");
         const inventoryItemsRes = setInvContent(sortedInventoryItems, totCost, totShop, totTrader, totNifty, totOS, totTimeCrp, totTimeRs, invIndex, "mineral", "gem", "wood", "oil");
-        totTimeRs = inventoryItemsCrop.totTimeRs;
+        totTimeRs = inventoryItemsRes.totTimeRs;
         totCost = inventoryItemsRes.totCost;
         totShop = inventoryItemsRes.totShop;
         totTrader = inventoryItemsRes.totTrader;
@@ -433,6 +465,7 @@ export default function InvTable() {
         invIndex++;
         return (tableContent);
     }
+    return <div>Loading inventory data...</div>;
 }
 function setInvContent(sortedInventoryItems, totCost, totShop, totTrader, totNifty, totOS, totTimeCrp, totTimeRs, invIndex, ItCat1, ItCat2, ItCat3, ItCat4) {
     const {
@@ -475,9 +508,13 @@ function setInvContent(sortedInventoryItems, totCost, totShop, totTrader, totNif
             imgbuyit,
         }
     } = useAppCtx();
-    const { spot } = dataSetFarm.frmData;
-    const { it } = dataSetFarm.itables;
-    const { nft, buildng } = dataSetFarm.boostables;
+    const invPageData = dataSetFarm?.invData || {};
+    const invFrmData = invPageData?.frmData || dataSetFarm?.frmData || {};
+    const invTables = dataSetFarm?.itables || invPageData?.itables || {};
+    const invBoostables = dataSetFarm?.boostables || invPageData?.boostables || {};
+    const { spot } = invFrmData;
+    const { it } = invTables;
+    const { nft, buildng } = invBoostables;
     const farmTime = dataSet.options.inputFarmTime / 24;
     //const MaxBB = dataSet.options.inputMaxBB;
     const burnortry = !TryChecked ? "burn" : "burntry";
@@ -647,15 +684,20 @@ function setInvContent(sortedInventoryItems, totCost, totShop, totTrader, totNif
             //const hrvstdmaxx = (icat === "fruit" ? !TryChecked ? iharvestdmax : iharvestdmaxtry : item === "Egg" ? !TryChecked ? iharvestdmax : iharvestdmaxtry : iharvest);
             //const dailyprodmx = hrvstdmx * hrvstdmaxx;
             const iburn = xBurning[burnortry][item] ? xBurning[burnortry][item] : 0;
+            const hrvstFieldName = TryChecked ? `xHrvsttry.${item}` : `xHrvst.${item}`;
+            const hrvstRaw = TryChecked ? (xHrvsttry?.[item] ?? idailycycle) : (xHrvst?.[item] ?? idailycycle);
+            const hrvstFieldValue = Number.isFinite(Number(hrvstRaw))
+                ? Math.max(1, Math.min(hrvMaxControl, Math.ceil(Number(hrvstRaw))))
+                : hrvMaxControl;
             /* if (!cstPrices?.[xIndex]) {
                 const newcstPrices = { ...cstPrices };
                 newcstPrices[xIndex] = (it[item]?.tradmax || 0);
                 setCstPrices(newcstPrices);
             } */
-            if (ifrmit === 1 && icat === "crop") { totTimeCrp += (!TryChecked ? (xHrvst[item] ?? idailycycle) : (xHrvsttry[item] ?? idailycycle)) * timmenbr }
+            if (ifrmit === 1 && icat === "crop") { totTimeCrp += hrvstFieldValue * timmenbr }
             if (ifrmit === 1 && (icat === "mineral" || icat === "gem" || icat === "wood")) { totTimeRs += tmstk }
             const customPrice = cstPrices?.[item] ?? (it?.[item]?.tradmax ?? 0);
-            const quantNHrvst = ((TryChecked ? (xHrvsttry[item]) : (xHrvst[item])) * iharvest) - iburn;
+            const quantNHrvst = (hrvstFieldValue * iharvest) - iburn;
             const iQuant =
                 selectedQuantity === "daily"
                     ? (ifrmit === 1 ? quantNHrvst : 0)
@@ -664,11 +706,6 @@ function setInvContent(sortedInventoryItems, totCost, totShop, totTrader, totNif
                         : selectedQuantity === "custom"
                             ? customPrice
                             : itemQuantity;
-            const hrvstFieldName = TryChecked ? `xHrvsttry.${item}` : `xHrvst.${item}`;
-            const hrvstRaw = TryChecked ? (xHrvsttry?.[item] ?? idailycycle) : (xHrvst?.[item] ?? idailycycle);
-            const hrvstFieldValue = Number.isFinite(Number(hrvstRaw))
-                ? Math.max(1, Math.min(hrvMaxControl, Math.ceil(Number(hrvstRaw))))
-                : hrvMaxControl;
             /* const iQuant = selectedQuantity === "daily" ? (ifrmit === 1 ? dailyprod : 0) - iburn : selectedQuantity === "blockbuck" ?
                 BBprod : selectedQuantity === "custom" ? (cstPrices[xIndex]) : itemQuantity; */
             var Ttax = 0; //Math.ceil(iQuant / itradmax) * 0.25;
@@ -695,7 +732,7 @@ function setInvContent(sortedInventoryItems, totCost, totShop, totTrader, totNif
                 pShop = convPriceshp * iQuant;
                 if (time !== "" && time !== 0) {
                     if (selectedQuantity === "daily") {
-                        time = convTime(idailycycle * timmenbr);
+                        time = convTime(hrvstFieldValue * timmenbr);
                     } else {
                         time = convTime(Math.ceil(iQuant / iharvest) * timmenbr);
                     }

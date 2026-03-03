@@ -38,7 +38,8 @@ export default function FishTable() {
       handleTooltip,
     },
   } = useAppCtx();
-  const { tool, it } = dataSetFarm.itables;
+  const fishTables = dataSetFarm?.fishData?.itables || dataSetFarm?.itables || {};
+  const { tool = {}, it = {} } = fishTables;
   function key(name) {
     if (name === "isactive") return TryChecked ? "tryit" : "isactive";
     return TryChecked ? name + "try" : name;
@@ -48,12 +49,16 @@ export default function FishTable() {
   const reelCasts = fishingDetails?.casts ?? 0;
   const reelCastMax = TryChecked ? fishingDetails?.fishcastmaxtry ?? 0 : fishingDetails?.fishcastmax ?? 0;
   const costCast = TryChecked ? fishingDetails?.fishcastcosttry ?? 0 : fishingDetails?.fishcastcost ?? 0;
-  const costCastM = (((tool["Rod"][key("sfl")] / dataSet.options.coinsRatio))
-    + (tool["Rod"].Wood * it["Wood"].costp2pt)
-    + (tool["Rod"].Stone * it["Stone"].costp2pt));
-  const reelCost = (costCast * reelCasts) / dataSet.options.coinsRatio;
+  const coinsRatio = Number(dataSet?.options?.coinsRatio || 1);
+  const rod = tool?.["Rod"] || {};
+  const woodMarket = Number(it?.["Wood"]?.costp2pt || 0);
+  const stoneMarket = Number(it?.["Stone"]?.costp2pt || 0);
+  const costCastM = ((Number(rod?.[key("sfl")] || 0) / coinsRatio)
+    + (Number(rod?.Wood || 0) * woodMarket)
+    + (Number(rod?.Stone || 0) * stoneMarket));
+  const reelCost = (costCast * reelCasts) / coinsRatio;
   const reelCostM = (costCastM * reelCasts);
-  const reelCostMax = (costCast * reelCastMax) / dataSet.options.coinsRatio;
+  const reelCostMax = (costCast * reelCastMax) / coinsRatio;
   const reelCostMaxM = (costCastM * reelCastMax);
   useEffect(() => {
     if (fishView !== "fish") return;
@@ -68,9 +73,9 @@ export default function FishTable() {
       window.removeEventListener("resize", updateFishHeaderTop);
     };
   }, [fishView, selectedSeason, selectedQuantFish, xListeColFish, reelCasts, reelCastMax]);
-  if (dataSetFarm?.itables?.fish && dataSetFarm?.itables?.crustacean && dataSetFarm?.itables?.it && dataSetFarm?.itables?.bounty && dataSetFarm?.itables?.petit && dataSetFarm?.itables?.pfood) {
+  if (fishTables?.fish && fishTables?.crustacean && fishTables?.it && fishTables?.bounty && fishTables?.petit && fishTables?.pfood) {
     if (fishView === "fish") {
-      const { fish } = dataSetFarm.itables;
+      const { fish } = fishTables;
       var totXPfsh = 0;
       var totCaught = 0;
       var totCost = 0;
@@ -402,7 +407,7 @@ export default function FishTable() {
       return (tableContent);
     }
     if (fishView === "crustacean") {
-      const { it, bounty, petit, fish, crustacean, pfood } = dataSetFarm.itables;
+      const { it, bounty, petit, fish, crustacean, pfood } = fishTables;
       var totXPfsh = 0;
       var totCaught = 0;
       var totCost = 0;

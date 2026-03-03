@@ -11,11 +11,13 @@ import Tooltip from "./tooltip/Tooltip.jsx";
 import DList from "./dlist.jsx";
 //import CounterInput from "./counterinput.js";
 import { FormControl, InputLabel, Select, MenuItem, Switch, FormControlLabel } from '@mui/material';
-import { frmtNb, filterTryit, formatUpdated, UpdatedSince } from './fct.js';
+import { frmtNb, filterTryit, formatUpdated, UpdatedSince, mergeFarmStateDeep } from './fct.js';
 import { computeGemsRatio } from './gemsRatio.js';
 
 import { AppCtx } from "./context/AppCtx";
 import PanelTable from "./tables/PanelTable";
+import HeaderTrades from "./components/HeaderTrades";
+import AutoRefreshProgress from "./components/AutoRefreshProgress";
 
 import { Capacitor } from '@capacitor/core';
 import { PushNotifications } from '@capacitor/push-notifications';
@@ -25,8 +27,11 @@ const isNativeApp = Capacitor.isNativePlatform();
 
 const runLocal = true;
 const API_URL = runLocal ? "" : process.env.REACT_APP_API_URL;
+const TRYIT_STORAGE_KEY = "SFLManTryit";
+const TRYIT_FALLBACK_BOOST_KEYS = ["nft", "nftw", "skill", "skilllgc", "buildng", "bud", "shrine"];
+const TRYIT_FALLBACK_ITEM_KEYS = ["xbuyit", "xfarmit", "xcookit", "xspottry", "xspot2try", "xspot3try"];
 
-var vversion = 0.08;
+var vversion = 0.09;
 let dataSet = {};
 dataSet.options = {};
 
@@ -62,7 +67,6 @@ const imgautumn = <img src="./icon/ui/autumn.webp" alt={''} className="seasonico
 
 var platformListings = "Trades";
 let buttonClicked = false;
-let initialIntervalDone = false;
 let curID = "";
 let lastID = "";
 
@@ -348,6 +352,32 @@ const EXPAND_COLUMNS_PICKER = [
   { idx: 5, label: 'Resources' },
   { idx: 6, label: 'Value' },
 ];
+const BUYNODES_COLUMNS_TEMPLATE = [
+  ['Node', 1],
+  ['Base', 1],
+  ['Increase', 1],
+  ['Owned', 1],
+  ['Bought', 1],
+  ['Buy', 1],
+  ['Nodes after', 1],
+  ['Next Price', 1],
+  ['Sunstone Total', 1],
+  ['Obsidian Total', 1],
+  ['Obsidian Time', 1],
+];
+const BUYNODES_COLUMNS_PICKER = [
+  { idx: 0, label: 'Node' },
+  { idx: 1, label: 'Base' },
+  { idx: 2, label: 'Increase' },
+  { idx: 3, label: 'Owned' },
+  { idx: 4, label: 'Bought' },
+  { idx: 5, label: 'Buy' },
+  { idx: 6, label: 'Nodes after' },
+  { idx: 7, label: 'Next Price' },
+  { idx: 8, label: 'Sunstone Total' },
+  { idx: 9, label: 'Obsidian Total' },
+  { idx: 10, label: 'Obsidian Time' },
+];
 const ACTIVITY_COLUMNS_TEMPLATE = [
   ['From', 1],
   ['Total XP', 1],
@@ -383,6 +413,171 @@ const ACTIVITY_QUEST_COLUMNS_TEMPLATE = [
   ['Date', 1],
 ];
 
+function buildSectionsKey(sections) {
+  return [...new Set((sections || []).map((s) => String(s || "").trim()).filter(Boolean))]
+    .sort()
+    .join("|");
+}
+
+function computeRequiredSections(uiState, pageSectionRequirements) {
+  if (!pageSectionRequirements || typeof pageSectionRequirements !== "object") return [];
+  const selectedInv = String(uiState?.selectedInv || "home");
+  const base = pageSectionRequirements?.[selectedInv]
+    || pageSectionRequirements?.home
+    || [];
+  const required = new Set(base);
+
+  // Lists are always loaded lazily through dedicated endpoints.
+  if (selectedInv === "toplists") {
+    required.delete("toplists");
+  }
+  return [...required];
+}
+
+function hasPathData(payload, path) {
+  const src = (payload && typeof payload === "object") ? payload : {};
+  const parts = String(path || "").split(".").filter(Boolean);
+  if (parts.length < 1) return false;
+  let cur = src;
+  for (let i = 0; i < parts.length; i++) {
+    const part = parts[i];
+    if (!cur || typeof cur !== "object" || !Object.prototype.hasOwnProperty.call(cur, part)) {
+      return false;
+    }
+    cur = cur[part];
+  }
+  return true;
+}
+
+function hasSectionData(
+  payload,
+  section,
+  sectionPayloadKeys,
+  sectionTablePaths
+) {
+  const keys = Array.isArray(sectionPayloadKeys?.[section]) ? sectionPayloadKeys[section] : [];
+  const nonRootKeys = keys.filter((key) => key !== "itables" && key !== "boostables");
+  const tablePaths = sectionTablePaths?.[section];
+  if (Array.isArray(tablePaths) && tablePaths.length > 0) {
+    const hasAllPaths = tablePaths.every((path) => hasPathData(payload, path));
+    if (!hasAllPaths) return false;
+    if (nonRootKeys.length < 1) return true;
+    return nonRootKeys.some((key) => Object.prototype.hasOwnProperty.call(payload || {}, key));
+  }
+  if (keys.length < 1) return false;
+  return keys.some((key) => Object.prototype.hasOwnProperty.call(payload || {}, key));
+}
+
+function extractReceivedTableHashes(responsePayload, tableHashes) {
+  const payload = (responsePayload && typeof responsePayload === "object") ? responsePayload : {};
+  const hashes = (tableHashes && typeof tableHashes === "object") ? tableHashes : {};
+  const picked = {};
+  ["itables", "boostables"].forEach((rootKey) => {
+    const rootObj = payload?.[rootKey];
+    if (!rootObj || typeof rootObj !== "object") return;
+    Object.keys(rootObj).forEach((subKey) => {
+      const path = `${rootKey}.${subKey}`;
+      if (Object.prototype.hasOwnProperty.call(hashes, path)) {
+        picked[path] = hashes[path];
+      }
+    });
+  });
+  return picked;
+}
+
+function normalizeTryitPayload(raw) {
+  const src = (raw && typeof raw === "object") ? raw : {};
+  const out = {};
+  Object.keys(src).forEach((key) => {
+    const val = src[key];
+    out[key] = (val && typeof val === "object") ? val : {};
+  });
+  return out;
+}
+
+function hasTryitPayloadContent(tryitPayload) {
+  const payload = normalizeTryitPayload(tryitPayload);
+  return Object.values(payload).some((table) => Object.keys(table || {}).length > 0);
+}
+
+function readTryitSnapshot(farmId = "") {
+  try {
+    const raw = localStorage.getItem(TRYIT_STORAGE_KEY);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw);
+    if (parsed && typeof parsed === "object" && parsed.payload) {
+      return normalizeTryitPayload(parsed.payload);
+    }
+    return normalizeTryitPayload(parsed);
+  } catch {
+    return null;
+  }
+}
+
+function writeTryitSnapshot(tryitPayload, farmId = "", options = {}) {
+  try {
+    const normalized = normalizeTryitPayload(tryitPayload);
+    const preserveEmptyTables = Array.isArray(options?.preserveEmptyTables)
+      ? options.preserveEmptyTables.map((k) => String(k || "")).filter(Boolean)
+      : [];
+    let merged = normalized;
+    if (preserveEmptyTables.length > 0) {
+      const stored = readTryitSnapshot(farmId) || {};
+      merged = { ...normalized };
+      preserveEmptyTables.forEach((tableKey) => {
+        const nextTable = merged?.[tableKey];
+        const hasNextContent = nextTable && typeof nextTable === "object" && Object.keys(nextTable).length > 0;
+        if (hasNextContent) return;
+        const storedTable = stored?.[tableKey];
+        const hasStoredContent = storedTable && typeof storedTable === "object" && Object.keys(storedTable).length > 0;
+        if (!hasStoredContent) return;
+        merged[tableKey] = { ...storedTable };
+      });
+    }
+    if (!hasTryitPayloadContent(merged)) {
+      localStorage.removeItem(TRYIT_STORAGE_KEY);
+      return null;
+    }
+    localStorage.setItem(TRYIT_STORAGE_KEY, JSON.stringify({
+      frmid: String(farmId || ""),
+      payload: merged,
+    }));
+    return merged;
+  } catch {
+    return null;
+  }
+}
+
+async function formatHttpErrorMessage(response, endpointLabel = "") {
+  const endpoint = String(endpointLabel || "").trim();
+  const endpointTxt = endpoint ? ` on ${endpoint}` : "";
+  let details = "";
+
+  try {
+    const contentType = String(response?.headers?.get("content-type") || "").toLowerCase();
+    if (contentType.includes("application/json")) {
+      const payload = await response.json();
+      details = payload?.error || payload?.message || payload?.details || payload?.msg || "";
+      if (!details && typeof payload === "string") details = payload;
+      if (!details && payload && typeof payload === "object") details = JSON.stringify(payload);
+    } else {
+      details = await response.text();
+    }
+  } catch {
+    details = "";
+  }
+
+  details = String(details || "").replace(/\s+/g, " ").trim();
+  if (details.startsWith("<!DOCTYPE") || details.startsWith("<html")) {
+    details = "Internal server error";
+  }
+  if (details.length > 220) {
+    details = `${details.slice(0, 217)}...`;
+  }
+
+  const base = `HTTP ${response?.status || "?"}${endpointTxt}`;
+  return details ? `${base}: ${details}` : base;
+}
 function App() {
   const [initialDataSet, setInitialDataSet] = useState(null);
   const [notifListInitial, setNotifListInitial] = useState(null);
@@ -435,6 +630,8 @@ function App() {
     petRequestSelection: {},
     petRequestSelectionInitDone: false,
     cstPrices: {},
+    buyNodesQty: {},
+    buyNodesTimeFromStock: false,
     toCM: {},
     selectedHomeBlocks: {},
     selectedHomeItems: {},
@@ -474,6 +671,7 @@ function App() {
     xListeColActivity: ACTIVITY_COLUMNS_TEMPLATE,
     xListeColActivityItem: ACTIVITY_ITEM_COLUMNS_TEMPLATE,
     xListeColActivityQuest: ACTIVITY_QUEST_COLUMNS_TEMPLATE,
+    xListeColBuyNodes: BUYNODES_COLUMNS_TEMPLATE,
   };
   const normalizeUI = (raw) => {
     const next = { ...(raw || {}) };
@@ -582,6 +780,13 @@ function App() {
       const enabled = cur && (cur[1] === 1 || cur[1] === 0) ? cur[1] : tpl[1];
       return [tpl[0], enabled];
     });
+    const currentBuyNodesCols = Array.isArray(next.xListeColBuyNodes) ? next.xListeColBuyNodes : [];
+    next.xListeColBuyNodes = BUYNODES_COLUMNS_TEMPLATE.map((tpl, i) => {
+      const cur = Array.isArray(currentBuyNodesCols[i]) ? currentBuyNodesCols[i] : null;
+      const enabled = cur && (cur[1] === 1 || cur[1] === 0) ? cur[1] : tpl[1];
+      return [tpl[0], enabled];
+    });
+    next.buyNodesTimeFromStock = !!next.buyNodesTimeFromStock;
     return next;
   };
   const [ui, setUI] = useState(() => {
@@ -685,6 +890,16 @@ function App() {
       .map((c) => String(c.idx)),
     [ui?.xListeColExpand]
   );
+  const buyNodesPickerOptions = useMemo(
+    () => BUYNODES_COLUMNS_PICKER.map((c) => ({ value: String(c.idx), label: c.label })),
+    []
+  );
+  const buyNodesPickerValue = useMemo(
+    () => BUYNODES_COLUMNS_PICKER
+      .filter((c) => ui?.xListeColBuyNodes?.[c.idx]?.[1] === 1)
+      .map((c) => String(c.idx)),
+    [ui?.xListeColBuyNodes]
+  );
   const activePetColumnsPicker = useMemo(() => {
     if (ui?.petView === "shrines") {
       return {
@@ -727,19 +942,34 @@ function App() {
   const [options, setOptions] = useState({});
   const [bumpkinData, setBumpkinData] = useState([]);
   const [bumpkinLoading, setBumpkinLoading] = useState(false);
-  const [ftradesData, setftradesData] = useState(null);
   const [mutData, setmutData] = useState([]);
   const [GraphType, setGraphType] = useState('');
   const [deliveriesData, setdeliveriesData] = useState([]);
   const [priceData, setpriceData] = useState([]);
   const [tooltipData, setTooltipData] = useState(null);
   const [expandLoading, setExpandLoading] = useState(false);
-  const progressTimerRef = useRef(null);
-  const [searchProgress, setSearchProgress] = useState(0);
+  const [sectionsLoading, setSectionsLoading] = useState(false);
+  const [headerRequestLoading, setHeaderRequestLoading] = useState(false);
+  const [autoRefreshNonce, setAutoRefreshNonce] = useState(0);
+  const [autoRefreshPulse, setAutoRefreshPulse] = useState(0);
+  const [autoRefreshNextAt, setAutoRefreshNextAt] = useState(0);
   const [activeTimers, setActiveTimers] = useState([]);
   const pendingSaveRef = useRef(false);
+  const pendingTryitSnapshotRef = useRef(false);
+  const refreshInFlightRef = useRef(false);
+  const suppressNavUntilRef = useRef(0);
+  const autoRefreshViewRef = useRef({
+    selectedInv: "home",
+    activityDisplay: "item",
+    fishView: "fish",
+    petView: "pets",
+    showfDlvr: false,
+  });
   const expandRequestSeqRef = useRef(0);
   const farmSectionHashesRef = useRef({});
+  const farmTableHashesRef = useRef({});
+  const dataSetFarmRef = useRef({});
+  const headerRequestCountRef = useRef(0);
   const [reqState, setReqState] = useState("");
   const [cdButton, setcdButton] = useState(false);
   const [iaLoading, setIaLoading] = useState(false);
@@ -749,6 +979,165 @@ function App() {
   const [showOptions, setShowOptions] = useState(false);
   const [showHelp, setShowHelp] = useState(false);
   const [showCadre, setShowCadre] = useState(false);
+  const [sectionsMeta, setSectionsMeta] = useState(null);
+  const [sectionsMetaError, setSectionsMetaError] = useState("");
+  const pageSectionRequirements = sectionsMeta?.pageSectionRequirements || null;
+  const sectionPayloadKeys = sectionsMeta?.sectionKeys || null;
+  const sectionTablePaths = sectionsMeta?.sectionTablePaths || null;
+  const tryitConfig = sectionsMeta?.tryitConfig || null;
+  const tryitAllPayloadKeys = useMemo(() => {
+    const boostKeys = Array.isArray(tryitConfig?.boostTables)
+      ? tryitConfig.boostTables.map((k) => String(k || "")).filter(Boolean)
+      : TRYIT_FALLBACK_BOOST_KEYS;
+    const itemKeys = (tryitConfig?.itemTables && typeof tryitConfig.itemTables === "object")
+      ? Object.keys(tryitConfig.itemTables).map((k) => String(k || "")).filter(Boolean)
+      : TRYIT_FALLBACK_ITEM_KEYS;
+    return [...new Set([...boostKeys, ...itemKeys])];
+  }, [tryitConfig]);
+  const tryitStatefulPayloadKeys = useMemo(() => {
+    if (!(tryitConfig?.itemTables && typeof tryitConfig.itemTables === "object")) {
+      return ["xbuyit", "xfarmit", "xcookit"];
+    }
+    const keys = Object.entries(tryitConfig.itemTables)
+      .filter(([, cfg]) => {
+        const field = cfg?.field;
+        const baseField = cfg?.baseField || field;
+        return !!field && baseField === field;
+      })
+      .map(([payloadKey]) => String(payloadKey || "").trim())
+      .filter(Boolean);
+    return keys.length > 0 ? keys : ["xbuyit", "xfarmit", "xcookit"];
+  }, [tryitConfig]);
+  useEffect(() => {
+    dataSetFarmRef.current = dataSetFarm || {};
+  }, [dataSetFarm]);
+  const beginHeaderRequest = () => {
+    headerRequestCountRef.current += 1;
+    setHeaderRequestLoading(true);
+  };
+  const endHeaderRequest = () => {
+    headerRequestCountRef.current = Math.max(0, headerRequestCountRef.current - 1);
+    if (headerRequestCountRef.current < 1) {
+      setHeaderRequestLoading(false);
+    }
+  };
+  useEffect(() => {
+    if (!pendingTryitSnapshotRef.current) return;
+    pendingTryitSnapshotRef.current = false;
+    const farmState = dataSetFarmRef.current || {};
+    const farmId = String(farmState?.frmid || curID || dataSet?.options?.farmId || "");
+    const snapshot = filterTryit(farmState, true);
+    if (hasTryitPayloadContent(snapshot)) {
+      writeTryitSnapshot(snapshot, farmId, {
+        preserveEmptyTables: tryitAllPayloadKeys,
+      });
+    }
+  }, [dataSetFarm, tryitAllPayloadKeys]);
+
+  const getTryitRequestPayload = (farmState) => {
+    const requestFarmId = String(curID || farmState?.frmid || dataSet?.options?.farmId || "");
+    const stored = readTryitSnapshot(requestFarmId);
+    const getByPath = (obj, path) =>
+      String(path || "").split(".").reduce((acc, key) => (acc ? acc[key] : undefined), obj);
+    const buildTryitDeltaPayload = (state) => {
+      if (!tryitConfig || !Array.isArray(tryitConfig?.boostTables) || !tryitConfig?.itemTables) return null;
+      const cur = state || {};
+      const delta = {};
+      (tryitConfig.boostTables || []).forEach((tableName) => {
+        delta[tableName] = {};
+        const table = cur?.boostables?.[tableName] || {};
+        Object.entries(table).forEach(([item, value]) => {
+          const active = Number(value?.isactive || 0);
+          const currentTry = Number(value?.tryit || 0);
+          if (currentTry !== active) {
+            delta[tableName][item] = currentTry;
+          }
+        });
+      });
+      Object.entries(tryitConfig.itemTables || {}).forEach(([payloadKey, tableCfg]) => {
+        delta[payloadKey] = {};
+        const field = tableCfg?.field;
+        const baseField = tableCfg?.baseField || field;
+        const sources = Array.isArray(tableCfg?.sources) ? tableCfg.sources : [];
+        const isStatefulToggle = tryitStatefulPayloadKeys.includes(payloadKey);
+        if (!field || !baseField || sources.length < 1) return;
+        sources.forEach((sourcePath) => {
+          const curTable = getByPath(cur, sourcePath) || {};
+          Object.entries(curTable).forEach(([item, value]) => {
+            const curVal = Number(value?.[field] || 0);
+            // Stateful toggles must include explicit 0/1 values to avoid reset on reload.
+            if (isStatefulToggle) {
+              delta[payloadKey][item] = curVal;
+              return;
+            }
+            if (baseField === field) {
+              if (curVal !== 0) {
+                delta[payloadKey][item] = curVal;
+              }
+              return;
+            }
+            const baseVal = Number(value?.[baseField] ?? value?.[field] ?? 0);
+            if (curVal !== baseVal) {
+              delta[payloadKey][item] = curVal;
+            }
+          });
+        });
+      });
+      return normalizeTryitPayload(delta);
+    };
+    const mergeStoredStatefulIntoDelta = (deltaPayload, storedPayload) => {
+      const merged = normalizeTryitPayload(deltaPayload || {});
+      const storedNorm = normalizeTryitPayload(storedPayload || {});
+      tryitStatefulPayloadKeys.forEach((payloadKey) => {
+        const deltaTable = (merged?.[payloadKey] && typeof merged[payloadKey] === "object") ? merged[payloadKey] : {};
+        const storedTable = (storedNorm?.[payloadKey] && typeof storedNorm[payloadKey] === "object") ? storedNorm[payloadKey] : {};
+        if (Object.keys(deltaTable).length < 1 && Object.keys(storedTable).length < 1) return;
+        merged[payloadKey] = {
+          ...storedTable,
+          ...deltaTable,
+        };
+      });
+      return merged;
+    };
+    const hasCanonicalTryitState = () => {
+      return !!(farmState?.itables?.it && farmState?.boostables);
+    };
+    const hasTrySources =
+      !!farmState?.itables ||
+      !!farmState?.boostables ||
+      !!farmState?.invData?.itables ||
+      !!farmState?.invData?.boostables ||
+      !!farmState?.cookData?.itables ||
+      !!farmState?.fishData?.itables ||
+      !!farmState?.bountyData?.itables ||
+      !!farmState?.craftData?.itables ||
+      !!farmState?.flowerData?.itables ||
+      !!farmState?.expandPageData?.itables ||
+      !!farmState?.mapData?.boostables;
+    if (hasTrySources) {
+      const computedDelta = buildTryitDeltaPayload(farmState || {});
+      const safeDelta = mergeStoredStatefulIntoDelta(computedDelta, stored);
+      if (safeDelta && hasTryitPayloadContent(safeDelta)) {
+        return { tryitarrays: safeDelta, tryitMode: "delta" };
+      }
+      const computed = filterTryit(farmState || {}, true);
+      if (hasTryitPayloadContent(computed)) {
+        const normalized = writeTryitSnapshot(computed, requestFarmId, {
+          preserveEmptyTables: hasCanonicalTryitState() ? [] : tryitAllPayloadKeys,
+        }) || computed;
+        return { tryitarrays: normalized, tryitMode: "snapshot" };
+      }
+    }
+    if (stored && hasTryitPayloadContent(stored)) {
+      return { tryitarrays: stored, tryitMode: "snapshot" };
+    }
+    return { tryitarrays: {}, tryitMode: "active" };
+  };
+  useEffect(() => {
+    if (sectionsMetaError) {
+      setReqState(sectionsMetaError);
+    }
+  }, [sectionsMetaError]);
   useEffect(() => {
     const mode = ui?.selectedQuantityCook;
     if (mode !== "daily" && mode !== "dailymax") return;
@@ -798,6 +1187,8 @@ function App() {
       }
       return prev;
     });
+    pendingTryitSnapshotRef.current = true;
+    pendingSaveRef.current = true;
   }, [ui?.selectedQuantityCook, dataSetFarm?.itables?.food, dataSetFarm?.itables?.pfood]);
 
   const handleHomeClic = (index) => {
@@ -807,10 +1198,33 @@ function App() {
       [index]: !prevState[index],
     }));
   };
-  const handleButtonfTNFTClick = () => {
+  const handleButtonfTNFTClick = async () => {
+    const hasFullTryTables =
+      hasSectionData(dataSetFarm, "boosts", sectionPayloadKeys, sectionTablePaths) &&
+      hasSectionData(dataSetFarm, "inventory", sectionPayloadKeys, sectionTablePaths);
+    if (!hasFullTryTables) {
+      try {
+        await getPrices(false, true, ["boosts", "inventory"]);
+      } catch (error) {
+        console.log("TryNFT preload error", error);
+      }
+    }
     setShowfTNFT(true);
   };
-  const handleButtonfDlvrClick = () => {
+  const handleButtonfDlvrClick = async () => {
+    const hasOrdersData =
+      !!dataSetFarm?.orderstable &&
+      !!dataSetFarm?.orderstable?.orders &&
+      !!dataSetFarm?.orderstable?.chores &&
+      !!dataSetFarm?.orderstable?.bounties;
+    const hasDeliveryTables = !!dataSetFarm?.itables?.it;
+    if (!hasOrdersData || !hasDeliveryTables) {
+      try {
+        await getPrices(false, true, ["orders", "inventory"]);
+      } catch (error) {
+        console.log("Delivery preload error", error);
+      }
+    }
     setShowfDlvr(true);
   };
   const handleButtonOptionsClick = () => {
@@ -826,15 +1240,16 @@ function App() {
     if (iaLoading) return;
     setIaLoading(true);
     try {
-      const tryItArrays = filterTryit(dataSetFarm, true);
+      const { tryitarrays: tryItArrays, tryitMode } = getTryitRequestPayload(dataSetFarmRef.current || {});
       const response = await fetch("/askia", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          prompt: "Quelle est la meilleure stratégie aujourd'hui ?",
+          prompt: "Quelle est la meilleure stratÃ©gie aujourd'hui ?",
           farmId: curID,
           options: dataSet.options,
           tryitarrays: tryItArrays,
+          tryitMode,
           //context: context,
         }),
       });
@@ -850,18 +1265,61 @@ function App() {
   };
   const handleClosefTNFT = (xdataSet, xdataSetFarm) => {
     dataSet = xdataSet;
-    /* const newDataSetLocal = { ...xdataSetFarm };
-    setdataSetFarm(newDataSetLocal); */
-    //const deepClone = obj => JSON.parse(JSON.stringify(obj));
-    setdataSetFarm(xdataSetFarm);
-    setdeliveriesData(xdataSetFarm.orderstable);
+    const prevFarmState = dataSetFarmRef.current || {};
+    const safeTryPayload = { ...(xdataSetFarm || {}) };
+    delete safeTryPayload.ftrades;
+    delete safeTryPayload.ftradesHeader;
+    if (!Object.prototype.hasOwnProperty.call(safeTryPayload, "ftrades")) {
+      safeTryPayload.ftrades = prevFarmState?.ftrades;
+    }
+    if (!Object.prototype.hasOwnProperty.call(safeTryPayload, "ftradesHeader")) {
+      safeTryPayload.ftradesHeader = prevFarmState?.ftradesHeader;
+    }
+    const mergedFarmState = mergeFarmStateDeep(dataSetFarmRef.current || {}, safeTryPayload);
+    dataSetFarmRef.current = mergedFarmState;
+    setdataSetFarm(mergedFarmState);
+    const tryitSnapshot = filterTryit(mergedFarmState || {}, true);
+    if (hasTryitPayloadContent(tryitSnapshot)) {
+      writeTryitSnapshot(tryitSnapshot, mergedFarmState?.frmid || dataSet?.options?.farmId || curID || "", {
+        preserveEmptyTables: tryitStatefulPayloadKeys,
+      });
+    }
+    setdeliveriesData(mergedFarmState?.orderstable || []);
     setShowfTNFT(false);
+    if (!mergedFarmState?.ftrades && !mergedFarmState?.ftradesHeader) {
+      getPrices(false, true, ["trades"]).catch((error) => {
+        console.log("TryNFT close trades sync error", error);
+      });
+    }
     //setCookie();
     pendingSaveRef.current = true;
   };
   const handleRefreshfTNFT = (xdataSet, xdataSetFarm) => {
     dataSet = xdataSet;
-    setdataSetFarm(xdataSetFarm);
+    const prevFarmState = dataSetFarmRef.current || {};
+    const safeTryPayload = { ...(xdataSetFarm || {}) };
+    delete safeTryPayload.ftrades;
+    delete safeTryPayload.ftradesHeader;
+    if (!Object.prototype.hasOwnProperty.call(safeTryPayload, "ftrades")) {
+      safeTryPayload.ftrades = prevFarmState?.ftrades;
+    }
+    if (!Object.prototype.hasOwnProperty.call(safeTryPayload, "ftradesHeader")) {
+      safeTryPayload.ftradesHeader = prevFarmState?.ftradesHeader;
+    }
+    const mergedFarmState = mergeFarmStateDeep(dataSetFarmRef.current || {}, safeTryPayload);
+    dataSetFarmRef.current = mergedFarmState;
+    setdataSetFarm(mergedFarmState);
+    const tryitSnapshot = filterTryit(mergedFarmState || {}, true);
+    if (hasTryitPayloadContent(tryitSnapshot)) {
+      writeTryitSnapshot(tryitSnapshot, mergedFarmState?.frmid || dataSet?.options?.farmId || curID || "", {
+        preserveEmptyTables: tryitStatefulPayloadKeys,
+      });
+    }
+    if (!mergedFarmState?.ftrades && !mergedFarmState?.ftradesHeader) {
+      getPrices(false, true, ["trades"]).catch((error) => {
+        console.log("TryNFT refresh trades sync error", error);
+      });
+    }
     //setCookie();
     pendingSaveRef.current = true;
   };
@@ -1013,40 +1471,108 @@ function App() {
 
     if (name.includes(":")) {
       const [root, item] = name.split(":", 2);
-      //const item = name.slice(root.length + 1);
       setdataSetFarm(prev => {
-        const itables = prev?.itables ?? {};
-        const it = itables?.it ?? {};
-        const food = itables?.food ?? {};
-        const pfood = itables?.pfood ?? {};
+        const tableContainers = [
+          {
+            get: (p) => p?.itables,
+            set: (p, tables) => ({ ...(p || {}), itables: tables }),
+          },
+          {
+            get: (p) => p?.invData?.itables,
+            set: (p, tables) => ({
+              ...(p || {}),
+              invData: { ...(p?.invData || {}), itables: tables },
+            }),
+          },
+          {
+            get: (p) => p?.cookData?.itables,
+            set: (p, tables) => ({
+              ...(p || {}),
+              cookData: { ...(p?.cookData || {}), itables: tables },
+            }),
+          },
+          {
+            get: (p) => p?.fishData?.itables,
+            set: (p, tables) => ({
+              ...(p || {}),
+              fishData: { ...(p?.fishData || {}), itables: tables },
+            }),
+          },
+          {
+            get: (p) => p?.bountyData?.itables,
+            set: (p, tables) => ({
+              ...(p || {}),
+              bountyData: { ...(p?.bountyData || {}), itables: tables },
+            }),
+          },
+          {
+            get: (p) => p?.craftData?.itables,
+            set: (p, tables) => ({
+              ...(p || {}),
+              craftData: { ...(p?.craftData || {}), itables: tables },
+            }),
+          },
+          {
+            get: (p) => p?.flowerData?.itables,
+            set: (p, tables) => ({
+              ...(p || {}),
+              flowerData: { ...(p?.flowerData || {}), itables: tables },
+            }),
+          },
+          {
+            get: (p) => p?.expandPageData?.itables,
+            set: (p, tables) => ({
+              ...(p || {}),
+              expandPageData: { ...(p?.expandPageData || {}), itables: tables },
+            }),
+          },
+        ];
+        const allTables = tableContainers.map((container) => container.get(prev) || {});
+        const it = allTables.map((t) => t?.it).find((t) => t && Object.keys(t).length > 0) || {};
+        const food = allTables.map((t) => t?.food).find((t) => t && Object.keys(t).length > 0) || {};
+        const pfood = allTables.map((t) => t?.pfood).find((t) => t && Object.keys(t).length > 0) || {};
         let tableKey = null;
         if (it[item]) tableKey = "it";
         else if (food[item]) tableKey = "food";
         else if (pfood[item]) tableKey = "pfood";
         else return prev;
-        const table = itables[tableKey] ?? {};
-        const current = table[item] ?? {};
+        let current = {};
+        for (let i = 0; i < tableContainers.length; i++) {
+          const tables = tableContainers[i].get(prev) || {};
+          if (tables?.[tableKey]?.[item]) {
+            current = tables[tableKey][item];
+            break;
+          }
+        }
         const nextBinary = value ? 1 : 0;
         if (root === "cookit" && nextBinary === 0 && Number(current?.cookit) === 1) {
           const foodCount = Object.values(food).reduce((acc, obj) => acc + (Number(obj?.cookit) === 1 ? 1 : 0), 0);
           const pfoodCount = Object.values(pfood).reduce((acc, obj) => acc + (Number(obj?.cookit) === 1 ? 1 : 0), 0);
           if ((foodCount + pfoodCount) <= 1) return prev;
         }
-        return {
-          ...prev,
-          itables: {
-            ...itables,
+        const nextItem = {
+          ...current,
+          [root]: nextBinary,
+        };
+        const next = { ...(prev || {}) };
+        let updated = next;
+        tableContainers.forEach((container) => {
+          const tables = container.get(updated) || {};
+          const table = tables?.[tableKey] || {};
+          if (!table[item]) return;
+          const nextTables = {
+            ...tables,
             [tableKey]: {
               ...table,
-              [item]: {
-                ...current,
-                [root]: nextBinary,
-              },
+              [item]: nextItem,
             },
-          },
-        };
+          };
+          updated = container.set(updated, nextTables);
+        });
+        return updated;
       });
-      setCookie();
+      pendingTryitSnapshotRef.current = true;
+      pendingSaveRef.current = true;
       return;
     }
 
@@ -1164,8 +1690,10 @@ function App() {
     //setCookie();
   };
   function handleSetHrvMax(TryChecked) {
-    if (!dataSetFarm?.itables?.it) return;
-    const it = dataSetFarm.itables.it;
+    const it = dataSetFarm?.itables?.it
+      || dataSetFarm?.invData?.itables?.it
+      || dataSetFarm?.cookData?.itables?.it;
+    if (!it) return;
     const next = {};
     for (const item in it) {
       const dc = TryChecked
@@ -1184,17 +1712,33 @@ function App() {
   const handleButtonClick = async (context = null) => {
     const { inputValue } = ui;
     if (inputValue === null || inputValue === "" || inputValue === 0) return;
+    if (!pageSectionRequirements || !sectionPayloadKeys || !sectionTablePaths) {
+      setReqState(sectionsMetaError || "Config sections manquante");
+      return;
+    }
     if (cdButton) return;
     activeTimers.forEach(timerId => {
       clearInterval(timerId);
     });
     try {
       //lastClickedInputValue.current = inputValue;
+      const normalizedInputId = String(inputValue ?? "");
+      const currentLoadedFarmId = String(dataSetFarmRef.current?.frmid || dataSet?.options?.farmId || "");
+      const keepCurrentViewWhileRefreshing = buttonClicked && normalizedInputId !== "" && normalizedInputId === currentLoadedFarmId;
       curID = inputValue;
+      if (!keepCurrentViewWhileRefreshing) {
+        farmSectionHashesRef.current = {};
+        farmTableHashesRef.current = {};
+        dataSetFarmRef.current = {};
+        setdataSetFarm({});
+      }
+      const requiredSections = computeRequiredSections(ui, pageSectionRequirements);
+      const includeSections = [...new Set(requiredSections)];
       if (context === "EnterPressed") { setFarmData([]); }
-      const tryItArrays = filterTryit(dataSetFarm, true);
+      const { tryitarrays: tryItArrays, tryitMode } = getTryitRequestPayload(dataSetFarmRef.current || {});
       //setInputValue(lastClickedInputValue.current);
       const fetchFarmData = async (retryCount = 0) => {
+        beginHeaderRequest();
         try {
           const response = await fetch(API_URL + "/getfarm", {
             method: 'POST',
@@ -1205,7 +1749,11 @@ function App() {
               frmid: curID,
               options: dataSet.options,
               tryitarrays: tryItArrays,
-              context: context,
+              tryitMode,
+              include: includeSections,
+              knownTableHashes: { ...(farmTableHashesRef.current || {}) },
+              page: String(ui?.selectedInv || "home"),
+              context: context || "manualLoad",
             }),
           });
           if (response.status === 202) {
@@ -1225,6 +1773,7 @@ function App() {
           } else if (response.status === 200) {
             const responseData = await response.json();
             buttonClicked = true;
+            setAutoRefreshNonce((v) => v + 1);
             dataSet.options.username = responseData.username;
             dataSet.options.farmId = responseData.frmid;
             dataSet.isBanned = responseData.frmData.isbanned ?
@@ -1294,16 +1843,31 @@ function App() {
               setBumpkinLoading(false);
             }
             setReqState('');
-            setFarmData(responseData.frmData);
-            setBumpkinData(responseData.Bumpkin);
+            if (responseData?.sectionHashes && typeof responseData.sectionHashes === "object") {
+              farmSectionHashesRef.current = {
+                ...(farmSectionHashesRef.current || {}),
+                ...responseData.sectionHashes,
+              };
+            }
+            if (responseData?.tableHashes && typeof responseData.tableHashes === "object") {
+              const knownFromPayload = extractReceivedTableHashes(responseData, responseData.tableHashes);
+              farmTableHashesRef.current = {
+                ...(farmTableHashesRef.current || {}),
+                ...knownFromPayload,
+              };
+            }
+            const mergedInitialFarm = mergeFarmStateDeep(dataSetFarmRef.current || {}, responseData);
+            dataSetFarmRef.current = mergedInitialFarm;
+            setFarmData(mergedInitialFarm.frmData);
+            setBumpkinData(mergedInitialFarm.Bumpkin);
             setUIField("selectedExpandType", responseData.frmData.expandData.type);
             //setUIField("selectedInv", "home");
             //setSelectedExpandType(responseData.frmData.expandData.type);
             //setfromtoexpand(responseData.expandData);
             getFromToExpand(fromexpand || 1, toexpand || 10, responseData.frmData.expandData.type);
             //setanimalData(responseData.Animals);
-            refreshDataSet(responseData);
-            const { frmData, expandData, Fish, taxFreeSFL } = responseData;
+            refreshDataSet(mergedInitialFarm);
+            const { frmData, expandData, Fish, taxFreeSFL } = mergedInitialFarm;
             dataSet.balance = frmData.balance;
             dataSet.coins = frmData.coins;
             const balance = frmData.balance;
@@ -1320,7 +1884,7 @@ function App() {
             const xfishcost = Fish && ((!TryChecked ? Fish.CastCost : Fish.CastCosttry) / dataSet.options.coinsRatio);
             dataSet.fishcasts = Fish && (Fish.casts + "/" + xfishcastmax);
             dataSet.fishcosts = Fish && (parseFloat(Fish.casts * xfishcost).toFixed(3) + "/" + parseFloat(xfishcastmax * xfishcost).toFixed(3));
-            setdataSetFarm({ ...responseData });
+            setdataSetFarm({ ...mergedInitialFarm });
             dataSet.updated = formatUpdated(frmData?.updated);
             if (dataSet.options.firstLoad) {
               dataSet.options.firstLoad = false
@@ -1328,18 +1892,15 @@ function App() {
             }
             if (context === "optionChanged") {
 
-            } else {
-              await getPrices(true);
             }
-            if (responseData.mutantchickens) {
-              setMutants(responseData);
+            if (mergedInitialFarm.mutantchickens) {
+              setMutants(mergedInitialFarm);
             }
             //setRefresh(new Date().getMilliseconds());
-            setdeliveriesData(responseData.orderstable);
-            setfTrades(responseData);
+            setdeliveriesData(mergedInitialFarm.orderstable);
             setCookie();
           } else {
-            setReqState(`Error : ${response.status}`);
+            setReqState(await formatHttpErrorMessage(response, "/getfarm"));
             dataSet.updated = formatUpdated(farmData?.updated);
             const newdataSetFarm = { ...dataSetFarm };
             setdataSetFarm(newdataSetFarm);
@@ -1360,6 +1921,8 @@ function App() {
           const newdataSetFarm = { ...dataSetFarm };
           setdataSetFarm(newdataSetFarm);
           throw (error);
+        } finally {
+          endHeaderRequest();
         }
       };
       await fetchFarmData();
@@ -1475,9 +2038,11 @@ function App() {
     tooltipData
   ]);
   const config = useMemo(() => ({
-    API_URL
+    API_URL,
+    tryitConfig,
   }), [
-    API_URL
+    API_URL,
+    tryitConfig,
   ]);
   const actions = useMemo(() => ({
     handleUIChange,
@@ -1558,64 +2123,6 @@ function App() {
   ]);
   const ctx = useMemo(() => ({ data, config, ui, actions, img }), [data, config, ui, actions, img]);
 
-  function setfTrades(dataSetTrades) {
-    const { ftrades } = dataSetTrades;
-    if (ftrades) {
-      if (dataSetTrades.itables === undefined) return;
-      const { it, fish, flower } = dataSetTrades.itables;
-      const { nft, nftw } = dataSetTrades.boostables;
-      const data = Object.values(ftrades).sort((a, b) => Number(Boolean(b?.fulfilledAt)) - Number(Boolean(a?.fulfilledAt)));
-      const vegetableNames = data.map((entry) => Object.keys(entry.items)[0]);
-      //const vegetablePrices = data.map((entry) => Object.values(entry.items)[0]);
-      const exchangeimg = <img src={imgexchng} alt="" className="itico" title="Listings" />;
-      const imgsold = <img
-        src="./icon/ui/confirm.png"
-        title="Sold"
-        style={{
-          position: "absolute",
-          top: "50%",
-          left: "50%",
-          transform: "translate(-50%, -50%)",
-          width: "15px",
-          height: "15px",
-          zIndex: 1,
-          opacity: 0.6
-        }}
-      />
-      //const itemimg = it[name]?.img || nft[name]?.img || nftw[name]?.img || imgna;
-      const tableContent = (
-        <>
-          <tr>
-            <td>{exchangeimg}</td>
-            {vegetableNames.map((name, index) => (
-              <td style={{ textAlign: 'center', position: "relative" }}>
-                {<img src={it[name]?.img || fish[name]?.img || flower[name]?.img || nft[name]?.img || nftw[name]?.img || imgna}
-                  alt={''} className="itico" title={name} />}
-                {data[index]?.fulfilledAt && imgsold}</td>
-            ))}
-          </tr>
-          {/* <tr>
-            {vegetablePrices.map((price, index) => (
-              <td className="tdcenter">{price}</td>
-            ))}
-          </tr> */}
-        </>
-      );
-      const table = (
-        <>
-          <div className="table-container">
-            <table className="tabletradesTable">
-              <tbody>
-                {tableContent}
-              </tbody>
-            </table>
-          </div>
-        </>
-      );
-      setftradesData(table);
-    }
-  }
-
   function PBarSFL() {
     const maxh = 255;
     if (farmData.balance) {
@@ -1638,48 +2145,88 @@ function App() {
       );
     }
   }
-  async function getPrices(onlyPrices) {
-    const mergeFarmPayload = (prevFarm, nextFarm) => {
-      const prev = prevFarm || {};
-      const next = { ...(nextFarm || {}) };
-      delete next.sectionHashes;
-      delete next.unchangedSections;
-      const merged = { ...prev, ...next };
-      if (next.frmData) merged.frmData = { ...(prev.frmData || {}), ...next.frmData };
-      if (next.itables) merged.itables = { ...(prev.itables || {}), ...next.itables };
-      if (next.boostables) merged.boostables = { ...(prev.boostables || {}), ...next.boostables };
-      if (next.constants) merged.constants = { ...(prev.constants || {}), ...next.constants };
-      return merged;
-    };
-    const tryItArrays = filterTryit(dataSetFarm, true);
-    const include = ["core", "inventory", "orders"];
-    if (["home", "animal", "cropmachine", "pet"].includes(selectedInv)) { include.push("yields"); }
-    if (["inv", "animal", "pet", "market", "activity", "map", "factions"].includes(selectedInv)) { include.push("boosts"); }
-    include.push("trades");
-    if (selectedInv === "map") { include.push("map"); }
-    if (selectedInv === "toplists") { include.push("toplists"); }
+  async function getPrices(onlyPrices, withSectionLoader = false, forcedSections = null, forceRecalc = false, forcedPage = null) {
+    if (!pageSectionRequirements || !sectionPayloadKeys || !sectionTablePaths) {
+      setReqState(sectionsMetaError || "Config sections manquante");
+      return;
+    }
+    const currentFarmState = dataSetFarmRef.current || {};
+    const { tryitarrays: tryItArrays, tryitMode } = getTryitRequestPayload(currentFarmState);
+    const includeSource = (Array.isArray(forcedSections) && forcedSections.length > 0)
+      ? forcedSections
+      : computeRequiredSections(ui, pageSectionRequirements);
+    const requestedPage = (forcedPage !== null && forcedPage !== undefined && String(forcedPage).trim() !== "")
+      ? String(forcedPage).trim()
+      : ((Array.isArray(forcedSections) && forcedSections.length === 1)
+        ? String(forcedSections[0])
+        : String(ui?.selectedInv || "home"));
+    const includeSet = new Set(includeSource);
+    if (!withSectionLoader) {
+      includeSet.add("trades");
+    }
+    if (!onlyPrices && showfDlvr) {
+      includeSet.add("orders");
+    }
+    const include = [...includeSet];
+    const includeMissingOnly = include.filter((section) =>
+      !hasSectionData(currentFarmState, section, sectionPayloadKeys, sectionTablePaths)
+    );
+    const includeToRequest = (withSectionLoader && !forceRecalc)
+      ? includeMissingOnly
+      : include;
+    const hasAllRequestedSectionsLocal = includeMissingOnly.length < 1;
+    const hasAllIncludeToRequestLocal = includeToRequest.every((section) =>
+      hasSectionData(currentFarmState, section, sectionPayloadKeys, sectionTablePaths)
+    );
+    if (!onlyPrices && withSectionLoader && !forceRecalc && hasAllRequestedSectionsLocal) {
+      setReqState('');
+      return;
+    }
+    if (!onlyPrices && withSectionLoader) {
+      setSectionsLoading(true);
+    }
     const knownHashes = { ...(farmSectionHashesRef.current || {}) };
-    delete knownHashes.trades;
+    const knownTableHashes = { ...(farmTableHashesRef.current || {}) };
+    includeToRequest.forEach((section) => {
+      if (!hasSectionData(currentFarmState, section, sectionPayloadKeys, sectionTablePaths)) {
+        delete knownHashes[section];
+      }
+    });
+    const requestMode = withSectionLoader ? "nav" : "refresh";
+    const requestFarmId = curID || dataSetFarm?.frmid || dataSet?.options?.farmId || "";
     let vHeaders = onlyPrices ? {
       onlyprices: "true",
     } : {
-      frmid: curID,
+      frmid: requestFarmId,
       options: dataSet.options,
-      tryitarrays: tryItArrays,
-      include: [...new Set(include)],
+      include: [...new Set(includeToRequest)],
+      page: requestedPage,
       knownHashes,
+      knownTableHashes,
+      mode: requestMode,
+      forceRecalc: !!forceRecalc,
+      tryitarrays: tryItArrays,
+      tryitMode,
     };
     //console.log("dataSetFarm dans getPrices :", dataSetFarm);
-    const response = await fetch(API_URL + "/getdatacrypto", {
-      //method: 'GET',
-      //headers: vHeaders
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(vHeaders),
-    });
-    if (response.ok) {
+    const isRefreshRequest = !onlyPrices && !withSectionLoader;
+    if (isRefreshRequest) {
+      refreshInFlightRef.current = true;
+    }
+    if (!onlyPrices) {
+      beginHeaderRequest();
+    }
+    try {
+      const response = await fetch(API_URL + "/getdatacrypto", {
+        //method: 'GET',
+        //headers: vHeaders
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(vHeaders),
+      });
+      if (response.ok) {
       const responseData = await response.json();
       const respData = responseData.allData;
       setpriceData(JSON.parse(JSON.stringify(responseData.priceData)));
@@ -1690,7 +2237,14 @@ function App() {
             ...respData.sectionHashes,
           };
         }
-        const mergedFarmData = mergeFarmPayload(dataSetFarm, respData);
+        if (respData?.tableHashes && typeof respData.tableHashes === "object") {
+          const knownFromPayload = extractReceivedTableHashes(respData, respData.tableHashes);
+          farmTableHashesRef.current = {
+            ...(farmTableHashesRef.current || {}),
+            ...knownFromPayload,
+          };
+        }
+        const mergedFarmData = mergeFarmStateDeep(currentFarmState, respData);
         //setdataSetFarm(respData);
         setFarmData(mergedFarmData.frmData || {});
         dataSet.options.isAbo = mergedFarmData.isabo;
@@ -1741,9 +2295,12 @@ function App() {
         const xfishcost = Fish && ((!TryChecked ? Fish.CastCost : Fish.CastCosttry) / dataSet.options.coinsRatio);
         dataSet.fishcasts = Fish && (Fish.casts + "/" + xfishcastmax);
         dataSet.fishcosts = Fish && (parseFloat(Fish.casts * xfishcost).toFixed(3) + "/" + parseFloat(xfishcastmax * xfishcost).toFixed(3));
-        setdataSetFarm({ ...mergedFarmData });
+        setdataSetFarm((prevFarmState) => {
+          const mergedLatest = mergeFarmStateDeep(prevFarmState, respData);
+          dataSetFarmRef.current = mergedLatest;
+          return { ...mergedLatest };
+        });
         setdeliveriesData(mergedFarmData?.orderstable || []);
-        setfTrades(mergedFarmData);
       }
       const priceData = responseData.priceData;
       const balanceUSD = frmtNb(Number(dataSet?.balance || 0) * Number(priceData[2]));
@@ -1763,18 +2320,30 @@ function App() {
       //NFTPrice();
       //xinitprc = true;
       setReqState('');
-      if (respData.mutantchickens) {
-        setMutants(respData);
-        //setsTickets(respData.sTickets);
+        if (respData.mutantchickens) {
+          setMutants(respData);
+          //setsTickets(respData.sTickets);
+        }
+      } else {
+        console.log(`Error : ${response.status}`);
+        setReqState(await formatHttpErrorMessage(response, "/getdatacrypto"));
+        dataSet.updated = formatUpdated(farmData?.updated);
+        const newdataSetFarm = { ...(dataSetFarmRef.current || {}) };
+        setdataSetFarm(newdataSetFarm);
+        //localStorage.clear();
+        //console.log("Cleared local data");
       }
-    } else {
-      console.log(`Error : ${response.status}`);
-      setReqState('Error refreshing prices');
-      dataSet.updated = formatUpdated(farmData?.updated);
-      const newdataSetFarm = { ...dataSetFarm };
-      setdataSetFarm(newdataSetFarm);
-      //localStorage.clear();
-      //console.log("Cleared local data");
+    } finally {
+      if (!onlyPrices) {
+        endHeaderRequest();
+      }
+      if (isRefreshRequest) {
+        refreshInFlightRef.current = false;
+        suppressNavUntilRef.current = Date.now() + 1200;
+      }
+      if (!onlyPrices && withSectionLoader) {
+        setSectionsLoading(false);
+      }
     }
   }
   function setMutants(dataSetMutant) {
@@ -1806,6 +2375,46 @@ function App() {
     setCookie();
   }, [dataSetFarm, options]);
   useEffect(() => {
+    const loadSectionsMeta = async () => {
+      try {
+        const response = await fetch(API_URL + "/getsectionsmeta", { method: "GET" });
+        if (!response.ok) {
+          setSectionsMeta(null);
+          setSectionsMetaError(`Config sections introuvable (${response.status})`);
+          return;
+        }
+        const meta = await response.json();
+        const pageReq = meta?.pageSectionRequirements;
+        const secKeys = meta?.sectionKeys;
+        const secTablePaths = meta?.sectionTablePaths;
+        const trConfig = meta?.tryitConfig;
+        const valid =
+          pageReq && typeof pageReq === "object" &&
+          secKeys && typeof secKeys === "object" &&
+          secTablePaths && typeof secTablePaths === "object" &&
+          trConfig && typeof trConfig === "object" &&
+          Array.isArray(trConfig?.boostTables) && trConfig.boostTables.length > 0 &&
+          trConfig?.itemTables && typeof trConfig.itemTables === "object" &&
+          Array.isArray(pageReq?.home) &&
+          Array.isArray(secKeys?.core);
+        if (!valid) {
+          setSectionsMeta(null);
+          setSectionsMetaError("Config sections invalide (backend)");
+          return;
+        }
+        setSectionsMeta({
+          pageSectionRequirements: pageReq,
+          sectionKeys: secKeys,
+          sectionTablePaths: secTablePaths,
+          tryitConfig: trConfig,
+        });
+        setSectionsMetaError("");
+      } catch {
+        setSectionsMeta(null);
+        setSectionsMetaError("Impossible de charger la config sections");
+      }
+    };
+    loadSectionsMeta();
     if (isNativeApp) {
       StatusBar.setOverlaysWebView({ overlay: false });
     }
@@ -1813,7 +2422,7 @@ function App() {
     if ('serviceWorker' in navigator) {
       navigator.serviceWorker.register('/service-worker.js')
         .then(registration => {
-          //console.log('Service Worker enregistré avec succès:', registration);
+          //console.log('Service Worker enregistrÃ© avec succÃ¨s:', registration);
         })
         .catch(error => {
           console.error('Erreur lors de l\'enregistrement du Service Worker:', error);
@@ -1822,98 +2431,103 @@ function App() {
     //setXListeCol();
   }, []);
   const intervalRef = useRef(null);
+  const refreshSectionsKey = useMemo(
+    () => buildSectionsKey(computeRequiredSections(ui, pageSectionRequirements)),
+    [ui?.selectedInv, ui?.activityDisplay, ui?.fishView, ui?.petView, pageSectionRequirements]
+  );
+  const autoRefreshEnabled = options?.autoRefresh !== false;
+  const autoRefreshActive = !!(autoRefreshEnabled && buttonClicked && dataSetFarm?.frmid && !showfTNFT);
+  const autoRefreshResetKey = `${dataSetFarm?.frmid || ""}|${autoRefreshNonce}|${showfTNFT ? 1 : 0}|${autoRefreshPulse}`;
   useEffect(() => {
-    let startTime = Date.now();
-    let duration = 60 * 1000;
-    let timeoutId = null;
-    const updateProgress = () => {
-      const elapsed = Date.now() - startTime;
-      const progress = Math.min((elapsed / duration) * 100, 100);
-      setSearchProgress(progress);
-      if (progress >= 100) {
-        startTime = Date.now();
-        setSearchProgress(0);
-      }
+    autoRefreshViewRef.current = {
+      selectedInv: ui?.selectedInv || "home",
+      activityDisplay: ui?.activityDisplay || "item",
+      fishView: ui?.fishView || "fish",
+      petView: ui?.petView || "pets",
+      showfDlvr: !!showfDlvr,
     };
+  }, [ui?.selectedInv, ui?.activityDisplay, ui?.fishView, ui?.petView, showfDlvr]);
+  useEffect(() => {
+    const duration = 60 * 1000;
     const fetchData = async () => {
       try {
-        await getPrices();
+        if (!autoRefreshEnabled) return;
+        if (!buttonClicked) return;
+        if (!dataSetFarm?.frmid) return;
+        if (showfTNFT) return;
+        if (document.visibilityState !== "visible") return;
+        const view = autoRefreshViewRef.current || {};
+        const refreshUI = {
+          selectedInv: view.selectedInv || "home",
+          activityDisplay: view.activityDisplay || "item",
+          fishView: view.fishView || "fish",
+          petView: view.petView || "pets",
+        };
+        const sections = computeRequiredSections(refreshUI, pageSectionRequirements);
+        const includeSections = [...new Set([
+          ...(Array.isArray(sections) ? sections : []),
+          "trades",
+          ...(view.showfDlvr ? ["orders"] : []),
+        ])];
+        await getPrices(false, false, includeSections, true, view.selectedInv || "home");
+        setAutoRefreshPulse((v) => v + 1);
+        setAutoRefreshNextAt(Date.now() + duration);
       } catch (error) {
         console.log(`Error: ${error}`);
-        //setReqState(`Error`);
         dataSet.updated = formatUpdated(farmData?.updated);
         const newdataSetFarm = { ...dataSetFarm };
         setdataSetFarm(newdataSetFarm);
       }
     };
-    const clearAll = () => {
+    const clearAllTimers = () => {
       if (intervalRef.current) {
         clearInterval(intervalRef.current);
         intervalRef.current = null;
       }
-      if (progressTimerRef.current) {
-        clearInterval(progressTimerRef.current);
-        progressTimerRef.current = null;
-      }
-      if (timeoutId) {
-        clearTimeout(timeoutId);
-        timeoutId = null;
-      }
-      setSearchProgress(0);
     };
-    const startMainInterval = () => {
-      clearAll();
-      startTime = Date.now();
-      duration = 60 * 1000;
-      setSearchProgress(0);
-      progressTimerRef.current = setInterval(updateProgress, 5000);
+    const startTimers = () => {
+      clearAllTimers();
+      if (!autoRefreshEnabled || !buttonClicked || !dataSetFarm?.frmid || showfTNFT) {
+        setAutoRefreshNextAt(0);
+        return;
+      }
+      setAutoRefreshNextAt(Date.now() + duration);
       intervalRef.current = setInterval(() => {
-        fetchData();
-        startTime = Date.now();
-        setSearchProgress(0);
+        fetchData().catch((error) => console.log(`Error: ${error}`));
       }, duration);
-    };
-    const startInitialTimeout = () => {
-      clearAll();
-      startTime = Date.now();
-      duration = 20 * 1000;
-      setSearchProgress(0);
-      progressTimerRef.current = setInterval(updateProgress, 1000);
-      timeoutId = setTimeout(() => {
-        fetchData();
-        startMainInterval();
-        initialIntervalDone = true;
-      }, 20 * 1000);
     };
     const handleVisibilityChange = () => {
       if (document.visibilityState === 'visible') {
-        if (!buttonClicked) return;
-        if (!dataSet.options?.isAbo) {
-          startInitialTimeout();
-        } else {
-          startMainInterval();
-        }
+        startTimers();
+        fetchData().catch((error) => console.log(`Error: ${error}`));
       } else {
-        clearAll();
+        clearAllTimers();
       }
     };
-    clearAll();
-    if (buttonClicked) {
-      if (!dataSet.options?.isAbo && !initialIntervalDone) {
-        startInitialTimeout();
-      } else {
-        startMainInterval();
-      }
+    startTimers();
+    if (!autoRefreshEnabled) {
+      setAutoRefreshNextAt(0);
     }
     document.addEventListener('visibilitychange', handleVisibilityChange);
     return () => {
-      clearAll();
+      clearAllTimers();
       document.removeEventListener('visibilitychange', handleVisibilityChange);
     };
-  }, [dataSetFarm]);
+  }, [dataSetFarm?.frmid, autoRefreshNonce, showfTNFT, pageSectionRequirements, autoRefreshEnabled]);
   useEffect(() => {
     getFromToExpand(Number(fromexpand) + 1, Number(toexpand), selectedExpandType);
   }, [fromexpand, toexpand, selectedExpandType]);
+  useEffect(() => {
+    if (!dataSetFarm?.frmid) return;
+    if (refreshInFlightRef.current) return;
+    if (Date.now() < (suppressNavUntilRef.current || 0)) return;
+    const required = computeRequiredSections(ui, pageSectionRequirements);
+    const hasAllSections = required.every((section) => hasSectionData(dataSetFarm, section, sectionPayloadKeys, sectionTablePaths));
+    if (hasAllSections) return;
+    getPrices(false, true).catch((error) => {
+      console.log(`Error: ${error}`);
+    });
+  }, [ui?.selectedInv, ui?.activityDisplay, ui?.fishView, ui?.petView, dataSetFarm?.frmid, pageSectionRequirements, sectionPayloadKeys, sectionTablePaths]);
   useEffect(() => {
     if (!curID) return;
     if (dataSet.options.useNotifications) {
@@ -1925,8 +2539,10 @@ function App() {
     }
   }, [dataSet.options.useNotifications]);
   useEffect(() => {
-    if (!dataSetFarm?.itables?.it) return;
-    const it = dataSetFarm.itables.it;
+    const it = dataSetFarm?.itables?.it
+      || dataSetFarm?.invData?.itables?.it
+      || dataSetFarm?.cookData?.itables?.it;
+    if (!it) return;
     const nextHrvst = {};
     const nextHrvstTry = {};
     for (const item in it) {
@@ -1955,6 +2571,7 @@ function App() {
     { value: "cropmachine", label: "Crop Machine", iconSrc: "./icon/skillr/efficiency_ext_module.png" },
     { value: "map", label: "Map", iconSrc: "./icon/ui/world.png" },
     { value: "expand", label: "Expand", iconSrc: "./icon/tools/hammer.png" },
+    { value: "buynodes", label: "Buy nodes", iconSrc: "./icon/res/sunstone_rock_1.webp" },
     { value: "factions", label: "Factions", iconSrc: "./icon/ui/factions.webp" },
     { value: "toplists", label: "Lists", iconSrc: "./icon/ui/trophy.png" },
     { value: "market", label: "Market", iconSrc: imgexchng },
@@ -1962,6 +2579,18 @@ function App() {
       ? [{ value: "activity", label: "Activity", iconSrc: "./icon/ui/stopwatch.png" }]
       : []),
   ];
+  const requiredSectionsForView = useMemo(
+    () => computeRequiredSections(ui, pageSectionRequirements),
+    [ui?.selectedInv, ui?.activityDisplay, ui?.fishView, ui?.petView, pageSectionRequirements]
+  );
+  const isCurrentPageDataReady = useMemo(
+    () => requiredSectionsForView.every((section) => hasSectionData(dataSetFarm, section, sectionPayloadKeys, sectionTablePaths)),
+    [requiredSectionsForView, dataSetFarm, sectionPayloadKeys, sectionTablePaths]
+  );
+  const canRenderCurrentPage = useMemo(
+    () => isCurrentPageDataReady,
+    [isCurrentPageDataReady]
+  );
 
   return (
     <>
@@ -2018,23 +2647,13 @@ function App() {
                   >
                     <img src="./icon/ui/search.png" alt="" className="resico" />
                   </button>
-                  <svg
-                    style={{ position: "absolute", left: -1, zIndex: 1, pointerEvents: "none" }}
-                    width="34"
-                    height="35"
-                  >
-                    <circle
-                      cx="18"
-                      cy="18"
-                      r="16"
-                      stroke="#4caf50"
-                      strokeWidth="3"
-                      fill="none"
-                      strokeDasharray={2 * Math.PI * 16}
-                      strokeDashoffset={2 * Math.PI * 16 * (1 - searchProgress / 100)}
-                      style={{ transition: "stroke-dashoffset 0.5s linear" }}
-                    />
-                  </svg>
+                  <AutoRefreshProgress
+                    active={autoRefreshActive}
+                    resetKey={autoRefreshResetKey}
+                    durationMs={60 * 1000}
+                    deadlineMs={autoRefreshNextAt}
+                    variant="circle"
+                  />
                 </div>
               </div>
               <div style={{
@@ -2132,11 +2751,38 @@ function App() {
                 <span>{mutData ? mutData : null}</span>
               </>) : null}
               <p className="reqstat">{reqState}</p>
+              {sectionsMetaError ? (
+                <p className="reqstat" style={{ color: "red" }}>
+                  {sectionsMetaError}
+                </p>
+              ) : null}
             </div>
             {farmData.balance ? (<>
-              <div className="tabletrades" onClick={(e) => handleTooltip("", "trades", "", e)} style={{ margin: "0", padding: "0" }}>
-                {<>{ftradesData ? ftradesData : ""}</>}
-              </div>
+              <HeaderTrades
+                API_URL={API_URL}
+                farmId={String(dataSetFarm?.frmid || "")}
+                options={dataSet.options}
+                currentPage={ui?.selectedInv}
+                dataSetFarm={dataSetFarm}
+                onTooltip={(e, payload) => handleTooltip("", "trades", payload || "", e)}
+                onTradesUpdate={(payload) => {
+                  if (!payload) return;
+                  const hasTradesField = Object.prototype.hasOwnProperty.call(payload, "ftrades");
+                  const hasHeaderField = Object.prototype.hasOwnProperty.call(payload, "ftradesHeader");
+                  const hasNonEmptyTrades = !!(payload?.ftrades && typeof payload.ftrades === "object" && Object.keys(payload.ftrades).length > 0);
+                  const hasNonEmptyHeader = Array.isArray(payload?.ftradesHeader) && payload.ftradesHeader.length > 0;
+                  if (hasTradesField || hasHeaderField) {
+                    if (!hasNonEmptyTrades && !hasNonEmptyHeader) return;
+                    setdataSetFarm((prev) => ({
+                      ...(prev || {}),
+                      ...(hasNonEmptyTrades ? { ftrades: payload.ftrades } : {}),
+                      ...(hasNonEmptyHeader ? { ftradesHeader: payload.ftradesHeader } : {}),
+                    }));
+                    return;
+                  }
+                  setdataSetFarm((prev) => ({ ...(prev || {}), ftrades: payload }));
+                }}
+              />
               <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
                 <DList
                   name="selectedInv"
@@ -2148,6 +2794,14 @@ function App() {
                   height={25}
                   maxListHeight={null}
                 />
+                {(sectionsLoading || headerRequestLoading) ? (
+                  <img
+                    src="./icon/ui/syncing.gif"
+                    alt="Loading sections"
+                    className="itico"
+                    style={{ width: 14, height: 14, opacity: 0.9 }}
+                  />
+                ) : null}
                 {selectedInv === "animal" && (
                   <DList
                     name="selectedAnimalLvl"
@@ -2233,6 +2887,28 @@ function App() {
                         return [col[0], selectedSet.has(String(idx)) ? 1 : 0];
                       });
                       setUIField("xListeColCropMachine", next);
+                    }}
+                    listIcon="./options.png"
+                    iconOnly={true}
+                    height={28}
+                    menuMinWidth={220}
+                  />
+                )}
+                {selectedInv === "buynodes" && (
+                  <DList
+                    options={buyNodesPickerOptions}
+                    value={buyNodesPickerValue}
+                    multiple={true}
+                    closeOnSelect={false}
+                    emitEvent={false}
+                    onChange={(selectedValues) => {
+                      const selectedSet = new Set((selectedValues || []).map(String));
+                      const next = (ui.xListeColBuyNodes || BUYNODES_COLUMNS_TEMPLATE).map((col, idx) => {
+                        const isPickerCol = BUYNODES_COLUMNS_PICKER.some((c) => c.idx === idx);
+                        if (!isPickerCol) return col;
+                        return [col[0], selectedSet.has(String(idx)) ? 1 : 0];
+                      });
+                      setUIField("xListeColBuyNodes", next);
                     }}
                     listIcon="./options.png"
                     iconOnly={true}
@@ -2447,7 +3123,7 @@ function App() {
         <div className="table-container">
           {buttonClicked ?
             <AppCtx.Provider value={ctx}>
-              <PanelTable />
+              {canRenderCurrentPage ? <PanelTable /> : <div>Loading page data...</div>}
             </AppCtx.Provider> : null}
         </div>
         {showOptions && (
@@ -2484,6 +3160,10 @@ function App() {
               tableData={dataSetFarm?.orderstable || deliveriesData}
               imgtkt={dataSet.imgtkt}
               coinsRatio={dataSet.options.coinsRatio}
+              autoRefreshEnabled={autoRefreshEnabled}
+              autoRefreshActive={autoRefreshActive}
+              autoRefreshResetKey={autoRefreshResetKey}
+              autoRefreshNextAt={autoRefreshNextAt}
             />
           </AppCtx.Provider>
         )}
@@ -2579,6 +3259,7 @@ function App() {
       if (!dataSet.options?.inputKeep) { dataSet.options.inputKeep = 3 }
       //if (!dataSet.options?.tradeTax) { dataSet.options.tradeTax = 10 }
       if (dataSet.options?.autoTradeTax === undefined) { dataSet.options.autoTradeTax = 1 }
+      if (dataSet.options?.autoRefresh === undefined) { dataSet.options.autoRefresh = true }
       if (!dataSet.options?.gemsRatio) { dataSet.options.gemsRatio = 0.07 }
       if (!dataSet.options?.gemsPack) { dataSet.options.gemsPack = 7400 }
       if (!dataSet.options?.coinsRatio) { dataSet.options.coinsRatio = 1000 }
@@ -2650,16 +3331,17 @@ function App() {
     }
   }
   function refreshDataSet(dataSetRefresh) {
-    if (dataSetRefresh.itables.it) {
+    const invIt = dataSetRefresh?.itables?.it;
+    if (invIt) {
       if (!dataSet.options?.animalLvl) {
         dataSet.options.animalLvl = Object.fromEntries(
-          Object.keys(dataSetRefresh.Animals).map(animal => [animal, 5])
+          Object.keys(dataSetRefresh?.Animals || {}).map(animal => [animal, 5])
         );
       }
       if (!dataSet.options?.notifList) {
-        dataSet.options.notifList = Object.keys(dataSetRefresh.itables.it)
+        dataSet.options.notifList = Object.keys(invIt)
           .filter(key =>
-            !(dataSetRefresh.itables.it[key]?.matcat === 2) &&
+            !(invIt[key]?.matcat === 2) &&
             !(key === "Wild Mushroom") &&
             !(key === "Magic Mushroom")
           )
@@ -2686,3 +3368,6 @@ function App() {
 }
 
 export default App;
+
+
+

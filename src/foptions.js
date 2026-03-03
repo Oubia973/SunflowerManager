@@ -206,6 +206,8 @@ function ModalOptions({ onClose, dataSet, onOptionChange, API_URL }) {
                 }} */>
                 <button onClick={closeModal} class="button" align="right" position='absolute'><img src="./icon/ui/cancel.png" alt="" className="resico" /></button>
                 <span style={{ fontWeight: "bold", fontSize: "16px" }}>Preferences</span>
+                <div><input type="checkbox" onChange={onOptionChange} checked={dataSet.autoRefresh !== false}
+                    name={"autoRefresh"} style={{ width: "18px", height: "18px", marginRight: 12 }} />Auto refresh tables</div>
                 <div><input type="checkbox" onChange={onOptionChange} checked={!!dataSet.checkPlacedEquiped || 0}
                     name={"checkPlacedEquiped"} style={{ width: "18px", height: "18px", marginRight: 12 }} />Check boosts placed/equipped</div>
                 <div><input type="number"
@@ -377,12 +379,12 @@ function ModalOptions({ onClose, dataSet, onOptionChange, API_URL }) {
                     name={"toolsBurn"} style={{ width: "18px", height: "18px", marginRight: 12 }} />Ressources burned by tools in daily</div>
                 <div><input type="checkbox" onChange={onOptionChange} checked={!!dataSet.usePriceFood}
                     name={"usePriceFood"} style={{ width: "18px", height: "18px", marginRight: 12 }} />Use cheaper food for animals</div>
-                <div><input type="checkbox" onChange={onOptionChange} checked={!!dataSet.mergeAniProd}
-                    name={"mergeAniProd"} style={{ width: "18px", height: "18px", marginRight: 12 }} />Set animals 2nd prod.cost to 0</div>
+                {/* <div><input type="checkbox" onChange={onOptionChange} checked={!!dataSet.mergeAniProd}
+                    name={"mergeAniProd"} style={{ width: "18px", height: "18px", marginRight: 12 }} />Set animals 2nd prod.cost to 0</div> */}
                 <div><input type="checkbox" onChange={onOptionChange} checked={!!dataSet.ignoreAniLvl}
                     name={"ignoreAniLvl"} style={{ width: "18px", height: "18px", marginRight: 12 }} />Ignore animals above selected lvl</div>
-                <div><input type="checkbox" onChange={onOptionChange} checked={!!dataSet.chumFishCost}
-                    name={"chumFishCost"} style={{ width: "18px", height: "18px", marginRight: 12 }} />Chum cost in Fish cost</div>
+                {/* <div><input type="checkbox" onChange={onOptionChange} checked={!!dataSet.chumFishCost}
+                    name={"chumFishCost"} style={{ width: "18px", height: "18px", marginRight: 12 }} />Chum cost in Fish cost</div> */}
                 {dataSet.isAbo ? (<>
                 </>) : null}
                 <div>

@@ -30,9 +30,15 @@ export default function PetsTable() {
       imgbuyit
     }
   } = useAppCtx();
-  const { Pets } = dataSetFarm;
-  const { it, petit } = dataSetFarm.itables;
-  const { shrine } = dataSetFarm.boostables;
+  const petPageData = dataSetFarm?.petData || {};
+  const Pets = petPageData?.Pets || dataSetFarm?.Pets || {};
+  const petTables = { ...(dataSetFarm?.itables || {}), ...(petPageData?.itables || {}) };
+  const petBoostables = { ...(dataSetFarm?.boostables || {}), ...(petPageData?.boostables || {}) };
+  if (!Pets || !petTables?.it || !petTables?.petit || !petBoostables?.shrine) {
+    return <div>Loading pets data...</div>;
+  }
+  const { it, petit } = petTables;
+  const { shrine } = petBoostables;
   function key(name) {
     if (name === "active") { return TryChecked ? "tryit" : "isactive"; }
     return TryChecked ? name + "try" : name;
@@ -390,7 +396,7 @@ export default function PetsTable() {
           {isColVisible(petCols, 5) ? <td className="tdcenter" style={{ padding: "0 10px" }}>{bib}</td> : null}
           {isColVisible(petCols, 6) ? <td className="tdcenter" style={{ padding: "0 10px" }}>{curNrg > 0 ? curNrg : ""}</td> : null}
           {/* <td className="tdcenter" style={{ padding: "0 10px" }}>{petExp > 0 ? petExp : ""}</td> */}
-          {isColVisible(petCols, 7) ? <td className="tdcenter tooltipcell" style={{ fontSize: "12px" }}>{petFeeds}</td> : null}
+          {isColVisible(petCols, 7) ? <td className="tdcenter" style={{ fontSize: "12px" }}>{petFeeds}</td> : null}
           {isColVisible(petCols, 8) ? <td className="tdcenter" style={{ padding: "0 10px" }}>{totalNrg > 0 ? totalNrg : ""}</td> : null}
           {isColVisible(petCols, 9) ? <td className="tdcenter tooltipcell" style={{ padding: "0 10px" }} onClick={hasRequestTooltip ? (e) => handleTooltip(requests, "cookcost", 1, e) : undefined}>
             {petFeeds.length ? frmtNb(foodCostTotal / dataSet.options.coinsRatio) : ""}</td> : null}
@@ -419,7 +425,7 @@ export default function PetsTable() {
             {isColVisible(petCols, 9) ? <th className="thcenter">Cost</th> : null}
             {isColVisible(petCols, 10) ? <th className="thcenter">Prod {imgbuyit}</th> : null}
             {isColVisible(petCols, 11) ? <th className="thcenter"><img src="./icon/ui/lightning.png" alt="" className="itico" title="Energy" />/{imgSFL}</th> : null}
-            {isColVisible(petCols, 12) ? <th className="thcenter"><img src="./icon/ui/lightning.png" alt="" className="itico" title="Energy" />/{imgExchng}</th> : null}
+            {isColVisible(petCols, 12) ? <th className="thcenter"><img src="./icon/ui/lightning.png" alt="" className="itico" title="Energy" />/{imgbuyit}</th> : null}
           </tr>
         </thead>
         <tbody>{rows}</tbody>
@@ -446,8 +452,8 @@ export default function PetsTable() {
         compTotal += qty * ((itemTable?.[comp]?.[key("cost")] || 0) / dataSet.options.coinsRatio);
         compMTotal += qty * itemTable?.[comp]?.costp2pt || 0;
         return (
-          <span key={comp} title={`${comp}×${qty}`} style={{ marginRight: 8 }}>
-            <img src={cimg} alt="" className="itico" />×{qty}
+          <span key={comp} title={`${comp}x${qty}`} style={{ marginRight: 8 }}>
+            <img src={cimg} alt="" className="itico" />x{qty}
           </span>
         );
       });
@@ -726,7 +732,7 @@ export default function PetsTable() {
               /></td>) :
             (<td className="tdcenter">{selectedQuantFetch === "pets" ? Number(iQuant || 0).toFixed(2) : frmtNb(iQuant)}</td>) : ("")}
           {isColVisible(compCols, 2) ? <td className="tdcenter" style={{ padding: "0 10px" }}>{frmtNb(iNrg)}</td> : null}
-          {isColVisible(compCols, 3) ? <td className="tdcenter tooltipcell" style={{ padding: "0 10px" }} onClick={(e) => handleTooltip(c, "trynft", yieldTooltip, e)}>{frmtNb(displayedYield)}</td> : null}
+          {isColVisible(compCols, 3) ? <td className="tdcenter tooltipcell" style={{ padding: "0 10px" }} onClick={(e) => handleTooltip(c, "trynft", yieldTooltip, e)}>{Number(displayedYield || 0).toFixed(2)}</td> : null}
           {isColVisible(compCols, 4) ? <td className="tdcenter tooltipcell" style={{ padding: "0 10px" }} onClick={(e) => handleTooltip(c, "fetchcost", fetchCostTooltip, e)}>{iCost > 0 ? frmtNb(iCost) : ""}</td> : null}
           {isColVisible(compCols, 5) ? <td className="tdcenter tooltipcell" style={{ padding: "0 10px" }} onClick={(e) => handleTooltip(c, "fetchcost", fetchCostTooltip, e)}>{iProdMarket > 0 ? frmtNb(iProdMarket) : ""}</td> : null}
           {isColVisible(compCols, 6) ? <td className="tdcenter tooltipcell" style={{ padding: "0 10px" }} onClick={(e) => handleTooltip(c, "fetchcost", fetchCostTooltip, e)}>{frmtNb(iMarket)}</td> : null}
@@ -784,3 +790,4 @@ export default function PetsTable() {
     );
   }
 }
+

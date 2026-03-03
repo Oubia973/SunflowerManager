@@ -94,6 +94,8 @@ export default function CookTable() {
         selectedQuantityCook,
         dataSetFarm?.itables?.food,
         dataSetFarm?.itables?.pfood,
+        dataSetFarm?.cookData?.itables?.food,
+        dataSetFarm?.cookData?.itables?.pfood,
     ]);
     function scheduleLevelRangeFetch(xfromRaw, xtoRaw) {
         if (levelReqTimerRef.current) {
@@ -141,8 +143,9 @@ export default function CookTable() {
             }
         }, 750);
     }
-    if (dataSetFarm?.itables?.it && dataSetFarm?.itables?.food && dataSetFarm?.itables?.pfood && dataSetFarm?.itables?.fish && dataSetFarm?.itables?.bounty && dataSetFarm?.itables?.crustacean) {
-        const { it, food, fish, bounty, pfood, crustacean } = dataSetFarm.itables;
+    const cookTables = dataSetFarm?.cookData?.itables || dataSetFarm?.itables || {};
+    if (cookTables?.it && cookTables?.food && cookTables?.pfood && cookTables?.fish && cookTables?.bounty && cookTables?.crustacean) {
+        const { it, food, fish, bounty, pfood, crustacean } = cookTables;
         //const inventoryEntries = selectedQuantityCook === "farm" || "daily" || "dailymax" ? Object.entries(farmData.inventory) : Object.entries(farmData.inventory);
         const inventoryMap = farmData?.inventory || {};
         const foodNames = Object.keys(food);
@@ -434,9 +437,12 @@ export default function CookTable() {
                 {isLevelRangeLoading ? <CircularProgress size={12} sx={{ color: "rgb(255, 205, 96)" }} /> : null}
             </div>
         ) : null;
-        const bfdtolvl = !TryChecked ? bumpkinData[0].foodtolvl : bumpkinData[0].foodtolvltry;
-        const bfdpstlvl = !TryChecked ? Math.ceil(bumpkinData[0].foodxppastlvl) : Math.ceil(bumpkinData[0].foodxppastlvltry);
-        const bxptonxtlvl = !TryChecked ? Math.ceil(bumpkinData[0].xptonextlvl) : Math.ceil(bumpkinData[0].xptonextlvltry);
+        const bumpkinCook = bumpkinData?.[0] || {};
+        const bfdtolvl = !TryChecked ? (bumpkinCook?.foodtolvl ?? 0) : (bumpkinCook?.foodtolvltry ?? 0);
+        const bfdpstlvlRaw = !TryChecked ? Number(bumpkinCook?.foodxppastlvl) : Number(bumpkinCook?.foodxppastlvltry);
+        const bfdpstlvl = Number.isFinite(bfdpstlvlRaw) ? Math.ceil(bfdpstlvlRaw) : 0;
+        const bxptonxtlvlRaw = !TryChecked ? Number(bumpkinCook?.xptonextlvl) : Number(bumpkinCook?.xptonextlvltry);
+        const bxptonxtlvl = Number.isFinite(bxptonxtlvlRaw) ? Math.ceil(bxptonxtlvlRaw) : 0;
         const stockProgressBadge = selectedQuantityCook === "farm" ? (
             <div
                 style={{

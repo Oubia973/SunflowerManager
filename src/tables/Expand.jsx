@@ -23,9 +23,12 @@ export default function ExpandTable() {
       imgExchng
     }
   } = useAppCtx();
-  if (dataSetFarm?.frmData?.expandData && dataSetFarm?.itables?.it && dataSet?.fromtoexpand?.expandData && dataSet?.fromtoexpand?.expand?.totalResources && dataSet?.fromtoexpand?.expand?.totalNodes) {
-    const { expandData } = dataSetFarm.frmData;
-    const { it } = dataSetFarm.itables;
+  const expandPageData = dataSetFarm?.expandPageData || {};
+  const expandFrmData = expandPageData?.frmData || dataSetFarm?.frmData || {};
+  const expandTables = expandPageData?.itables || dataSetFarm?.itables || {};
+  if (expandFrmData?.expandData && expandTables?.it && dataSet?.fromtoexpand?.expandData && dataSet?.fromtoexpand?.expand?.totalResources && dataSet?.fromtoexpand?.expand?.totalNodes) {
+    const { expandData } = expandFrmData;
+    const { it } = expandTables;
     //const expEntries = Object.entries(expand);
     //const expKeys = Object.keys(expand);
     const fromtoexpand = dataSet.fromtoexpand;

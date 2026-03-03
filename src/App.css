@@ -535,6 +535,7 @@ input[type="checkbox"].checkbox-disabled:checked {
   position: sticky;
   top: 0;
   align-self: flex-start;
+  container-type: inline-size;
   width: 110px;
   flex: 0 0 110px;
   background-color: #1d1d1d;
@@ -584,6 +585,47 @@ input[type="checkbox"].checkbox-disabled:checked {
 
 .home-left-panel-text p {
   margin: 10px 0;
+}
+
+.home-deliveries-bounties {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  font-size: clamp(10px, 10cqw, 13px);
+  line-height: 1.1;
+}
+
+.home-db-line {
+  display: block;
+  margin: 0;
+}
+
+.home-reward-row {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: clamp(3px, 2cqw, 10px);
+  white-space: nowrap;
+  flex-wrap: nowrap;
+  width: 100%;
+  overflow: visible;
+  line-height: 1.1;
+  font-size: clamp(11px, 9cqw, 13px);
+}
+
+.home-reward-item {
+  flex: 0 1 auto;
+  display: inline-flex;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 1px;
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+
+.home-reward-row .seasonico {
+  width: clamp(9px, 9.5cqw, 13px);
+  height: clamp(9px, 9.5cqw, 13px);
 }
 
 .collapsible-container {
@@ -2625,13 +2667,6 @@ th {
     0 -1px 0 rgba(0, 0, 0, 0.24) inset,
     0 4px 10px rgba(6, 15, 33, 0.45);
 }
-
-
-
-
-
-
-
 
 
 

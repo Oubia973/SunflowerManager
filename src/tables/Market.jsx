@@ -55,6 +55,9 @@ export default function MarketTable() {
     };
   }, [selectedInv, Refresh, dataSetFarm, API_URL]);
   if (selectedInv !== "market") return null;
+  if (!dataSetFarm?.itables || !dataSetFarm?.boostables?.nft || !dataSetFarm?.boostables?.nftw) {
+    return <div>Loading market data...</div>;
+  }
   if (loading) return <div>Loading market…</div>;
   const friends = market?.friends;
   if (!friends) return null;

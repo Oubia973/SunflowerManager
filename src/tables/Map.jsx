@@ -4,10 +4,14 @@ export default function MapTable() {
     const {
         data: { dataSetFarm },
     } = useAppCtx();
-    if (dataSetFarm.isleMap) {
-        const { isleMap } = dataSetFarm;
-        const { nftw } = dataSetFarm.boostables;
-        const { it } = dataSetFarm.itables;
+    const mapSource = dataSetFarm?.mapData || dataSetFarm;
+    if (!mapSource?.isleMap || !mapSource?.boostables?.nftw || !mapSource?.itables?.it) {
+        return <div>Loading map data...</div>;
+    }
+    if (mapSource.isleMap) {
+        const { isleMap } = mapSource;
+        const { nftw } = mapSource.boostables;
+        const { it } = mapSource.itables;
         let minYield = Infinity;
         let minYieldGH = Infinity;
         const isGA = nftw["Green Amulet"].isactive;

@@ -26,15 +26,16 @@ export default function CropMachineTable() {
             imgbuyit
         }
     } = useAppCtx();
-    if (dataSetFarm?.itables?.it && dataSetFarm?.CropMachine && dataSet?.options) {
+    const cmSource = dataSetFarm?.cropMachineData || dataSetFarm;
+    if (cmSource?.itables?.it && cmSource?.CropMachine && dataSet?.options) {
         const cmCols = xListeColCropMachine || [];
         const showCol = (idx) => cmCols?.[idx]?.[1] === 1;
-        const { it } = dataSetFarm.itables;
+        const { it } = cmSource.itables;
         const Keys = Object.keys(it);
         const imgCoins = <img src={imgcoins} alt={''} className="itico" title="Coins" />;
         const imgSfl = <img src={imgsfl} alt={''} className="itico" title="Flower" />;
         const imgoil = <img src={it["Oil"].img} alt={''} className="nodico" title="Oil" style={{ width: '15px', height: '15px' }} />;
-        const CM = dataSetFarm.CropMachine || {};
+        const CM = cmSource.CropMachine || {};
         let actualCMCrop = true;
         const actualLastCrop = "Soybean";
         let TotalSeedCost = 0;

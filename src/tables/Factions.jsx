@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React from "react";
 import { useAppCtx } from "../context/AppCtx";
 import { frmtNb, PBar } from "../fct.js";
 
@@ -31,58 +31,11 @@ const FACTION_BADGE = {
 export default function FactionsTable() {
   const {
     data: { dataSet, dataSetFarm },
-    ui: { selectedInv, Refresh },
-    config: { API_URL },
+    ui: { selectedInv },
     img: { imgExchng },
   } = useAppCtx();
-  const [factions, setFactions] = useState(null);
-  const [loading, setLoading] = useState(false);
-  const [factionsDate, setFactionsDate] = useState(null);
-  const TEN_MIN = 1 * 60 * 1000;
-
-  async function getFactions(dataSetFarm, API_URL) {
-    const farmId = dataSetFarm?.frmid;
-    const userName = dataSetFarm?.username;
-    if (!farmId) return null;
-    const res = await fetch(API_URL + "/getfactions", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ frmid: farmId, username: userName }),
-    });
-    if (!res.ok) {
-      console.log(`Error : ${res.status}`);
-      return null;
-    }
-    return res.json();
-  }
-
-  useEffect(() => {
-    let cancelled = false;
-    async function run() {
-      if (selectedInv !== "factions") return;
-      const now = Date.now();
-      const last = factionsDate ? new Date(factionsDate).getTime() : 0;
-      if (factions && now - last < TEN_MIN) return;
-      setLoading(true);
-      try {
-        const data = await getFactions(dataSetFarm, API_URL);
-        setFactionsDate(new Date());
-        if (!cancelled) setFactions(data);
-      } catch (e) {
-        console.log(e);
-        if (!cancelled) setFactions(null);
-      } finally {
-        if (!cancelled) setLoading(false);
-      }
-    }
-    run();
-    return () => {
-      cancelled = true;
-    };
-  }, [selectedInv, Refresh, dataSetFarm, API_URL, factionsDate, factions]);
-
+  const factions = dataSetFarm?.factionsData?.factions || null;
   if (selectedInv !== "factions") return null;
-  if (loading) return <div>Loading...</div>;
   if (!factions || typeof factions !== "object") return null;
 
   const factionKeys = FACTION_ORDER.filter((key) => factions[key]);
@@ -105,7 +58,7 @@ export default function FactionsTable() {
 }
 
 function FactionCard({ factionKey, factionData, dataSet, dataSetFarm, imgExchng }) {
-  if (!factionData || !dataSetFarm?.itables) return null;
+  if (!factionData) return null;
 
   const petRequests = factionData?.pet?.requests || [];
   const kitchenRequests = factionData?.kitchen?.requests || [];
@@ -145,12 +98,7 @@ function FactionCard({ factionKey, factionData, dataSet, dataSetFarm, imgExchng 
   const petRows = petRequests.map((req, idx) => {
     const name = req.food;
     const quantity = Number(req.quantity || 0);
-    let item = null;
-    if (/doll/i.test(name)) {
-      item = dataSetFarm?.itables?.craft?.[name] || findItemInAllTables(name, dataSetFarm);
-    } else {
-      item = dataSetFarm?.itables?.food?.[name] || findItemInAllTables(name, dataSetFarm);
-    }
+    const item = dataSetFarm?.factionsData?.items?.[name] || findItemInAllTables(name, dataSetFarm);
     // const xp = Number(item?.xp || 0) * quantity;
     const prodCost = getProdCost(item, quantity, dataSet?.options?.coinsRatio || 1);
     const p2pCost = getP2PCost(item, quantity);
@@ -171,7 +119,7 @@ function FactionCard({ factionKey, factionData, dataSet, dataSetFarm, imgExchng 
   const kitchenRows = kitchenRequests.map((req, idx) => {
     const name = req.item;
     const quantity = Number(req.amount || 0);
-    const item = findItemInAllTables(name, dataSetFarm);
+    const item = dataSetFarm?.factionsData?.items?.[name] || findItemInAllTables(name, dataSetFarm);
     const prodCost = getProdCost(item, quantity, dataSet?.options?.coinsRatio || 1);
     const p2pCost = getP2PCost(item, quantity);
     const icon = item?.img || imgna;
@@ -264,6 +212,9 @@ function FactionCard({ factionKey, factionData, dataSet, dataSetFarm, imgExchng 
 }
 
 function findItemInAllTables(itemName, dataSetFarm) {
+  if (dataSetFarm?.factionsData?.items?.[itemName]) {
+    return dataSetFarm.factionsData.items[itemName];
+  }
   const tables = [
     dataSetFarm?.itables?.it,
     dataSetFarm?.itables?.fish,

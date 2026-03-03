@@ -10,8 +10,11 @@ export default function FlowerTable() {
             TryChecked,
         },
     } = useAppCtx();
-    if (dataSetFarm?.itables?.it && dataSetFarm?.itables?.flower) {
-        const { it, flower } = dataSetFarm.itables;
+    const flowerData = dataSetFarm?.flowerData || {};
+    const flowerTables = dataSetFarm?.itables || flowerData?.itables || {};
+    const flowerBeds = flowerData?.beds || dataSetFarm?.itables?.it?.Flower?.beds || {};
+    if (flowerTables?.flower) {
+        const { flower } = flowerTables;
         const flwrKeys = Object.keys(flower);
         const tableContent = flwrKeys.map(element => {
             const cobj = flower[element];
@@ -27,9 +30,9 @@ export default function FlowerTable() {
             const itime = cobj.time ? timeToDays(TryChecked ? cobj.timetry : cobj.time) : '';
             let growingQuant = 0;
             let nBeds = 0;
-            for (let key in it["Flower"].beds) {
+            for (let key in flowerBeds) {
                 const nKey = Number(key);
-                if (it["Flower"].beds[nKey].name === flName) { growingQuant += it["Flower"].beds[nKey].quant };
+                if (flowerBeds[nKey]?.name === flName) { growingQuant += flowerBeds[nKey]?.quant || 0 };
                 nBeds++;
             }
             return (

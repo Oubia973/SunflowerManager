@@ -57,12 +57,23 @@ const createSetCompoTable = ({
     dataSet,
     currentItem,
     tables,
-    shrine,
+    shrine = {},
     sflortry,
     assets,
     compoState,
 }) => {
-    const { it, fish, bounty, flower, craft, petit, crustacean, tool, pfood, food } = tables;
+    const {
+        it = {},
+        fish = {},
+        bounty = {},
+        flower = {},
+        craft = {},
+        petit = {},
+        crustacean = {},
+        tool = {},
+        pfood = {},
+        food = {},
+    } = tables || {};
     const { imgna, imgmix, imgmp, imgsfl } = assets;
     const { compoExpanded, setCompoExpanded, compoClosing, setCompoClosing, compoCloseTimersRef } = compoState;
 

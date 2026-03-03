@@ -3,6 +3,7 @@ import { useAppCtx } from "./context/AppCtx";
 import { frmtNb, PBar, timeToDays } from './fct.js';
 import { Switch, FormControlLabel } from '@mui/material';
 import Tooltip from "./tooltip.js";
+import AutoRefreshProgress from "./components/AutoRefreshProgress";
 const imgno = './icon/ui/cancel.png';
 const imgyes = './icon/ui/confirm.png';
 const imgrdy = './icon/ui/expression_alerted.png';
@@ -14,7 +15,16 @@ const imgexchng = './icon/ui/exchange.png';
 const imgna = './icon/nft/na.png';
 //const imgtkt = './icon/res/' + imgtktname;
 
-function ModalDlvr({ onClose, tableData, imgtkt, coinsRatio }) {
+function ModalDlvr({
+  onClose,
+  tableData,
+  imgtkt,
+  coinsRatio,
+  autoRefreshEnabled = true,
+  autoRefreshActive = false,
+  autoRefreshResetKey = "",
+  autoRefreshNextAt = 0
+}) {
   const closeModal = () => {
     onClose();
   };
@@ -34,7 +44,21 @@ function ModalDlvr({ onClose, tableData, imgtkt, coinsRatio }) {
       imgna,
     }
   } = useAppCtx();
-  const { it, food, fish, pfood, bounty, crustacean, craft, petit, flower, tool, mutant, compost } = dataSetFarm.itables;
+  const hasDeliveryTables = !!dataSetFarm?.itables;
+  const {
+    it = {},
+    food = {},
+    fish = {},
+    pfood = {},
+    bounty = {},
+    crustacean = {},
+    craft = {},
+    petit = {},
+    flower = {},
+    tool = {},
+    mutant = {},
+    compost = {},
+  } = dataSetFarm?.itables || {};
   const [Delivery, setDelivery] = useState(tableData);
   const [selectedCost, setSelectedCost] = useState('trader');
   const [tableDeliveries, settableDeliveries] = useState([]);
@@ -704,6 +728,21 @@ function ModalDlvr({ onClose, tableData, imgtkt, coinsRatio }) {
         gap: '10px'
       }}>
         <h2 style={{ margin: 0 }}>Deliveries Chores Bounties</h2>
+        {autoRefreshEnabled ? (
+          <div style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', minWidth: '98px' }}>
+            <span style={{ fontSize: '9px', whiteSpace: 'nowrap' }}>Refresh</span>
+            <AutoRefreshProgress
+              active={autoRefreshActive}
+              resetKey={autoRefreshResetKey}
+              durationMs={60 * 1000}
+              deadlineMs={autoRefreshNextAt}
+              variant="bar"
+              color="#7ac943"
+              barWidth={48}
+              barHeight={5}
+            />
+          </div>
+        ) : null}
         <div>
           <button onClick={closeModal} class="button"><img src="./icon/ui/cancel.png" alt="" className="resico" /></button>
         </div>
@@ -735,6 +774,7 @@ function ModalDlvr({ onClose, tableData, imgtkt, coinsRatio }) {
         style={{
           marginTop: '50px',
         }}>
+        {!hasDeliveryTables ? <div>Loading delivery tables...</div> : null}
         {tableDeliveries}
         <h2>Chores</h2>
         {tableChores}

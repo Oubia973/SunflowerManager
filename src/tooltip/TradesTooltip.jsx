@@ -18,35 +18,45 @@ function resolveMarketData(itemName, quantity, sources) {
     const { nft, nftw, it, fish, flower, petit } = sources;
     let marketPrice = 0;
     let itemImg = "";
+    const makeImg = (src) => {
+        const safeSrc = typeof src === "string" ? src.trim() : "";
+        if (!safeSrc) return "";
+        return <img src={safeSrc} className="resicon" alt="" />;
+    };
 
     if (nft?.[itemName]) {
         marketPrice = (nft[itemName].pricemsfl || 0) * quantity;
-        itemImg = <img src={nft[itemName].img} className="resicon" alt="" />;
+        itemImg = makeImg(nft[itemName].img);
     }
     if (nftw?.[itemName]) {
         marketPrice = (nftw[itemName].pricemsfl || 0) * quantity;
-        itemImg = <img src={nftw[itemName].img} className="resicon" alt="" />;
+        itemImg = makeImg(nftw[itemName].img);
     }
     if (it?.[itemName]) {
         marketPrice = (it[itemName].costp2pt || 0) * quantity;
-        itemImg = <img src={it[itemName].img} className="resicon" alt="" />;
+        itemImg = makeImg(it[itemName].img);
     }
     if (fish?.[itemName]) {
-        itemImg = <img src={fish[itemName].img} className="resicon" alt="" />;
+        itemImg = makeImg(fish[itemName].img);
     }
     if (flower?.[itemName]) {
-        itemImg = <img src={flower[itemName].img} className="resicon" alt="" />;
+        itemImg = makeImg(flower[itemName].img);
     }
     if (petit?.[itemName]) {
         marketPrice = (petit[itemName].costp2pt || 0) * quantity;
-        itemImg = <img src={petit[itemName].img} className="resicon" alt="" />;
+        itemImg = makeImg(petit[itemName].img);
     }
 
     return { marketPrice, itemImg };
 }
 
-const TradesTooltip = ({ trades, itables, boostables }) => {
-    if (!trades || Object.keys(trades).length === 0) {
+const TradesTooltip = ({ trades, tradesHeader, itables, boostables }) => {
+    const tradeRows = trades && typeof trades === "object" ? Object.values(trades) : [];
+    const headerRows = Array.isArray(tradesHeader) ? tradesHeader.filter((row) => row?.name) : [];
+    const headerImgByName = Object.fromEntries(
+        headerRows.map((row) => [String(row?.name || "").trim().toLowerCase(), row?.img || ""])
+    );
+    if (tradeRows.length === 0 && headerRows.length === 0) {
         return <div>No trades available.</div>;
     }
 
@@ -60,8 +70,34 @@ const TradesTooltip = ({ trades, itables, boostables }) => {
         other: { ...EMPTY_TOTAL, label: "Other" },
     };
 
-    const rows = Object.keys(trades).map((_, index) => {
-        const traderow = trades[index];
+    if (tradeRows.length === 0 && headerRows.length > 0) {
+        return (
+            <table className="tooltip-trades-table">
+                <thead>
+                    <tr>
+                        <th className="tdcenterbrd">Item</th>
+                        <th className="tdcenterbrd">Sold</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {headerRows.map((row, index) => (
+                        <tr key={`${row.name}-${index}`}>
+                            <td className="tdcenterbrd">
+                                <img src={row?.img || ""} className="resicon" alt="" />
+                                {row?.name || ""}
+                            </td>
+                            <td className="tdcenterbrd">
+                                {row?.fulfilledAt ? <img src="./icon/ui/confirm.png" className="resicon" alt="" /> : ""}
+                            </td>
+                        </tr>
+                    ))}
+                </tbody>
+            </table>
+        );
+    }
+
+    const rows = tradeRows.map((traderow, index) => {
+        if (!traderow || !traderow.items) return null;
         const date = new Date(traderow.createdAt).toLocaleString();
         let itemName = "";
         let quantity = 0;
@@ -81,6 +117,8 @@ const TradesTooltip = ({ trades, itables, boostables }) => {
             flower,
             petit,
         });
+        const fallbackImgSrc = headerImgByName[String(itemName || "").trim().toLowerCase()] || imgna;
+        const safeItemImg = itemImg || <img src={fallbackImgSrc} className="resicon" alt="" />;
         const marketDiffPct = marketPrice ? ((price - marketPrice) / marketPrice) * 100 : null;
         const marketDiff = marketDiffPct !== null ? `${marketDiffPct.toFixed(2)}%` : "N/A";
         const marketDiffStyle = marketDiffPct !== null && marketDiffPct > 20 ? { color: "red" } : {};
@@ -93,7 +131,7 @@ const TradesTooltip = ({ trades, itables, boostables }) => {
 
         return (
             <tr key={index}>
-                <td className="tdcenterbrd">{itemImg}{itemName}</td>
+                <td className="tdcenterbrd">{safeItemImg}{itemName}</td>
                 <td className="tdcenterbrd">{quantity}</td>
                 <td className="tdcenterbrd">{isSold && <img src="./icon/ui/confirm.png" className="resicon" alt="" />}</td>
                 <td className="tdcenterbrd">{frmtNb(price)}</td>
@@ -102,7 +140,7 @@ const TradesTooltip = ({ trades, itables, boostables }) => {
                 <td className="tdcenterbrd">{date}</td>
             </tr>
         );
-    });
+    }).filter(Boolean);
 
     const totalRows = [
         totalsByType.resources,

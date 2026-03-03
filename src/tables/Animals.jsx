@@ -48,14 +48,23 @@ export default function AnimalTable() {
             imgbuyit
         }
     } = useAppCtx();
+    const animalPageData = dataSetFarm?.animalData || {};
+    const animalsData = animalPageData?.Animals || dataSetFarm?.Animals || {};
+    const animalsAllLvlData = animalPageData?.animalsAllLvl || dataSetFarm?.animalsAllLvl || {};
+    const animalTables = { ...(dataSetFarm?.itables || {}), ...(animalPageData?.itables || {}) };
+    const animalBoostables = { ...(dataSetFarm?.boostables || {}), ...(animalPageData?.boostables || {}) };
     useEffect(() => {
         const raf = requestAnimationFrame(measureProdStickyWidth);
         return () => cancelAnimationFrame(raf);
-    }, [selectedAnimalLvl, xListeColAnimals, TryChecked, dataSetFarm?.Animals, dataSetFarm?.animalsAllLvl]);
-    if (dataSetFarm.Animals) {
-        const { Animals, animalsAllLvl } = dataSetFarm;
-        const { it, mutant } = dataSetFarm.itables;
-        const { nft } = dataSetFarm.boostables;
+    }, [selectedAnimalLvl, xListeColAnimals, TryChecked, animalsData, animalsAllLvlData]);
+    if (!animalsData || !animalTables?.it || !animalTables?.mutant || !animalBoostables?.nft) {
+        return <div>Loading animals data...</div>;
+    }
+    if (animalsData) {
+        const Animals = animalsData;
+        const animalsAllLvl = animalsAllLvlData;
+        const { it, mutant } = animalTables;
+        const { nft } = animalBoostables;
         let table = [];
         const imgmix = "./icon/res/mixed_grain_v2.webp";
         const ximgmix = <img src={imgmix} alt={''} className="itico" title={"Food"} />;
@@ -273,7 +282,7 @@ export default function AnimalTable() {
                         {xListeColAnimals[3][1] === 1 ? <th className="thcenter">Prod2</th> : null}
                         {xListeColAnimals[4][1] === 1 ? <th className="thcenter">Food</th> : null}
                         {xListeColAnimals[5][1] === 1 ? <th className="thcenter">Food cost</th> : null}
-                        {xListeColAnimals[6][1] === 1 ? <th className="thcenter">{imgExchng}</th> : null}
+                        {xListeColAnimals[6][1] === 1 ? <th className="thcenter">Prod {imgbuyit}</th> : null}
                         {xListeColAnimals[7][1] === 1 ? <th className="thcenterbrdleft" title="Prod cost per unit">{prod1img2}Cost/u</th> : null}
                         {xListeColAnimals[8][1] === 1 ? <th className="thcenter" title="Coef market / production"> % </th> : null}
                         {xListeColAnimals[8][1] === 1 ? <th className="thcenter" title="Prod cost per unit buying food at market">Prod {imgbuyit}</th> : null}
@@ -360,3 +369,4 @@ export default function AnimalTable() {
         return (table);
     }
 }
+
