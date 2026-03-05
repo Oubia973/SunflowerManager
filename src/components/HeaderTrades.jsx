@@ -1,4 +1,5 @@
 import React, { useCallback, useEffect, useRef, useState } from "react";
+import { getOrCreateDeviceId } from "../fct.js";
 const imgna = "./icon/nft/na.png";
 const imgexchng = "./icon/ui/exchange.png";
 
@@ -13,6 +14,7 @@ export default function HeaderTrades({
 }) {
   const [ftradesData, setftradesData] = useState(null);
   const stableFarmId = String(farmId || "");
+  const deviceIdRef = useRef(getOrCreateDeviceId());
   const lastFarmIdRef = useRef(stableFarmId);
   const tradesSectionHashRef = useRef("");
   const optionsRef = useRef(options || {});
@@ -131,6 +133,7 @@ export default function HeaderTrades({
         },
         body: JSON.stringify({
           frmid: stableFarmId,
+          deviceId: deviceIdRef.current,
           options: optionsRef.current,
           include: ["trades"],
           page: String(currentPage || "home"),

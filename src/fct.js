@@ -1,6 +1,30 @@
 import React, { useEffect, useState, useRef } from 'react';
 
 const imgrdy = './icon/ui/expression_alerted.png';
+const DEVICE_ID_STORAGE_KEY = "SFLManDeviceId";
+
+export function getOrCreateDeviceId() {
+  try {
+    const existing = localStorage.getItem(DEVICE_ID_STORAGE_KEY);
+    if (existing && String(existing).length >= 8) {
+      return String(existing);
+    }
+    let nextId = "";
+    if (typeof crypto !== "undefined" && typeof crypto.randomUUID === "function") {
+      nextId = crypto.randomUUID();
+    } else if (typeof crypto !== "undefined" && typeof crypto.getRandomValues === "function") {
+      const bytes = new Uint8Array(16);
+      crypto.getRandomValues(bytes);
+      nextId = Array.from(bytes).map((b) => b.toString(16).padStart(2, "0")).join("");
+    } else {
+      nextId = `dev-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 10)}`;
+    }
+    localStorage.setItem(DEVICE_ID_STORAGE_KEY, nextId);
+    return nextId;
+  } catch {
+    return "device-unknown";
+  }
+}
 
 export function frmtNb(nombre, decimal=2) {
   const nombreNumerique = parseFloat(nombre);
@@ -424,5 +448,14 @@ export function formatKNumber(n) {
     return (n / 1_000).toFixed(1).replace(/\.0$/, "") + "k";
   }
   return String(n);
+}
+
+export function buildSeriesMeta(items, getGroupValue) {
+  if (!Array.isArray(items) || typeof getGroupValue !== "function") return [];
+  const groups = items.map((item, index) => String(getGroupValue(item, index) ?? ""));
+  return groups.map((group, index) => ({
+    isStart: index === 0 || groups[index - 1] !== group,
+    isEnd: index === groups.length - 1 || groups[index + 1] !== group,
+  }));
 }
 

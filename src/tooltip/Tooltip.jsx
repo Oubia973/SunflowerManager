@@ -265,7 +265,6 @@ const Tooltip = ({ onClose, item, context, value, clickPosition, dataSet, dataSe
             compoCloseTimersRef.current = {};
         };
     }, []);
-
     let ToolTStyle = {
         position: "fixed",
         left: `${sx}px`,
@@ -1744,8 +1743,16 @@ const Tooltip = ({ onClose, item, context, value, clickPosition, dataSet, dataSe
             onTouchEnd={bdrag ? handleMouseUp : undefined}>
             <div ref={tooltipRef}
                 className={`tooltip ${!bdrag ? "scrollable" : ""} ${context === "trades" ? "tooltip-trades-mode" : ""}`}
-                onMouseDown={(e) => { e.stopPropagation(); if (bdrag) handleMouseDown(e); }}
-                onTouchStart={(e) => { e.stopPropagation(); if (bdrag) handleMouseDown(e); }}
+                onMouseDown={(e) => {
+                    e.stopPropagation();
+                    if (!bdrag) return;
+                    handleMouseDown(e);
+                }}
+                onTouchStart={(e) => {
+                    e.stopPropagation();
+                    if (!bdrag) return;
+                    handleMouseDown(e);
+                }}
                 onDragStart={(e) => e.preventDefault()}
                 style={ToolTStyle}
             /* style={{
@@ -1766,6 +1773,7 @@ const Tooltip = ({ onClose, item, context, value, clickPosition, dataSet, dataSe
 };
 
 export default Tooltip;
+
 
 
 

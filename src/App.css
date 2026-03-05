@@ -1331,6 +1331,117 @@ th {
   z-index: 5;
   background-color: rgb(0, 0, 0);
 }
+.table.cook-table .cook-building-cell {
+  min-width: 90px;
+}
+.table.cook-table .cook-building-name {
+  display: inline-block;
+}
+.table.cook-table .cook-building-connector {
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+  top: -2px;
+  bottom: -2px;
+  border-left: 1px solid rgba(236, 205, 130, 0.5);
+  pointer-events: none;
+}
+.table.cook-table .cook-building-connector.is-start {
+  top: 60%;
+}
+.table.cook-table .cook-building-endcap {
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+  top: -2px;
+  bottom: 50%;
+  border-left: 1px solid rgba(236, 205, 130, 0.5);
+  pointer-events: none;
+}
+.table.cook-table .cook-building-endcap::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: calc(100% - 1px);
+  width: 18px;
+  border-top: 1px solid rgba(236, 205, 130, 0.5);
+}
+.table.fish-table .fish-category-cell,
+.table.flower-table .flower-seed-cell {
+  min-width: 90px;
+}
+.table.fish-table .fish-category-name,
+.table.flower-table .flower-seed-name {
+  display: inline-block;
+}
+.table.fish-table .fish-category-connector,
+.table.flower-table .flower-seed-connector {
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+  top: -2px;
+  bottom: -2px;
+  border-left: 1px solid rgba(236, 205, 130, 0.5);
+  pointer-events: none;
+}
+.table.fish-table .fish-category-connector.is-start,
+.table.flower-table .flower-seed-connector.is-start {
+  top: 60%;
+}
+.table.fish-table .fish-category-endcap,
+.table.flower-table .flower-seed-endcap {
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+  top: -2px;
+  bottom: 50%;
+  border-left: 1px solid rgba(236, 205, 130, 0.5);
+  pointer-events: none;
+}
+.table.fish-table .fish-category-endcap::after,
+.table.flower-table .flower-seed-endcap::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: calc(100% - 1px);
+  width: 18px;
+  border-top: 1px solid rgba(236, 205, 130, 0.5);
+}
+.table.crustacean-table .crusta-tool-cell {
+  min-width: 90px;
+}
+.table.crustacean-table .crusta-tool-name {
+  display: inline-block;
+}
+.table.crustacean-table .crusta-tool-connector {
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+  top: -2px;
+  bottom: -2px;
+  border-left: 1px solid rgba(236, 205, 130, 0.5);
+  pointer-events: none;
+}
+.table.crustacean-table .crusta-tool-connector.is-start {
+  top: 60%;
+}
+.table.crustacean-table .crusta-tool-endcap {
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+  top: -2px;
+  bottom: 50%;
+  border-left: 1px solid rgba(236, 205, 130, 0.5);
+  pointer-events: none;
+}
+.table.crustacean-table .crusta-tool-endcap::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: calc(100% - 1px);
+  width: 18px;
+  border-top: 1px solid rgba(236, 205, 130, 0.5);
+}
 
 .table.fish-table thead {
   position: static;
@@ -1349,6 +1460,27 @@ th {
 .table.fish-table thead tr:nth-child(2) th {
   position: sticky;
   top: calc(var(--fish-head-top, 0px) + var(--fish-head-row-h, 0px));
+  z-index: 5;
+  background-color: rgb(0, 0, 0);
+}
+
+.table.buynodes-table thead {
+  position: static;
+  top: auto;
+  z-index: auto;
+}
+
+.table.buynodes-table thead tr:first-child th {
+  position: sticky;
+  top: var(--buynodes-head-top, 0px);
+  z-index: 6;
+  background-color: rgb(0, 0, 0);
+}
+
+.table.buynodes-table thead tr:nth-child(2) td,
+.table.buynodes-table thead tr:nth-child(2) th {
+  position: sticky;
+  top: calc(var(--buynodes-head-top, 0px) + var(--buynodes-head-row-h, 0px));
   z-index: 5;
   background-color: rgb(0, 0, 0);
 }
@@ -2667,6 +2799,3 @@ th {
     0 -1px 0 rgba(0, 0, 0, 0.24) inset,
     0 4px 10px rgba(6, 15, 33, 0.45);
 }
-
-
-

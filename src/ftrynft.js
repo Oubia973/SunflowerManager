@@ -1,15 +1,16 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { useAppCtx } from "./context/AppCtx";
-import { FormControl, Select, MenuItem, Switch, FormControlLabel } from '@mui/material';
+import { Switch, FormControlLabel } from '@mui/material';
 import CounterInput from "./counterinput.js";
 import DList from "./dlist.jsx";
-import { frmtNb, ColorValue, mergeFarmStateDeep } from './fct.js';
+import { frmtNb, ColorValue, mergeFarmStateDeep, getOrCreateDeviceId } from './fct.js';
 import Help from './fhelp.js';
 
 let helpImage = "./image/helptrynft.jpg";
 
 const imgsfl = './icon/res/flowertoken.webp';
 const imgSFL = <img src={imgsfl} alt={''} className="itico" title="Flower" />;
+const imgusdc = "./usdc.png";
 const BOOST_TAB_KEYS = ["collectibles", "wearables", "craft", "buds", "skills", "shrines"];
 const BOOST_CATEGORY_LABELS = {
   collectibles: "Collectibles",
@@ -76,10 +77,18 @@ const NFT_PRICE_COLUMN_OPTIONS = [
   { value: "opensea", label: "OpenSea", iconSrc: "./icon/ui/openseaico.png" },
   { value: "market", label: "Market", iconSrc: "./icon/ui/exchange.png" },
 ];
+const NFT_PRICE_UNIT_OPTIONS = [
+  { value: "flower", label: "Flower", iconSrc: imgsfl },
+  { value: "usdc", label: "USDC", iconSrc: imgusdc },
+];
+const NFT_TOTAL_COST_OPTIONS = [
+  { value: "opensea", label: "OpenSea", iconSrc: "./icon/ui/openseaico.png" },
+  { value: "market", label: "Market", iconSrc: "./icon/ui/exchange.png" },
+];
 
 function ModalTNFT({ onClose }) {
   const {
-    data: { dataSet, dataSetFarm },
+    data: { dataSet, dataSetFarm, priceData },
     ui: {
       TryChecked,
     },
@@ -109,6 +118,8 @@ function ModalTNFT({ onClose }) {
   const [boostTypeFilters, setBoostTypeFilters] = useState([]);
   const [boostCategoryFilters, setBoostCategoryFilters] = useState([]);
   const [nftPriceCols, setNftPriceCols] = useState(["market"]);
+  const [nftPriceUnit, setNftPriceUnit] = useState("flower");
+  const deviceId = getOrCreateDeviceId();
   function key(name) {
     if (name === "active") { return TryChecked ? "tryit" : "isactive"; }
     return TryChecked ? name + "try" : name;
@@ -223,6 +234,7 @@ function ModalTNFT({ onClose }) {
       });
       const headers = {
         frmid: frmid,
+        deviceId,
         options: {
           ...dataSet.options,
           username: dataSet?.options?.username || dataSet?.username || dataSetLocal?.username || "",
@@ -556,6 +568,10 @@ function ModalTNFT({ onClose }) {
       .filter((v) => v === "opensea" || v === "market");
     setNftPriceCols(Array.from(new Set(values)));
   };
+  const handleNftPriceUnitChange = (event) => {
+    const selectedValue = String(event?.target?.value || "usdc").toLowerCase();
+    setNftPriceUnit(selectedValue === "usdc" ? "usdc" : "flower");
+  };
   const handleTryitChange = (item, base, baseName) => {
     const boostables = dataSetLocal?.boostables ?? {};
     const currentBase = boostables?.[baseName] ?? base ?? {};
@@ -809,8 +825,47 @@ function ModalTNFT({ onClose }) {
     const showTotal = (showNFTW || showNFT);
     const showOpenSeaCol = showTotal && nftPriceCols.includes("opensea");
     const showMarketCol = showTotal && nftPriceCols.includes("market");
-    const toNum = (v) => Number(v) || 0;
+    const parseNumOrNull = (v) => {
+      if (v === null || v === undefined || v === "") { return null; }
+      if (typeof v === "number") { return Number.isFinite(v) ? v : null; }
+      let txt = String(v ?? "").trim();
+      if (!txt) { return null; }
+      // Keep only numeric signs/separators, then normalize locale formats.
+      txt = txt.replace(/[^\d.,-]/g, "");
+      if (!txt) { return null; }
+      const lastComma = txt.lastIndexOf(",");
+      const lastDot = txt.lastIndexOf(".");
+      if (lastComma > -1 && lastDot > -1) {
+        const decimalSep = lastComma > lastDot ? "," : ".";
+        const thousandsSep = decimalSep === "," ? "." : ",";
+        txt = txt.replace(new RegExp(`\\${thousandsSep}`, "g"), "");
+        if (decimalSep === ",") { txt = txt.replace(",", "."); }
+      } else if (lastComma > -1) {
+        txt = txt.replace(",", ".");
+      }
+      const n = Number(txt);
+      return Number.isFinite(n) ? n : null;
+    };
+    const toNum = (v) => {
+      const n = parseNumOrNull(v);
+      return n === null ? 0 : n;
+    };
     const isOn = (v) => v === 1 || v === true;
+    const usdPerSfl = Number(priceData?.[2] ?? dataSet?.options?.usdSfl ?? 0);
+    const toDisplayPrice = (value) => {
+      const parsed = parseNumOrNull(value);
+      if (parsed === null) { return null; }
+      const base = parsed;
+      if (nftPriceUnit === "flower") {
+        return usdPerSfl > 0 ? (base / usdPerSfl) : base;
+      }
+      return base;
+    };
+    const formatPriceCell = (value) => {
+      const displayed = toDisplayPrice(value);
+      if (displayed === null) { return ""; }
+      return frmtNb(displayed, 2);
+    };
 
     const addTotalsFromEntries = (entries, mode) => {
       if (!entries) { return; }
@@ -864,8 +919,8 @@ function ModalTNFT({ onClose }) {
             <td className="tdcenter">
               <input type="checkbox" className={'checkbox-disabled'} checked={value.isactive} />
             </td>
-            {showOpenSeaCol ? (<td className="tdcenter">{value.price}</td>) : ("")}
-            {showMarketCol ? (<td className="tdcenter">{value.pricem || 0}</td>) : ("")}
+            {showOpenSeaCol ? (<td className="tdcenter">{formatPriceCell(value.price)}</td>) : ("")}
+            {showMarketCol ? (<td className="tdcenter">{formatPriceCell(value.pricem || 0)}</td>) : ("")}
             <td className="tdcenter tooltipcell" onClick={(e) => handleTooltip(item, "trynftsupply", "nft", e)}>{isupply}</td>
             <td className="tditemnft" style={{ color: `rgb(190, 190, 190)` }}>{value.boost}</td>
           </tr>
@@ -887,8 +942,8 @@ function ModalTNFT({ onClose }) {
             <td className="tdcenter">
               <input type="checkbox" className={'checkbox-disabled'} checked={valuew.isactive} />
             </td>
-            {showOpenSeaCol ? (<td className="tdcenter">{valuew.price}</td>) : ("")}
-            {showMarketCol ? (<td className="tdcenter">{valuew.pricem || 0}</td>) : ("")}
+            {showOpenSeaCol ? (<td className="tdcenter">{formatPriceCell(valuew.price)}</td>) : ("")}
+            {showMarketCol ? (<td className="tdcenter">{formatPriceCell(valuew.pricem || 0)}</td>) : ("")}
             <td className="tdcenter tooltipcell" onClick={(e) => handleTooltip(itemw, "trynftsupply", "nftw", e)}>{isupplyw}</td>
             <td className="tditemnft" style={{ color: `rgb(190, 190, 190)` }}>{valuew.boost}</td>
           </tr>
@@ -1054,7 +1109,12 @@ function ModalTNFT({ onClose }) {
         );
       }
     }
-    const totalCostToDisplay = (TotalCostDisplay === "opensea" || showSkill) ? totalCost : totalCostM;
+    const totalCostToDisplayRaw = (TotalCostDisplay === "opensea" || showSkill) ? totalCost : totalCostM;
+    const totalCostToDisplay = (!showSkill && nftPriceUnit === "flower" && usdPerSfl > 0)
+      ? totalCostToDisplayRaw / usdPerSfl
+      : totalCostToDisplayRaw;
+    const totalCostactivDisplay = (nftPriceUnit === "flower" && usdPerSfl > 0) ? (totalCostactiv / usdPerSfl) : totalCostactiv;
+    const totalCostactivMDisplay = (nftPriceUnit === "flower" && usdPerSfl > 0) ? (totalCostactivM / usdPerSfl) : totalCostactivM;
     /* NFT.unshift(
       <tr key="total">
         <td colSpan="3">Total</td>
@@ -1078,26 +1138,36 @@ function ModalTNFT({ onClose }) {
             <th style={{ width: `150px` }}>Boost</th>
           </tr>
           <tr key="total">
-            <td align="right" style={{ width: widthTotal }} colSpan={2}>{txtTotal}{showTotal &&
-              <FormControl
-                variant="standard"
-                id="formselecttotalcosttry"
-                height="10px"
-                size="small"
-                style={{ width: 40, minWidth: 40 }}>
-                <Select
-                  value={TotalCostDisplay}
-                  onChange={handleChangeTotalCostDisplay}
-                  style={{ width: "30px" }}>
-                  <MenuItem value="opensea">{imgOS}</MenuItem>
-                  <MenuItem value="market">{imgexchng}</MenuItem>
-                </Select>
-              </FormControl>}</td>
+            <td align="right" style={{ width: widthTotal, whiteSpace: "nowrap" }} colSpan={2}>{txtTotal}{showTotal &&
+              <span style={{ display: "inline-flex", alignItems: "center", gap: 4, flexWrap: "nowrap" }}>
+                {(showOpenSeaCol && showMarketCol) ? (
+                  <DList
+                    name="TotalCostDisplay"
+                    options={NFT_TOTAL_COST_OPTIONS}
+                    value={TotalCostDisplay}
+                    onChange={handleChangeTotalCostDisplay}
+                    iconOnly={true}
+                    menuIconOnly={true}
+                    width={38}
+                    height={28}
+                  />
+                ) : null}
+                <DList
+                  name="nftPriceUnit"
+                  options={NFT_PRICE_UNIT_OPTIONS}
+                  value={nftPriceUnit}
+                  onChange={handleNftPriceUnitChange}
+                  iconOnly={true}
+                  menuIconOnly={true}
+                  width={38}
+                  height={28}
+                />
+              </span>}</td>
             {/* <td className="tdcenter"></td> */}
-            <td className="tdcenter">{(showTotal || showSkill) && parseFloat(totalCostToDisplay).toFixed(0)}</td>
+            <td className="tdcenter">{(showTotal || showSkill) && frmtNb(totalCostToDisplay, 2)}</td>
             <td className="tdcenter">{showSkill ? parseFloat(totalCostactiv).toFixed(0) : ""}</td>
-            {showOpenSeaCol ? (<td className="tdcenter">{parseFloat(totalCostactiv).toFixed(0)}</td>) : ("")}
-            {showMarketCol ? (<td className="tdcenter">{parseFloat(totalCostactivM).toFixed(0)}</td>) : ("")}
+            {showOpenSeaCol ? (<td className="tdcenter">{frmtNb(totalCostactivDisplay, 2)}</td>) : ("")}
+            {showMarketCol ? (<td className="tdcenter">{frmtNb(totalCostactivMDisplay, 2)}</td>) : ("")}
             {(showTotal || showCraft || showShrine) ? (<td></td>) : ("")}
             <td></td>
           </tr>
@@ -1117,7 +1187,7 @@ function ModalTNFT({ onClose }) {
     if (!hasTryNftTables) { return; }
     setNFT(dataSetLocal);
     setContent(dataSetLocal.itables.it);
-  }, [dataSetLocal, TotalCostDisplay, TryChecked, selectedBoostTab, boostTypeFilters, boostCategoryFilters, nftPriceCols, hasTryNftTables]);
+  }, [dataSetLocal, TotalCostDisplay, TryChecked, selectedBoostTab, boostTypeFilters, boostCategoryFilters, nftPriceCols, nftPriceUnit, hasTryNftTables]);
 
   const tableStyle = {
     flexDirection: tableFlexDirection,

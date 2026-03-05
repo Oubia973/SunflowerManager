@@ -1,7 +1,7 @@
 ﻿import React, { useEffect, useRef, useState } from "react";
 import { useAppCtx } from "../context/AppCtx";
 import { FormControl, InputLabel, Select, MenuItem } from '@mui/material';
-import { PBar, formatdate, frmtNb } from '../fct.js';
+import { PBar, formatdate, frmtNb, buildSeriesMeta } from '../fct.js';
 import DList from "../dlist.jsx";
 
 export default function FishTable() {
@@ -86,6 +86,20 @@ export default function FishTable() {
         const quantity = Number(fish[item]?.instock ?? inventoryMap[item] ?? 0);
         return [item, quantity];
       });
+      const isFishInSelectedSeason = (fishItem) => {
+        if (selectedSeason === "all") return true;
+        const seasons = String(fishItem?.weather || "").split("*").map((part) => String(part).toLowerCase());
+        return seasons.includes(selectedSeason);
+      };
+      const visibleFishItems = sortedInventoryItems.filter(([itemName]) => {
+        const fishItem = fish[itemName];
+        return fishItem && fishItem.cat !== "Bait" && isFishInSelectedSeason(fishItem);
+      });
+      const fishCategorySeriesMeta = buildSeriesMeta(
+        visibleFishItems,
+        ([itemName]) => fish[itemName]?.cat || ""
+      );
+      let visibleFishIndex = -1;
       const earthwormbait = <i><img src={fish["Earthworm"].img} alt={''} className="itico" title="Earthworm" /></i>
       const grubbait = <i><img src={fish["Grub"].img} alt={''} className="itico" title="Grub" /></i>
       const redwigglerbait = <i><img src={fish["Red Wiggler"].img} alt={''} className="itico" title="Red Wiggler" /></i>
@@ -119,20 +133,16 @@ export default function FishTable() {
         const xChumsImg = ichumimgs.split("*");
         const iperiodimgs = cobj ? cobj.weather : '';
         const xPeriodImg = iperiodimgs.split("*");
-        let isOnSeason = false;
+        const isOnSeason = isFishInSelectedSeason(cobj);
         for (let i = 0; i < xPeriodImg.length; i++) {
           if (xPeriodImg[i] === "Winter") {
             xPeriodImg[i] = imgwinter;
-            if (selectedSeason === "winter") { isOnSeason = true; }
           } else if (xPeriodImg[i] === "Summer") {
             xPeriodImg[i] = imgsummer;
-            if (selectedSeason === "summer") { isOnSeason = true; }
           } else if (xPeriodImg[i] === "Autumn") {
             xPeriodImg[i] = imgautumn;
-            if (selectedSeason === "autumn") { isOnSeason = true; }
           } else if (xPeriodImg[i] === "Spring") {
             xPeriodImg[i] = imgspring;
-            if (selectedSeason === "spring") { isOnSeason = true; }
           } else if (xPeriodImg[i] === "FullMoon") {
             xPeriodImg[i] = imgfullmoon;
           }
@@ -199,9 +209,17 @@ export default function FishTable() {
         const ixpsfl = isNaN(ixp / xCost) ? "" : ixp / xCost;
         xListeColFish[1][1] = 0;
         if (icat !== "Bait") {
+          visibleFishIndex += 1;
+          const categorySeries = fishCategorySeriesMeta[visibleFishIndex] || { isStart: true, isEnd: true };
+          const isCategoryStart = categorySeries.isStart;
+          const isCategoryEnd = categorySeries.isEnd;
           return (
             <tr key={index}>
-              {xListeColFish[0][1] === 1 ? <td className="tdcenter">{icat}</td> : null}
+              {xListeColFish[0][1] === 1 ? <td className="tdcenter fish-category-cell">
+                {isCategoryStart ? <span className="fish-category-name">{icat}</span> : null}
+                {!isCategoryEnd ? <span className={`fish-category-connector${isCategoryStart ? " is-start" : ""}`} aria-hidden="true"></span> : null}
+                {isCategoryEnd && !isCategoryStart ? <span className="fish-category-endcap" aria-hidden="true"></span> : null}
+              </td> : null}
               {xListeColFish[1][1] === 1 ? <td className="tdcenter">{ilocat}</td> : null}
               {/* {xListeColFish[2][1] === 1 ? (<td>
                 {PBar(itemQuantity, previousQuantity, maxh, 0)}
@@ -419,10 +437,17 @@ export default function FishTable() {
         const quantity = Number(crustacean[item]?.instock ?? inventoryMap[item] ?? 0);
         return [item, quantity];
       });
+      const crustaToolSeriesMeta = buildSeriesMeta(
+        sortedInventoryItems,
+        ([itemName]) => crustacean[itemName]?.tool || ""
+      );
       const inventoryItems = sortedInventoryItems.map(([item, quantity], index) => {
         const cobj = crustacean[item];
         const ico = cobj ? cobj.img : '';
         const itool = cobj ? cobj.tool : '';
+        const toolSeries = crustaToolSeriesMeta[index] || { isStart: true, isEnd: true };
+        const isToolStart = toolSeries.isStart;
+        const isToolEnd = toolSeries.isEnd;
         const icaught = cobj ? cobj.caught : '';
         const ichum = cobj ? cobj.chum : '';
         const itime = cobj?.rdyat ? formatdate(cobj.rdyat) : '';
@@ -465,7 +490,11 @@ export default function FishTable() {
         totCostChum += xCostChum * (iQuant || 0); */
         return (
           <tr key={index}>
-            {xListeColCrusta[0][1] === 1 ? <td className="tdcenter">{itool}</td> : null}
+            {xListeColCrusta[0][1] === 1 ? <td className="tdcenter crusta-tool-cell">
+              {isToolStart ? <span className="crusta-tool-name">{itool}</span> : null}
+              {!isToolEnd ? <span className={`crusta-tool-connector${isToolStart ? " is-start" : ""}`} aria-hidden="true"></span> : null}
+              {isToolEnd && !isToolStart ? <span className="crusta-tool-endcap" aria-hidden="true"></span> : null}
+            </td> : null}
             {/* {xListeColCrusta[1][1] === 1 ? (<td>{PBar(itemQuantity, previousQuantity, maxh, 0)}</td>) : ("")} */}
             <td id="iccolumn"><i><img src={ico} alt={''} className="itico" /></i></td>
             {xListeColCrusta[2][1] === 1 ? <td className="tditem">{item}</td> : null}
@@ -494,7 +523,7 @@ export default function FishTable() {
       });
       const tableContent = (
         <>
-          <table className="table">
+          <table className="table crustacean-table">
             <thead>
               <tr>
                 {xListeColCrusta[0][1] === 1 ? <th className="thcenter" >Tool</th> : null}

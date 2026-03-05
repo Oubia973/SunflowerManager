@@ -1,6 +1,6 @@
 import React from "react";
 import { useAppCtx } from "../context/AppCtx";
-import { timeToDays } from '../fct.js';
+import { timeToDays, buildSeriesMeta } from '../fct.js';
 
 export default function FlowerTable() {
     const {
@@ -16,11 +16,15 @@ export default function FlowerTable() {
     if (flowerTables?.flower) {
         const { flower } = flowerTables;
         const flwrKeys = Object.keys(flower);
-        const tableContent = flwrKeys.map(element => {
+        const seedSeriesMeta = buildSeriesMeta(flwrKeys, (flowerName) => flower[flowerName]?.cat || "");
+        const tableContent = flwrKeys.map((element, index) => {
             const cobj = flower[element];
             const flName = element;
             const ico = <img src={cobj.img} alt={''} className="nodico" title={flName} />;
             const seed = cobj.cat && cobj.cat;
+            const seedSeries = seedSeriesMeta[index] || { isStart: true, isEnd: true };
+            const isSeedStart = seedSeries.isStart;
+            const isSeedEnd = seedSeries.isEnd;
             const ibreed = cobj ? cobj.breed : '';
             const ibreedimgs = cobj ? cobj.breedimgs : '';
             const xBreeds = ibreed.split("*");
@@ -36,8 +40,12 @@ export default function FlowerTable() {
                 nBeds++;
             }
             return (
-                <tr>
-                    {xListeColFlower[0][1] === 1 ? <td className="tdcenter">{seed}</td> : null}
+                <tr key={flName}>
+                    {xListeColFlower[0][1] === 1 ? <td className="tdcenter flower-seed-cell">
+                        {isSeedStart ? <span className="flower-seed-name">{seed}</span> : null}
+                        {!isSeedEnd ? <span className={`flower-seed-connector${isSeedStart ? " is-start" : ""}`} aria-hidden="true"></span> : null}
+                        {isSeedEnd && !isSeedStart ? <span className="flower-seed-endcap" aria-hidden="true"></span> : null}
+                    </td> : null}
                     <td id="iccolumn">{ico}</td>
                     {xListeColFlower[1][1] === 1 ? <td className="tditem">{flName}</td> : null}
                     {xListeColFlower[2][1] === 1 ? <td className="tdcenter">
@@ -78,7 +86,7 @@ export default function FlowerTable() {
 
         const table = (
             <>
-                <table className="table">
+                <table className="table flower-table">
                     {tableHeader}
                     <tbody>
                         {tableContent}

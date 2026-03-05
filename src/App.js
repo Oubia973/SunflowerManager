@@ -1,18 +1,20 @@
-import React, { useEffect, useState, useRef, useMemo } from 'react';
+﻿import React, { useEffect, useState, useRef, useMemo } from 'react';
 import logo from './gobcarry.gif';
 import './App.css';
 import ModalTNFT from './ftrynft.js';
 import ModalGraph from './fgraph.js';
 import ModalDlvr from './fdelivery.js';
 import ModalOptions from './foptions.js';
-import Help from './fhelp.js';
+import ModalAdmin from './fadmin.jsx';
+import PageCoach from './components/PageCoach.jsx';
 import Cadre from './animodal.js';
 import Tooltip from "./tooltip/Tooltip.jsx";
 import DList from "./dlist.jsx";
 //import CounterInput from "./counterinput.js";
 import { FormControl, InputLabel, Select, MenuItem, Switch, FormControlLabel } from '@mui/material';
-import { frmtNb, filterTryit, formatUpdated, UpdatedSince, mergeFarmStateDeep } from './fct.js';
+import { frmtNb, filterTryit, formatUpdated, UpdatedSince, mergeFarmStateDeep, getOrCreateDeviceId } from './fct.js';
 import { computeGemsRatio } from './gemsRatio.js';
+import { promptPass } from './promptPass';
 
 import { AppCtx } from "./context/AppCtx";
 import PanelTable from "./tables/PanelTable";
@@ -58,6 +60,7 @@ const imgacorn = './icon/pet/acorn.webp';
 const imgexchng = './icon/ui/exchange.png';
 const imgExchng = <img src={imgexchng} alt={''} title="Marketplace" style={{ width: '25px', height: '25px' }} />;
 const imgbuyit = <img src={imgexchng} alt={''} title="Marketplace" style={{ width: '15px', height: '15px' }} />;
+const imgadmin = './icon/ui/vip.webp';
 const imgna = './icon/nft/na.png';
 const imgrod = './icon/tools/fishing_rod.png';
 const imgwinter = <img src="./icon/ui/winter.webp" alt={''} className="seasonico" title="Winter" />;
@@ -70,7 +73,6 @@ let buttonClicked = false;
 let curID = "";
 let lastID = "";
 
-let helpImage = "./image/helpgeneral.jpg";
 
 const INV_COLUMNS_TEMPLATE = [
   ['Hoard', 1],
@@ -364,6 +366,9 @@ const BUYNODES_COLUMNS_TEMPLATE = [
   ['Sunstone Total', 1],
   ['Obsidian Total', 1],
   ['Obsidian Time', 1],
+  ['Bought to reach', 1],
+  // ['Priority', 1],
+  // ['Remaining Obs', 1],
 ];
 const BUYNODES_COLUMNS_PICKER = [
   { idx: 0, label: 'Node' },
@@ -377,6 +382,9 @@ const BUYNODES_COLUMNS_PICKER = [
   { idx: 8, label: 'Sunstone Total' },
   { idx: 9, label: 'Obsidian Total' },
   { idx: 10, label: 'Obsidian Time' },
+  { idx: 11, label: 'Bought to reach' },
+  // { idx: 12, label: 'Priority' },
+  // { idx: 13, label: 'Remaining Obs' },
 ];
 const ACTIVITY_COLUMNS_TEMPLATE = [
   ['From', 1],
@@ -632,6 +640,10 @@ function App() {
     cstPrices: {},
     buyNodesQty: {},
     buyNodesTimeFromStock: false,
+    buyNodesSubMode: "obsidian",
+    buyNodesSubObsidian: 0,
+    buyNodesBuyPerWeek: 1,
+    buyNodesSplitStrategy: "short_time",
     toCM: {},
     selectedHomeBlocks: {},
     selectedHomeItems: {},
@@ -786,6 +798,17 @@ function App() {
       const enabled = cur && (cur[1] === 1 || cur[1] === 0) ? cur[1] : tpl[1];
       return [tpl[0], enabled];
     });
+    next.buyNodesSubMode = next.buyNodesSubMode === "week" ? "week" : "obsidian";
+    next.buyNodesSubObsidian = Number.isFinite(Number(next.buyNodesSubObsidian))
+      ? Math.max(0, Math.floor(Number(next.buyNodesSubObsidian)))
+      : 0;
+    next.buyNodesBuyPerWeek = Number.isFinite(Number(next.buyNodesBuyPerWeek))
+      ? Math.max(1, Math.min(9, Math.floor(Number(next.buyNodesBuyPerWeek))))
+      : 1;
+    next.buyNodesSplitStrategy = (
+      next.buyNodesSplitStrategy === "sunstone"
+      || next.buyNodesSplitStrategy === "short_time"
+    ) ? next.buyNodesSplitStrategy : "short_time";
     next.buyNodesTimeFromStock = !!next.buyNodesTimeFromStock;
     return next;
   };
@@ -947,6 +970,7 @@ function App() {
   const [deliveriesData, setdeliveriesData] = useState([]);
   const [priceData, setpriceData] = useState([]);
   const [tooltipData, setTooltipData] = useState(null);
+  const [adminLoading, setAdminLoading] = useState(false);
   const [expandLoading, setExpandLoading] = useState(false);
   const [sectionsLoading, setSectionsLoading] = useState(false);
   const [headerRequestLoading, setHeaderRequestLoading] = useState(false);
@@ -969,6 +993,7 @@ function App() {
   const farmSectionHashesRef = useRef({});
   const farmTableHashesRef = useRef({});
   const dataSetFarmRef = useRef({});
+  const deviceIdRef = useRef(getOrCreateDeviceId());
   const headerRequestCountRef = useRef(0);
   const [reqState, setReqState] = useState("");
   const [cdButton, setcdButton] = useState(false);
@@ -977,6 +1002,8 @@ function App() {
   const [showfGraph, setShowfGraph] = useState(false);
   const [showfDlvr, setShowfDlvr] = useState(false);
   const [showOptions, setShowOptions] = useState(false);
+  const [showAdmin, setShowAdmin] = useState(false);
+  const [adminData, setAdminData] = useState(null);
   const [showHelp, setShowHelp] = useState(false);
   const [showCadre, setShowCadre] = useState(false);
   const [sectionsMeta, setSectionsMeta] = useState(null);
@@ -1233,7 +1260,6 @@ function App() {
     setShowOptions(true);
   };
   const handleButtonHelpClick = () => {
-    helpImage = "./image/helpgeneral.jpg";
     setShowHelp(true);
   };
   const handleButtonIAClick = async (e) => {
@@ -1245,7 +1271,7 @@ function App() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          prompt: "Quelle est la meilleure stratÃ©gie aujourd'hui ?",
+          prompt: "Quelle est la meilleure stratÃƒÂ©gie aujourd'hui ?",
           farmId: curID,
           options: dataSet.options,
           tryitarrays: tryItArrays,
@@ -1733,7 +1759,8 @@ function App() {
         setdataSetFarm({});
       }
       const requiredSections = computeRequiredSections(ui, pageSectionRequirements);
-      const includeSections = [...new Set(requiredSections)];
+      // Include trades on initial load to avoid an immediate extra NAV from HeaderTrades preload.
+      const includeSections = [...new Set([...requiredSections, "trades"])];
       if (context === "EnterPressed") { setFarmData([]); }
       const { tryitarrays: tryItArrays, tryitMode } = getTryitRequestPayload(dataSetFarmRef.current || {});
       //setInputValue(lastClickedInputValue.current);
@@ -1747,6 +1774,7 @@ function App() {
             },
             body: JSON.stringify({
               frmid: curID,
+              deviceId: deviceIdRef.current,
               options: dataSet.options,
               tryitarrays: tryItArrays,
               tryitMode,
@@ -1772,6 +1800,10 @@ function App() {
             }
           } else if (response.status === 200) {
             const responseData = await response.json();
+            if (Array.isArray(responseData?.priceData) && responseData.priceData.length > 0) {
+              setpriceData(JSON.parse(JSON.stringify(responseData.priceData)));
+              dataSet.options.usdSfl = responseData.priceData[2];
+            }
             buttonClicked = true;
             setAutoRefreshNonce((v) => v + 1);
             dataSet.options.username = responseData.username;
@@ -1888,7 +1920,7 @@ function App() {
             dataSet.updated = formatUpdated(frmData?.updated);
             if (dataSet.options.firstLoad) {
               dataSet.options.firstLoad = false
-              handleButtonHelpClick();
+              //handleButtonHelpClick();
             }
             if (context === "optionChanged") {
 
@@ -1979,6 +2011,58 @@ function App() {
       }
     }
   }
+  const handleAdminClick = async (event) => {
+    const farmId = Number(dataSetFarm?.frmid || dataSet?.options?.farmId || 0);
+    if (farmId !== 1972) { return; }
+    try {
+      setAdminLoading(true);
+      const responseData = await fetchAdminView({ mode: "summary" }, true);
+      setAdminData(responseData);
+      setShowAdmin(true);
+      setReqState("");
+    } catch (error) {
+      const msg = String(error?.message || "Admin error");
+      if (msg.toLowerCase().includes("cancelled")) { return; }
+      setReqState(msg);
+    } finally {
+      setAdminLoading(false);
+    }
+  };
+  const fetchAdminView = async (payload = {}, allowPrompt = true) => {
+    let response = await fetch(API_URL + "/getadminstats", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      credentials: "include",
+      body: JSON.stringify(payload || {}),
+    });
+    if (response.status === 401 && allowPrompt) {
+      const password = await promptPass();
+      if (password === null) {
+        throw new Error("Admin login cancelled");
+      }
+      const loginResponse = await fetch(API_URL + "/admin/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({ password }),
+      });
+      if (!loginResponse.ok) {
+        const loginMsg = await formatHttpErrorMessage(loginResponse, "/admin/login");
+        throw new Error(loginMsg);
+      }
+      response = await fetch(API_URL + "/getadminstats", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify(payload || {}),
+      });
+    }
+    if (!response.ok) {
+      const message = await formatHttpErrorMessage(response, "/getadminstats");
+      throw new Error(message);
+    }
+    return await response.json();
+  };
   const handleTooltip = async (item, context, value, event) => {
     try {
       const { clientX, clientY } = event;
@@ -2146,7 +2230,7 @@ function App() {
     }
   }
   async function getPrices(onlyPrices, withSectionLoader = false, forcedSections = null, forceRecalc = false, forcedPage = null) {
-    if (!pageSectionRequirements || !sectionPayloadKeys || !sectionTablePaths) {
+    if (!onlyPrices && (!pageSectionRequirements || !sectionPayloadKeys || !sectionTablePaths)) {
       setReqState(sectionsMetaError || "Config sections manquante");
       return;
     }
@@ -2198,6 +2282,7 @@ function App() {
       onlyprices: "true",
     } : {
       frmid: requestFarmId,
+      deviceId: deviceIdRef.current,
       options: dataSet.options,
       include: [...new Set(includeToRequest)],
       page: requestedPage,
@@ -2422,7 +2507,7 @@ function App() {
     if ('serviceWorker' in navigator) {
       navigator.serviceWorker.register('/service-worker.js')
         .then(registration => {
-          //console.log('Service Worker enregistrÃ© avec succÃ¨s:', registration);
+          //console.log('Service Worker enregistrÃƒÂ© avec succÃƒÂ¨s:', registration);
         })
         .catch(error => {
           console.error('Erreur lors de l\'enregistrement du Service Worker:', error);
@@ -2520,13 +2605,26 @@ function App() {
   useEffect(() => {
     if (!dataSetFarm?.frmid) return;
     if (refreshInFlightRef.current) return;
-    if (Date.now() < (suppressNavUntilRef.current || 0)) return;
-    const required = computeRequiredSections(ui, pageSectionRequirements);
-    const hasAllSections = required.every((section) => hasSectionData(dataSetFarm, section, sectionPayloadKeys, sectionTablePaths));
-    if (hasAllSections) return;
-    getPrices(false, true).catch((error) => {
-      console.log(`Error: ${error}`);
-    });
+    const runNavLoadIfNeeded = () => {
+      if (!dataSetFarm?.frmid) return;
+      if (refreshInFlightRef.current) return;
+      const required = computeRequiredSections(ui, pageSectionRequirements);
+      const hasAllSections = required.every((section) => hasSectionData(dataSetFarm, section, sectionPayloadKeys, sectionTablePaths));
+      if (hasAllSections) return;
+      getPrices(false, true).catch((error) => {
+        console.log(`Error: ${error}`);
+      });
+    };
+    const suppressUntil = Number(suppressNavUntilRef.current || 0);
+    const now = Date.now();
+    if (now < suppressUntil) {
+      const retryInMs = Math.max(40, suppressUntil - now + 10);
+      const timer = setTimeout(() => {
+        runNavLoadIfNeeded();
+      }, retryInMs);
+      return () => clearTimeout(timer);
+    }
+    runNavLoadIfNeeded();
   }, [ui?.selectedInv, ui?.activityDisplay, ui?.fishView, ui?.petView, dataSetFarm?.frmid, pageSectionRequirements, sectionPayloadKeys, sectionTablePaths]);
   useEffect(() => {
     if (!curID) return;
@@ -2591,6 +2689,7 @@ function App() {
     () => isCurrentPageDataReady,
     [isCurrentPageDataReady]
   );
+  const isAdminFarm = Number(dataSetFarm?.frmid || dataSet?.options?.farmId || 0) === 1972;
 
   return (
     <>
@@ -2616,7 +2715,7 @@ function App() {
                   }}
                   style={{ width: '65px' }}
                 />
-                <div style={{ position: "relative", left: -4, top: 0 }}>
+                <div className="coach-search-refresh-target" style={{ position: "relative", left: -4, top: 0 }}>
                   <button
                     name="getFarm"
                     onClick={(e) => {
@@ -2647,13 +2746,18 @@ function App() {
                   >
                     <img src="./icon/ui/search.png" alt="" className="resico" />
                   </button>
-                  <AutoRefreshProgress
-                    active={autoRefreshActive}
-                    resetKey={autoRefreshResetKey}
-                    durationMs={60 * 1000}
-                    deadlineMs={autoRefreshNextAt}
-                    variant="circle"
-                  />
+                  <div
+                    className="coach-autorefresh-target"
+                    style={{ position: "absolute", left: -1, top: 0, pointerEvents: "none", zIndex: 1 }}
+                  >
+                    <AutoRefreshProgress
+                      active={autoRefreshActive}
+                      resetKey={autoRefreshResetKey}
+                      durationMs={60 * 1000}
+                      deadlineMs={autoRefreshNextAt}
+                      variant="circle"
+                    />
+                  </div>
                 </div>
               </div>
               <div style={{
@@ -2664,10 +2768,11 @@ function App() {
               {farmData.balance ? (
                 <div className="vertical" style={{ transform: 'translate(105px, 0%)' }}>
                   <div className="horizontal">
-                    <button onClick={handleButtonfTNFTClick} title="NFT" class="button">
+                    <button onClick={handleButtonfTNFTClick} title="NFT" class="button coach-boosts-btn">
                       <img src="./icon/ui/lightning.png" alt="" className="itico" />
                     </button>
                     <FormControlLabel
+                      className="coach-tryset-switch"
                       control={
                         <Switch
                           name="TryChecked"
@@ -2728,16 +2833,26 @@ function App() {
                     height={38}
                   />
                   <div className="horizontal" style={{ margin: "0", padding: "0" }}>
+                    {isAdminFarm ? (
+                      <button
+                        onClick={handleAdminClick}
+                        title="Admin"
+                        className="button"
+                        disabled={adminLoading}
+                      >
+                        <img src={adminLoading ? "./icon/ui/syncing.gif" : imgadmin} alt="" className="itico" />
+                      </button>
+                    ) : null}
                     <button onClick={handleButtonOptionsClick} title="Options" class="button"><img src="./options.png" alt="" className="itico" /></button>
-                    <button onClick={handleButtonHelpClick} title="Help" class="button"><img src="./icon/nft/na.png" alt="" className="itico" /></button>
+                    {/* <button onClick={handleButtonHelpClick} title="Help" class="button"><img src="./icon/nft/na.png" alt="" className="itico" /></button> */}
                     {dataSet.options.isAbo ? <button onClick={(e) => handleButtonIAClick(e)} className="button" disabled={iaLoading} title={iaLoading ? "Loading" : "Ask IA"}>
                       <img src={iaLoading ? "./icon/ui/syncing.gif" : "./icon/ui/bumpkin.png"} alt="" className="itico" />
                     </button> : null}
                   </div>
                 </div>
                 <div className="currency-pair">
-                  <div className="currency"><img src={imgsfl} alt="" className="nodico" />{parseFloat(priceData[2]).toFixed(3)}</div>
-                  <div className="currency"><img src="./matic.png" alt="" className="curr-icon" />{parseFloat(priceData[1]).toFixed(3)}</div>
+                  <div className="currency"><img src={imgsfl} alt="" className="nodico" />{Number.isFinite(Number(priceData?.[2])) ? Number(priceData[2]).toFixed(3) : "--"}</div>
+                  <div className="currency"><img src="./matic.png" alt="" className="curr-icon" />{Number.isFinite(Number(priceData?.[1])) ? Number(priceData[1]).toFixed(3) : "--"}</div>
                 </div>
               </div>
             ) : ("")}
@@ -3139,6 +3254,13 @@ function App() {
             API_URL={API_URL}
           />
         )}
+        {showAdmin && (
+          <ModalAdmin
+            onClose={() => setShowAdmin(false)}
+            value={adminData}
+            onAdminFetch={fetchAdminView}
+          />
+        )}
         {showfGraph && (
           <ModalGraph onClose={handleClosefGraph}
             graphtype={GraphType}
@@ -3171,7 +3293,10 @@ function App() {
           <Cadre onClose={handleCloseCadre} tableData={listingsData} Platform={platformListings} frmid={curID} />
         )}
         {showHelp && (
-          <Help onClose={handleCloseHelp} image={helpImage} />
+          <PageCoach
+            onClose={handleCloseHelp}
+            currentPage={ui?.selectedInv || "home"}
+          />
         )}
         {tooltipData && (
           <Tooltip
@@ -3368,6 +3493,4 @@ function App() {
 }
 
 export default App;
-
-
 

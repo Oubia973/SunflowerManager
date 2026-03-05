@@ -19,6 +19,7 @@ export default function DList({
     emitEvent = true,
     clearable = false,
     iconOnly = false,
+    menuIconOnly = false,
     menuMinWidth = null,
     maxListHeight = 450,
     className = "",
@@ -304,6 +305,7 @@ export default function DList({
                                         disabled={!!o.disabled}
                                         role="option"
                                         aria-selected={isOn}
+                                        title={menuIconOnly ? String(o.label || "") : undefined}
                                     >
                                         {effectiveMultiple ? (
                                             <span className={"cd-box " + (isOn ? "cd-boxOn" : "")} aria-hidden="true">
@@ -318,7 +320,7 @@ export default function DList({
                                         ) : (
                                             <span />
                                         )}
-                                        <span className="cd-label">{o.label}</span>
+                                        {!menuIconOnly ? <span className="cd-label">{o.label}</span> : null}
                                     </button>
                                 );
                             })

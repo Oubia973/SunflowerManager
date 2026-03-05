@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useState } from "react";
 import { useAppCtx } from "../context/AppCtx";
 import { FormControl, InputLabel, Select, MenuItem, Switch, FormControlLabel, CircularProgress } from '@mui/material';
-import { frmtNb, convtimenbr, convTime, ColorValue, Timer, filterTryit, PBar, timeToDays, flattenCompoit } from '../fct.js';
+import { frmtNb, convtimenbr, convTime, ColorValue, Timer, filterTryit, PBar, timeToDays, flattenCompoit, buildSeriesMeta } from '../fct.js';
 import DList from "../dlist.jsx";
 
 let xdxp = 0;
@@ -236,11 +236,18 @@ export default function CookTable() {
         var totCostp2p = 0;
         var BldTime = [];
         var totTime = 0;
+        const buildingSeriesMeta = buildSeriesMeta(
+            filteredInventoryItems,
+            ([itemName]) => (food[itemName] || pfood[itemName])?.bld || "Fish Market"
+        );
         const inventoryItems = filteredInventoryItems.map(([item, quantity], index) => {
             const cobj = food[item] || pfood[item];
             const cobjCompo = flattenCompoit(cobj?.compoit);
             const ico = cobj ? cobj.img : '';
             const ibld = cobj ? (cobj.bld || "Fish Market") : '';
+            const buildingSeries = buildingSeriesMeta[index] || { isStart: true, isEnd: true };
+            const isBuildingStart = buildingSeries.isStart;
+            const isBuildingEnd = buildingSeries.isEnd;
             var time = cobj ? !TryChecked ? cobj.time : cobj.timetry : '';
             const timenbr = convtimenbr(time);
             var timecomp = cobj ? (!TryChecked ? cobj.timecrp : cobj.timecrptry) || '' : '';
@@ -335,7 +342,11 @@ export default function CookTable() {
             CellXPHStyle.color = ColorValue(ixph, 0, 2000);
             return (
                 <tr key={index}>
-                    {xListeColCook[0][1] === 1 ? <td className="tdcenter">{ibld}</td> : null}
+                    {xListeColCook[0][1] === 1 ? <td className="tdcenter cook-building-cell">
+                        {isBuildingStart ? <span className="cook-building-name">{ibld}</span> : null}
+                        {!isBuildingEnd ? <span className={`cook-building-connector${isBuildingStart ? " is-start" : ""}`} aria-hidden="true"></span> : null}
+                        {isBuildingEnd && !isBuildingStart ? <span className="cook-building-endcap" aria-hidden="true"></span> : null}
+                    </td> : null}
                     <td id="iccolumn"><i><img src={ico} alt={''} className="itico" title={item} /></i></td>
                     {xListeColCook[1][1] === 1 ? <td className="tditem">{item}</td> : null}
                     {selectedQuantityCook === "daily" || selectedQuantityCook === "dailymax" ? <td className="tdcenter">
