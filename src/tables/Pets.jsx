@@ -63,19 +63,19 @@ export default function PetsTable() {
   };
   const CATEGORY_ITEMS = {
     Dog: ["Acorn", "Chewed Bone", "Ribbon", "Fossil Shell"],
-    Cat: ["Acorn", "Ribbon", "Heart Leaf", "Fossil Shell"],
-    Owl: ["Acorn", "Heart Leaf", "Dewberry", "Fossil Shell"],
+    Cat: ["Acorn", "Ribbon", "Heart leaf", "Fossil Shell"],
+    Owl: ["Acorn", "Heart leaf", "Dewberry", "Fossil Shell"],
     Horse: ["Acorn", "Ruffroot", "Wild Grass", "Fossil Shell"],
     Bull: ["Acorn", "Wild Grass", "Frost Pebble", "Fossil Shell"],
     Hamster: ["Acorn", "Dewberry", "Chewed Bone", "Fossil Shell"],
     Penguin: ["Acorn", "Frost Pebble", "Ruffroot", "Fossil Shell"],
     Dragon: ["Acorn", "Frost Pebble", "Chewed Bone", "Moonfur", "Fossil Shell", "Ruffroot"],
-    Phoenix: ["Acorn", "Heart Leaf", "Ruffroot", "Moonfur", "Fossil Shell", "Ribbon"],
+    Phoenix: ["Acorn", "Heart leaf", "Ruffroot", "Moonfur", "Fossil Shell", "Ribbon"],
     Griffin: ["Acorn", "Ruffroot", "Dewberry", "Moonfur", "Fossil Shell", "Wild Grass"],
-    Ram: ["Acorn", "Ribbon", "Ruffroot", "Moonfur", "Fossil Shell", "Heart Leaf"],
+    Ram: ["Acorn", "Ribbon", "Ruffroot", "Moonfur", "Fossil Shell", "Heart leaf"],
     Warthog: ["Acorn", "Wild Grass", "Frost Pebble", "Moonfur", "Fossil Shell", "Ribbon"],
     Wolf: ["Acorn", "Chewed Bone", "Ribbon", "Moonfur", "Fossil Shell", "Dewberry"],
-    Bear: ["Acorn", "Dewberry", "Heart Leaf", "Moonfur", "Fossil Shell", "Frost Pebble"],
+    Bear: ["Acorn", "Dewberry", "Heart leaf", "Moonfur", "Fossil Shell", "Frost Pebble"],
   };
   const compToShrines = {};
   Object.entries(shrine).forEach(([shName, shInfo]) => {

@@ -1,5 +1,6 @@
 import React from "react";
 import { frmtNb } from "../fct.js";
+const imgna = "./icon/nft/na.png";
 
 const EMPTY_TOTAL = { soldPrice: 0, price: 0, marketPrice: 0, count: 0 };
 
@@ -14,9 +15,9 @@ function getTradeType(itemName, tables, boostables) {
     return "other";
 }
 
-function resolveMarketData(itemName, quantity, sources) {
+function resolveMarketData(itemName, quantity, sources, fallbackUnitFloor = 0) {
     const { nft, nftw, it, fish, flower, petit } = sources;
-    let marketPrice = 0;
+    let marketPrice = Number(fallbackUnitFloor || 0) * Number(quantity || 0);
     let itemImg = "";
     const makeImg = (src) => {
         const safeSrc = typeof src === "string" ? src.trim() : "";
@@ -55,6 +56,9 @@ const TradesTooltip = ({ trades, tradesHeader, itables, boostables }) => {
     const headerRows = Array.isArray(tradesHeader) ? tradesHeader.filter((row) => row?.name) : [];
     const headerImgByName = Object.fromEntries(
         headerRows.map((row) => [String(row?.name || "").trim().toLowerCase(), row?.img || ""])
+    );
+    const headerFloorByName = Object.fromEntries(
+        headerRows.map((row) => [String(row?.name || "").trim().toLowerCase(), Number(row?.floor || 0)])
     );
     if (tradeRows.length === 0 && headerRows.length === 0) {
         return <div>No trades available.</div>;
@@ -109,6 +113,7 @@ const TradesTooltip = ({ trades, tradesHeader, itables, boostables }) => {
         });
 
         const price = traderow.sfl || 0;
+        const fallbackFloor = headerFloorByName[String(itemName || "").trim().toLowerCase()] || 0;
         const { marketPrice, itemImg } = resolveMarketData(itemName, quantity, {
             nft,
             nftw,
@@ -116,7 +121,7 @@ const TradesTooltip = ({ trades, tradesHeader, itables, boostables }) => {
             fish,
             flower,
             petit,
-        });
+        }, fallbackFloor);
         const fallbackImgSrc = headerImgByName[String(itemName || "").trim().toLowerCase()] || imgna;
         const safeItemImg = itemImg || <img src={fallbackImgSrc} className="resicon" alt="" />;
         const marketDiffPct = marketPrice ? ((price - marketPrice) / marketPrice) * 100 : null;

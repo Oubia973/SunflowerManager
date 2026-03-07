@@ -20,7 +20,8 @@ export default function ExpandTable() {
       imgwood,
       imgstone,
       imgexchng,
-      imgExchng
+      imgExchng,
+      imgbuyit
     }
   } = useAppCtx();
   const expandPageData = dataSetFarm?.expandPageData || {};
@@ -204,8 +205,8 @@ export default function ExpandTable() {
           {xListeColExpand[5][1] === 1 ? <th className="thcenter">{imgobsidianres}</th> : null}
           {xListeColExpand[5][1] === 1 ? <th className="thcenter">{imgbbres}</th> : null}
           {xListeColExpand[5][1] === 1 ? <th className="thcenter">{imgcoinres}</th> : null}
-          {xListeColExpand[6][1] === 1 ? <th className="thcenter">Value {imgsflres}</th> : null}
-          {xListeColExpand[6][1] === 1 ? <th className="thcenter">{imgExchng}</th> : null}
+          {xListeColExpand[6][1] === 1 ? <th className="thcenter">Cost {imgsflres}</th> : null}
+          {xListeColExpand[6][1] === 1 ? <th className="thcenter">Prod {imgbuyit}</th> : null}
         </tr>
         <tr>
           <td className="tdcenter expand-lvl-sticky">TOTAL</td>

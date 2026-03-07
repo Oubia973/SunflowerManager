@@ -279,17 +279,43 @@ export function Timer({ timestamp, index, onTimerFinish }) {
   );
 }
 
-export function filterTryit(dataSet, toArray) {
-  const tableSources = [
-    dataSet?.invData?.itables,
-    dataSet?.cookData?.itables,
-    dataSet?.fishData?.itables,
-    dataSet?.bountyData?.itables,
-    dataSet?.craftData?.itables,
-    dataSet?.flowerData?.itables,
-    dataSet?.expandPageData?.itables,
-    dataSet?.itables,
-  ].filter(Boolean);
+const DEFAULT_TRYIT_CONFIG = {
+  boostTables: ["nft", "nftw", "skill", "skilllgc", "buildng", "bud", "shrine"],
+  itemTables: {
+    xfarmit: { sources: ["itables.it"], field: "farmit", baseField: "farmit" },
+    xbuyit: { sources: ["itables.it"], field: "buyit", baseField: "buyit" },
+    xspottry: { sources: ["itables.it"], field: "spottry", baseField: "spot" },
+    xspot2try: { sources: ["itables.it"], field: "spot2try", baseField: "spot2" },
+    xspot3try: { sources: ["itables.it"], field: "spot3try", baseField: "spot3" },
+    xcookit: { sources: ["itables.food", "itables.pfood"], field: "cookit", baseField: "cookit" },
+  },
+};
+
+export function filterTryit(dataSet, toArray, tryitConfig = null) {
+  const cfg = (
+    tryitConfig &&
+    Array.isArray(tryitConfig?.boostTables) &&
+    tryitConfig?.itemTables &&
+    typeof tryitConfig.itemTables === "object"
+  ) ? tryitConfig : DEFAULT_TRYIT_CONFIG;
+  const tableSources = (() => {
+    const src = (dataSet && typeof dataSet === "object") ? dataSet : {};
+    const out = [];
+    const seen = new Set();
+    const pushUnique = (candidate) => {
+      if (!candidate || typeof candidate !== "object") return;
+      if (seen.has(candidate)) return;
+      seen.add(candidate);
+      out.push(candidate);
+    };
+    pushUnique(src?.itables);
+    Object.values(src).forEach((entry) => {
+      if (entry && typeof entry === "object" && entry.itables && typeof entry.itables === "object") {
+        pushUnique(entry.itables);
+      }
+    });
+    return out;
+  })();
   const mergeTable = (tableName) => {
     return tableSources.reduce((acc, src) => {
       const table = src?.[tableName];
@@ -312,15 +338,37 @@ export function filterTryit(dataSet, toArray) {
       return acc;
     }, {});
   };
-  const it = mergeTable("it");
-  const food = mergeTable("food");
-  const pfood = mergeTable("pfood");
+  const mergedTableCache = {};
+  const mergedByPath = (path) => {
+    const tableName = String(path || "").split(".")[1];
+    if (!tableName) return {};
+    if (!Object.prototype.hasOwnProperty.call(mergedTableCache, tableName)) {
+      mergedTableCache[tableName] = mergeTable(tableName);
+    }
+    return mergedTableCache[tableName] || {};
+  };
+  const it = mergedByPath("itables.it");
+  const food = mergedByPath("itables.food");
+  const pfood = mergedByPath("itables.pfood");
   const result = {};
-  const boostSources = [
-    dataSet?.invData?.boostables,
-    dataSet?.mapData?.boostables,
-    dataSet?.boostables,
-  ].filter(Boolean);
+  const boostSources = (() => {
+    const src = (dataSet && typeof dataSet === "object") ? dataSet : {};
+    const out = [];
+    const seen = new Set();
+    const pushUnique = (candidate) => {
+      if (!candidate || typeof candidate !== "object") return;
+      if (seen.has(candidate)) return;
+      seen.add(candidate);
+      out.push(candidate);
+    };
+    pushUnique(src?.boostables);
+    Object.values(src).forEach((entry) => {
+      if (entry && typeof entry === "object" && entry.boostables && typeof entry.boostables === "object") {
+        pushUnique(entry.boostables);
+      }
+    });
+    return out;
+  })();
   const boostables = boostSources.reduce((acc, src) => {
     Object.keys(src || {}).forEach((boostableName) => {
       acc[boostableName] = {
@@ -331,7 +379,7 @@ export function filterTryit(dataSet, toArray) {
     return acc;
   }, {});
   if (boostables) {
-    const expectedBoostTables = ["nft", "nftw", "skill", "skilllgc", "buildng", "bud", "shrine"];
+    const expectedBoostTables = Array.isArray(cfg?.boostTables) ? cfg.boostTables : [];
     expectedBoostTables.forEach((boostableName) => {
       let bTable = [];
       const boostable = boostables?.[boostableName] || {};
@@ -342,39 +390,32 @@ export function filterTryit(dataSet, toArray) {
         .reduce((acc, item) => { acc[item.name] = item.value; return acc; }, {});
       result[boostableName] = tableToArray;
     });
-    let bFarm = {};
-    let bCook = {};
-    let bTryBuy = {};
-    let bTrySpot = {};
-    let bTrySpot2 = {};
-    let bTrySpot3 = {};
-    Object.entries(it).forEach(([item]) => { bFarm[item] = it[item].farmit; });
-    Object.entries(food).forEach(([item]) => { bCook[item] = food[item].cookit; });
-    Object.entries(pfood).forEach(([item]) => { bCook[item] = pfood[item].cookit; });
-    Object.entries(it).forEach(([item]) => { bTryBuy[item] = it[item].buyit; });
-    Object.entries(it).forEach(([item]) => { bTrySpot[item] = it[item].spottry; });
-    Object.entries(it).forEach(([item]) => { bTrySpot2[item] = it[item].spot2try; });
-    Object.entries(it).forEach(([item]) => { bTrySpot3[item] = it[item].spot3try; });
-    result.xbuyit = ConvToArray(bTryBuy, true);
-    result.xspottry = ConvToArray(bTrySpot);
-    result.xspot2try = ConvToArray(bTrySpot2);
-    result.xspot3try = ConvToArray(bTrySpot3);
-    result.xfarmit = ConvToArray(bFarm, true);
-    result.xcookit = ConvToArray(bCook, true);
+    const itemTables = (cfg?.itemTables && typeof cfg.itemTables === "object") ? cfg.itemTables : {};
+    Object.entries(itemTables).forEach(([payloadKey, tableCfg]) => {
+      const field = tableCfg?.field;
+      const baseField = tableCfg?.baseField || field;
+      const sources = Array.isArray(tableCfg?.sources) ? tableCfg.sources : [];
+      if (!field || sources.length < 1) {
+        result[payloadKey] = {};
+        return;
+      }
+      const out = {};
+      sources.forEach((sourcePath) => {
+        const sourceTable = mergedByPath(sourcePath);
+        Object.entries(sourceTable || {}).forEach(([itemName, itemValue]) => {
+          out[itemName] = Number(itemValue?.[field] || 0);
+        });
+      });
+      const keepZeros = (baseField === field) && (field === "farmit" || field === "buyit" || field === "cookit");
+      result[payloadKey] = ConvToArray(out, keepZeros);
+    });
   }
-  result.nft = result.nft || {};
-  result.nftw = result.nftw || {};
-  result.skill = result.skill || {};
-  result.skilllgc = result.skilllgc || {};
-  result.buildng = result.buildng || {};
-  result.bud = result.bud || {};
-  result.shrine = result.shrine || {};
-  result.xbuyit = result.xbuyit || {};
-  result.xspottry = result.xspottry || {};
-  result.xspot2try = result.xspot2try || {};
-  result.xspot3try = result.xspot3try || {};
-  result.xfarmit = result.xfarmit || {};
-  result.xcookit = result.xcookit || {};
+  (Array.isArray(cfg?.boostTables) ? cfg.boostTables : []).forEach((tableName) => {
+    result[tableName] = result[tableName] || {};
+  });
+  Object.keys(cfg?.itemTables || {}).forEach((payloadKey) => {
+    result[payloadKey] = result[payloadKey] || {};
+  });
   return result;
   function ConvToArray(tableVar, keepZeros = false) {
     const table = Object.entries(tableVar)

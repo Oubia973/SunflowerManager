@@ -108,7 +108,8 @@ const endpoints = [
   '/get50listing',
   '/getHT',
   '/getHN',
-  '/getHO',,
+  '/getHO',
+  '/getGraphMeta',
   '/save-subscription',
   '/remove-subscription'
 ];

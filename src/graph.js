@@ -13,10 +13,43 @@ const categoryGroups = {
   "pets": ["pet"],
 };
 
-function Graph({ data, vals, dataSetFarm, selectedCategory = 'all', legendResetToken = 0 }) {
-  const { it, petit } = dataSetFarm.itables;
+function Graph({ data, vals, dataSetFarm, graphMeta = {}, selectedCategory = 'all', legendResetToken = 0 }) {
   const chartRef = useRef(null);
   const canvasRef = useRef(null);
+
+  const mergedGraphTables = useMemo(() => {
+    const sources = [
+      dataSetFarm,
+      dataSetFarm?.invData,
+      dataSetFarm?.cookData,
+      dataSetFarm?.fishData,
+      dataSetFarm?.bountyData,
+      dataSetFarm?.craftData,
+      dataSetFarm?.flowerData,
+      dataSetFarm?.expandPageData,
+      dataSetFarm?.animalData,
+      dataSetFarm?.petData,
+      dataSetFarm?.mapData,
+      dataSetFarm?.cropMachineData,
+      dataSetFarm?.buyNodesData,
+    ];
+
+    const merged = { it: {}, petit: {} };
+    sources.forEach((src) => {
+      const tables = src?.itables;
+      if (!tables || typeof tables !== "object") return;
+      if (tables.it && typeof tables.it === "object") {
+        Object.assign(merged.it, tables.it);
+      }
+      if (tables.petit && typeof tables.petit === "object") {
+        Object.assign(merged.petit, tables.petit);
+      }
+    });
+
+    return merged;
+  }, [dataSetFarm]);
+
+  const { it, petit } = mergedGraphTables;
 
   const [hiddenLabels, setHiddenLabels] = useState(new Set());
   const [soloLabel, setSoloLabel] = useState(null);
@@ -54,8 +87,22 @@ function Graph({ data, vals, dataSetFarm, selectedCategory = 'all', legendResetT
       }
     }
 
+    Object.keys(graphMeta || {}).forEach((idKey) => {
+      const id = Number(idKey);
+      if (!Number.isFinite(id)) return;
+      const meta = graphMeta[idKey] || graphMeta[id] || {};
+      if (!map[id]) map[id] = {};
+      map[id].name = map[id].name || meta.name || `#${id}`;
+      map[id].color = map[id].color || meta.color || "#6b7280";
+      map[id].cat = map[id].cat || meta.cat || "";
+      map[id].img = map[id].img || meta.img || "./icon/nft/na.png";
+      map[id].active = Number(map[id].active ?? meta.active ?? 0);
+      map[id].inactive = Number(map[id].inactive ?? meta.inactive ?? 0);
+      map[id].listed = Number(map[id].listed ?? meta.listed ?? 0);
+    });
+
     return map;
-  }, [it, petit]);
+  }, [it, petit, graphMeta]);
 
   const datasets = useMemo(() => {
     if (!Array.isArray(data) || data.length === 0) {
@@ -66,8 +113,15 @@ function Graph({ data, vals, dataSetFarm, selectedCategory = 'all', legendResetT
     const sortedData = [...data].sort((a, b) => parseISO(a.date) - parseISO(b.date));
 
     sortedData.forEach((entry) => {
-      const info = idName[entry.id];
-      if (!info) return;
+      const info = idName[entry.id] || {
+        name: `#${entry.id}`,
+        color: "#6b7280",
+        cat: "",
+        img: "./icon/nft/na.png",
+        active: 0,
+        inactive: 0,
+        listed: 0,
+      };
 
       if (selectedCategory !== 'all' && !categoryGroups[selectedCategory]?.includes(info.cat)) {
         return;
@@ -102,16 +156,15 @@ function Graph({ data, vals, dataSetFarm, selectedCategory = 'all', legendResetT
       if (vals === 'price') {
         unitValue = Number(entry.unit);
       } else if (vals === 'supply') {
-        if (entry.supply) {
-          const formattedNumber = parseFloat(entry.supply).toFixed(2);
-          unitValue =
-            formattedNumber > 1000000000000
-              ? Math.round(Number(formattedNumber) / Math.pow(10, 18))
-                : Number(formattedNumber);
-        }
-        pointActive = Number(entry.supply ?? 0);
-        pointInactive = Number(entry.supplyInactive ?? 0);
-        pointListed = Number(entry.supplyListed ?? 0);
+        const normalizeSupplyValue = (value) => {
+          const n = Number(value ?? 0);
+          if (!Number.isFinite(n)) return 0;
+          return n > 1000000000000 ? n / Math.pow(10, 18) : n;
+        };
+        unitValue = normalizeSupplyValue(entry.supply);
+        pointActive = normalizeSupplyValue(entry.supply);
+        pointInactive = normalizeSupplyValue(entry.supplyInactive);
+        pointListed = normalizeSupplyValue(entry.supplyListed);
       } else if (vals === 'ntrade') {
         unitValue = entry.ntrade;
       }
@@ -140,16 +193,12 @@ function Graph({ data, vals, dataSetFarm, selectedCategory = 'all', legendResetT
       return `${datasetLabel}: ${frmtNb(value)}`;
     }
     if (vals === 'supply') {
-      const corrNumber =
-        value > 1000000000000
-          ? Math.round(Number(value) / Math.pow(10, 18))
-          : Number(value);
       const active = Number(context.raw?.active ?? value ?? 0);
       const inactive = Number(context.raw?.inactive ?? 0);
       const listed = Number(context.raw?.listed ?? 0);
       const total = active + inactive;
       const listedPct = active > 0 ? ((listed / active) * 100).toFixed(2) : "0.00";
-      return `${datasetLabel}: Active ${corrNumber.toLocaleString()} | Total ${total.toLocaleString()} | Listed ${listedPct}%`;
+      return `${datasetLabel}: Active ${frmtNb(active)} | Total ${frmtNb(total)} | Listed ${listedPct}%`;
     }
     return `${datasetLabel}: ${frmtNb(value)}`;
   };

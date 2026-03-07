@@ -427,6 +427,20 @@ function buildSectionsKey(sections) {
     .join("|");
 }
 
+function shouldDebugHashFlow() {
+  try {
+    if (typeof window !== "undefined" && window.__SFL_DEBUG_HASH_FLOW === true) return true;
+    return localStorage.getItem("SFL_DEBUG_HASH_FLOW") === "1";
+  } catch {
+    return false;
+  }
+}
+
+function sampleHashKeys(hashObj, limit = 5) {
+  const keys = Object.keys((hashObj && typeof hashObj === "object") ? hashObj : {});
+  return keys.slice(0, Math.max(1, Number(limit) || 5)).join(",");
+}
+
 function computeRequiredSections(uiState, pageSectionRequirements) {
   if (!pageSectionRequirements || typeof pageSectionRequirements !== "object") return [];
   const selectedInv = String(uiState?.selectedInv || "home");
@@ -977,11 +991,15 @@ function App() {
   const [autoRefreshNonce, setAutoRefreshNonce] = useState(0);
   const [autoRefreshPulse, setAutoRefreshPulse] = useState(0);
   const [autoRefreshNextAt, setAutoRefreshNextAt] = useState(0);
+  const [autoRefreshDurationMs, setAutoRefreshDurationMs] = useState(60 * 1000);
   const [activeTimers, setActiveTimers] = useState([]);
   const pendingSaveRef = useRef(false);
   const pendingTryitSnapshotRef = useRef(false);
   const refreshInFlightRef = useRef(false);
   const suppressNavUntilRef = useRef(0);
+  const autoRefreshHasRunRef = useRef(false);
+  const autoRefreshLastPageRef = useRef("");
+  const deliveryLastSyncRef = useRef({ farmId: "", pulse: -1 });
   const autoRefreshViewRef = useRef({
     selectedInv: "home",
     activityDisplay: "item",
@@ -1053,13 +1071,13 @@ function App() {
     pendingTryitSnapshotRef.current = false;
     const farmState = dataSetFarmRef.current || {};
     const farmId = String(farmState?.frmid || curID || dataSet?.options?.farmId || "");
-    const snapshot = filterTryit(farmState, true);
+    const snapshot = filterTryit(farmState, true, tryitConfig);
     if (hasTryitPayloadContent(snapshot)) {
       writeTryitSnapshot(snapshot, farmId, {
         preserveEmptyTables: tryitAllPayloadKeys,
       });
     }
-  }, [dataSetFarm, tryitAllPayloadKeys]);
+  }, [dataSetFarm, tryitAllPayloadKeys, tryitConfig]);
 
   const getTryitRequestPayload = (farmState) => {
     const requestFarmId = String(curID || farmState?.frmid || dataSet?.options?.farmId || "");
@@ -1147,7 +1165,7 @@ function App() {
       if (safeDelta && hasTryitPayloadContent(safeDelta)) {
         return { tryitarrays: safeDelta, tryitMode: "delta" };
       }
-      const computed = filterTryit(farmState || {}, true);
+      const computed = filterTryit(farmState || {}, true, tryitConfig);
       if (hasTryitPayloadContent(computed)) {
         const normalized = writeTryitSnapshot(computed, requestFarmId, {
           preserveEmptyTables: hasCanonicalTryitState() ? [] : tryitAllPayloadKeys,
@@ -1245,9 +1263,20 @@ function App() {
       !!dataSetFarm?.orderstable?.chores &&
       !!dataSetFarm?.orderstable?.bounties;
     const hasDeliveryTables = !!dataSetFarm?.itables?.it;
-    if (!hasOrdersData || !hasDeliveryTables) {
+    const currentFarmId = String(dataSetFarm?.frmid || dataSet?.options?.farmId || "");
+    const lastSync = deliveryLastSyncRef.current || { farmId: "", pulse: -1 };
+    const autoRefreshSinceLastOpen =
+      currentFarmId !== String(lastSync.farmId || "") ||
+      Number(autoRefreshPulse) > Number(lastSync.pulse ?? -1);
+    const mustSync = !hasOrdersData || !hasDeliveryTables || autoRefreshSinceLastOpen;
+    if (mustSync) {
       try {
-        await getPrices(false, true, ["orders", "inventory"]);
+        // Force NAV check only when needed (data missing or new auto-refresh since last open).
+        await getPrices(false, true, ["orders", "inventory", "deliverymeta"], false, "delivery", true);
+        deliveryLastSyncRef.current = {
+          farmId: currentFarmId,
+          pulse: Number(autoRefreshPulse),
+        };
       } catch (error) {
         console.log("Delivery preload error", error);
       }
@@ -1304,7 +1333,7 @@ function App() {
     const mergedFarmState = mergeFarmStateDeep(dataSetFarmRef.current || {}, safeTryPayload);
     dataSetFarmRef.current = mergedFarmState;
     setdataSetFarm(mergedFarmState);
-    const tryitSnapshot = filterTryit(mergedFarmState || {}, true);
+    const tryitSnapshot = filterTryit(mergedFarmState || {}, true, tryitConfig);
     if (hasTryitPayloadContent(tryitSnapshot)) {
       writeTryitSnapshot(tryitSnapshot, mergedFarmState?.frmid || dataSet?.options?.farmId || curID || "", {
         preserveEmptyTables: tryitStatefulPayloadKeys,
@@ -1335,7 +1364,7 @@ function App() {
     const mergedFarmState = mergeFarmStateDeep(dataSetFarmRef.current || {}, safeTryPayload);
     dataSetFarmRef.current = mergedFarmState;
     setdataSetFarm(mergedFarmState);
-    const tryitSnapshot = filterTryit(mergedFarmState || {}, true);
+    const tryitSnapshot = filterTryit(mergedFarmState || {}, true, tryitConfig);
     if (hasTryitPayloadContent(tryitSnapshot)) {
       writeTryitSnapshot(tryitSnapshot, mergedFarmState?.frmid || dataSet?.options?.farmId || curID || "", {
         preserveEmptyTables: tryitStatefulPayloadKeys,
@@ -1739,7 +1768,7 @@ function App() {
     const { inputValue } = ui;
     if (inputValue === null || inputValue === "" || inputValue === 0) return;
     if (!pageSectionRequirements || !sectionPayloadKeys || !sectionTablePaths) {
-      setReqState(sectionsMetaError || "Config sections manquante");
+      setReqState("Initialization in progress, please retry in a second.");
       return;
     }
     if (cdButton) return;
@@ -1748,9 +1777,16 @@ function App() {
     });
     try {
       //lastClickedInputValue.current = inputValue;
-      const normalizedInputId = String(inputValue ?? "");
-      const currentLoadedFarmId = String(dataSetFarmRef.current?.frmid || dataSet?.options?.farmId || "");
-      const keepCurrentViewWhileRefreshing = buttonClicked && normalizedInputId !== "" && normalizedInputId === currentLoadedFarmId;
+      const normalizedInputId = String(inputValue ?? "").trim();
+      const currentLoadedFarmId = String(dataSetFarmRef.current?.frmid || dataSet?.options?.farmId || "").trim();
+      const normalizedInputUsername = normalizedInputId.toLowerCase();
+      const currentLoadedUsername = String(
+        dataSet?.options?.username || dataSetFarmRef.current?.username || ""
+      ).trim().toLowerCase();
+      const keepCurrentViewWhileRefreshing = buttonClicked && normalizedInputId !== "" && (
+        normalizedInputId === currentLoadedFarmId ||
+        (normalizedInputUsername !== "" && normalizedInputUsername === currentLoadedUsername)
+      );
       curID = inputValue;
       if (!keepCurrentViewWhileRefreshing) {
         farmSectionHashesRef.current = {};
@@ -1925,7 +1961,7 @@ function App() {
             if (context === "optionChanged") {
 
             }
-            if (mergedInitialFarm.mutantchickens) {
+            if (mergedInitialFarm.mutantsHeader || mergedInitialFarm.mutantchickens) {
               setMutants(mergedInitialFarm);
             }
             //setRefresh(new Date().getMilliseconds());
@@ -2229,7 +2265,7 @@ function App() {
       );
     }
   }
-  async function getPrices(onlyPrices, withSectionLoader = false, forcedSections = null, forceRecalc = false, forcedPage = null) {
+  async function getPrices(onlyPrices, withSectionLoader = false, forcedSections = null, forceRecalc = false, forcedPage = null, alwaysCheckServer = false) {
     if (!onlyPrices && (!pageSectionRequirements || !sectionPayloadKeys || !sectionTablePaths)) {
       setReqState(sectionsMetaError || "Config sections manquante");
       return;
@@ -2247,22 +2283,24 @@ function App() {
     const includeSet = new Set(includeSource);
     if (!withSectionLoader) {
       includeSet.add("trades");
+      includeSet.add("core");
     }
     if (!onlyPrices && showfDlvr) {
       includeSet.add("orders");
+      includeSet.add("deliverymeta");
     }
     const include = [...includeSet];
     const includeMissingOnly = include.filter((section) =>
       !hasSectionData(currentFarmState, section, sectionPayloadKeys, sectionTablePaths)
     );
-    const includeToRequest = (withSectionLoader && !forceRecalc)
+    const includeToRequest = (withSectionLoader && !forceRecalc && !alwaysCheckServer)
       ? includeMissingOnly
       : include;
     const hasAllRequestedSectionsLocal = includeMissingOnly.length < 1;
     const hasAllIncludeToRequestLocal = includeToRequest.every((section) =>
       hasSectionData(currentFarmState, section, sectionPayloadKeys, sectionTablePaths)
     );
-    if (!onlyPrices && withSectionLoader && !forceRecalc && hasAllRequestedSectionsLocal) {
+    if (!onlyPrices && withSectionLoader && !forceRecalc && !alwaysCheckServer && hasAllRequestedSectionsLocal) {
       setReqState('');
       return;
     }
@@ -2274,6 +2312,16 @@ function App() {
     includeToRequest.forEach((section) => {
       if (!hasSectionData(currentFarmState, section, sectionPayloadKeys, sectionTablePaths)) {
         delete knownHashes[section];
+        const missingSectionPaths = Array.isArray(sectionTablePaths?.[section])
+          ? sectionTablePaths[section]
+          : [];
+        missingSectionPaths.forEach((path) => {
+          // Keep known table hashes when the local cache already has that table path.
+          // This preserves cross-page delta efficiency for shared tables (e.g. itables.it).
+          if (!hasPathData(currentFarmState, path)) {
+            delete knownTableHashes[path];
+          }
+        });
       }
     });
     const requestMode = withSectionLoader ? "nav" : "refresh";
@@ -2293,6 +2341,17 @@ function App() {
       tryitarrays: tryItArrays,
       tryitMode,
     };
+    if (!onlyPrices && shouldDebugHashFlow()) {
+      const knownTableCount = Object.keys(knownTableHashes || {}).length;
+      const knownSectionCount = Object.keys(knownHashes || {}).length;
+      const includeTxt = Array.isArray(includeToRequest) ? includeToRequest.join(",") : "";
+      // Debug only: client-side hash flow visibility.
+      console.log(
+        `[hashflow][client:req] mode:${requestMode} page:${String(requestedPage || "unknown")} ` +
+        `knownTables:${knownTableCount} knownSections:${knownSectionCount} ` +
+        `sample:[${sampleHashKeys(knownTableHashes, 5)}] include:[${includeTxt}]`
+      );
+    }
     //console.log("dataSetFarm dans getPrices :", dataSetFarm);
     const isRefreshRequest = !onlyPrices && !withSectionLoader;
     if (isRefreshRequest) {
@@ -2314,6 +2373,7 @@ function App() {
       if (response.ok) {
       const responseData = await response.json();
       const respData = responseData.allData;
+      let mergedFarmData = currentFarmState;
       setpriceData(JSON.parse(JSON.stringify(responseData.priceData)));
       if (respData !== "" && respData !== undefined) {
         if (respData?.sectionHashes && typeof respData.sectionHashes === "object") {
@@ -2329,7 +2389,7 @@ function App() {
             ...knownFromPayload,
           };
         }
-        const mergedFarmData = mergeFarmStateDeep(currentFarmState, respData);
+        mergedFarmData = mergeFarmStateDeep(currentFarmState, respData);
         //setdataSetFarm(respData);
         setFarmData(mergedFarmData.frmData || {});
         dataSet.options.isAbo = mergedFarmData.isabo;
@@ -2405,8 +2465,8 @@ function App() {
       //NFTPrice();
       //xinitprc = true;
       setReqState('');
-        if (respData.mutantchickens) {
-          setMutants(respData);
+        if (respData?.mutantsHeader || respData?.mutantchickens) {
+          setMutants(mergedFarmData);
           //setsTickets(respData.sTickets);
         }
       } else {
@@ -2432,20 +2492,49 @@ function App() {
     }
   }
   function setMutants(dataSetMutant) {
-    const tableMutant = dataSetMutant.mutantchickens;
-    const MutItems = tableMutant.map(([item, amount], index) => {
-      const itemName = tableMutant[index][0].name;
-      //const cobj = nft[itemName];
-      let itemImg = imgna;
-      if (dataSetMutant?.boostables?.nft?.[itemName]) { itemImg = dataSetMutant?.boostables?.nft?.[itemName]?.img; }
-      if (dataSetMutant?.itables?.mutant?.[itemName]) { itemImg = dataSetMutant?.itables?.mutant?.[itemName]?.img; }
+    const normalizedHeader = Array.isArray(dataSetMutant?.mutantsHeader)
+      ? dataSetMutant.mutantsHeader
+      : [];
+    const extractFirstRewardItem = (entry) => {
+      if (!entry) return null;
+      if (Array.isArray(entry) && entry.length > 0) {
+        if (Array.isArray(entry[0])) return extractFirstRewardItem(entry[0]);
+        if (entry[0] && typeof entry[0] === "object") return entry[0];
+        if (typeof entry[0] === "string") return { name: entry[0] };
+      }
+      if (typeof entry === "object" && !Array.isArray(entry)) {
+        if (entry.name || entry.item || entry.key || entry.id) {
+          return { ...entry, name: entry.name || entry.item || entry.key || entry.id };
+        }
+        const firstKey = Object.keys(entry)[0];
+        if (firstKey) return { name: firstKey };
+      }
+      return null;
+    };
+    const tableMutant = normalizedHeader.length > 0
+      ? normalizedHeader
+      : (
+        Array.isArray(dataSetMutant?.mutantchickens)
+          ? dataSetMutant.mutantchickens.map((entry) => extractFirstRewardItem(entry)).filter(Boolean)
+          : []
+      );
+    const MutItems = tableMutant.map((mutEntry, index) => {
+      const itemObj = extractFirstRewardItem(mutEntry) || mutEntry || {};
+      const itemName = itemObj?.name;
+      let itemImg = itemObj?.img || imgna;
+      if (!itemObj?.img && dataSetMutant?.boostables?.nft?.[itemName]) { itemImg = dataSetMutant?.boostables?.nft?.[itemName]?.img; }
+      if (!itemObj?.img && dataSetMutant?.itables?.mutant?.[itemName]) { itemImg = dataSetMutant?.itables?.mutant?.[itemName]?.img; }
       return (
-        <img src={itemImg} alt={''} className="nftico" title={tableMutant[index][0].name} />
+        <img key={`mut-${index}-${itemName || "na"}`} src={itemImg} alt={''} className="nftico" title={itemName || "Mutant"} />
       )
     });
     const txtMutants = tableMutant.length > 0 && <><span style={{ fontSize: "11px" }}>Mutant found : {MutItems}</span></>;
     setmutData(txtMutants);
   }
+  useEffect(() => {
+    if (!dataSetFarm?.mutantsHeader && !dataSetFarm?.mutantchickens) return;
+    setMutants(dataSetFarm);
+  }, [dataSetFarm?.mutantsHeader, dataSetFarm?.mutantchickens]);
   function setsTickets(tabletk) {
     /* if (tabletk.length > 1) {
       //setticketsData(<div><img src={dataSet.imgtkt} alt={''} className="itico" />{tabletk[1].amount}</div>);
@@ -2516,6 +2605,7 @@ function App() {
     //setXListeCol();
   }, []);
   const intervalRef = useRef(null);
+  const timeoutRef = useRef(null);
   const refreshSectionsKey = useMemo(
     () => buildSectionsKey(computeRequiredSections(ui, pageSectionRequirements)),
     [ui?.selectedInv, ui?.activityDisplay, ui?.fishView, ui?.petView, pageSectionRequirements]
@@ -2533,7 +2623,9 @@ function App() {
     };
   }, [ui?.selectedInv, ui?.activityDisplay, ui?.fishView, ui?.petView, showfDlvr]);
   useEffect(() => {
-    const duration = 60 * 1000;
+    const normalDuration = 60 * 1000;
+    const firstDuration = dataSet?.options?.isAbo ? normalDuration : 20 * 1000;
+    let firstCyclePending = true;
     const fetchData = async () => {
       try {
         if (!autoRefreshEnabled) return;
@@ -2552,11 +2644,14 @@ function App() {
         const includeSections = [...new Set([
           ...(Array.isArray(sections) ? sections : []),
           "trades",
-          ...(view.showfDlvr ? ["orders"] : []),
+          ...(view.showfDlvr ? ["orders", "deliverymeta"] : []),
         ])];
         await getPrices(false, false, includeSections, true, view.selectedInv || "home");
+        autoRefreshHasRunRef.current = true;
+        autoRefreshLastPageRef.current = String(view.selectedInv || "home");
         setAutoRefreshPulse((v) => v + 1);
-        setAutoRefreshNextAt(Date.now() + duration);
+        setAutoRefreshDurationMs(normalDuration);
+        setAutoRefreshNextAt(Date.now() + normalDuration);
       } catch (error) {
         console.log(`Error: ${error}`);
         dataSet.updated = formatUpdated(farmData?.updated);
@@ -2565,6 +2660,10 @@ function App() {
       }
     };
     const clearAllTimers = () => {
+      if (timeoutRef.current) {
+        clearTimeout(timeoutRef.current);
+        timeoutRef.current = null;
+      }
       if (intervalRef.current) {
         clearInterval(intervalRef.current);
         intervalRef.current = null;
@@ -2576,15 +2675,32 @@ function App() {
         setAutoRefreshNextAt(0);
         return;
       }
-      setAutoRefreshNextAt(Date.now() + duration);
+      const initialDuration = firstCyclePending ? firstDuration : normalDuration;
+      setAutoRefreshDurationMs(initialDuration);
+      setAutoRefreshNextAt(Date.now() + initialDuration);
+      if (firstCyclePending && initialDuration !== normalDuration) {
+        timeoutRef.current = setTimeout(() => {
+          fetchData()
+            .catch((error) => console.log(`Error: ${error}`))
+            .finally(() => {
+              firstCyclePending = false;
+              setAutoRefreshDurationMs(normalDuration);
+              setAutoRefreshNextAt(Date.now() + normalDuration);
+              intervalRef.current = setInterval(() => {
+                fetchData().catch((error) => console.log(`Error: ${error}`));
+              }, normalDuration);
+            });
+        }, initialDuration);
+        return;
+      }
+      firstCyclePending = false;
       intervalRef.current = setInterval(() => {
         fetchData().catch((error) => console.log(`Error: ${error}`));
-      }, duration);
+      }, normalDuration);
     };
     const handleVisibilityChange = () => {
       if (document.visibilityState === 'visible') {
         startTimers();
-        fetchData().catch((error) => console.log(`Error: ${error}`));
       } else {
         clearAllTimers();
       }
@@ -2592,6 +2708,7 @@ function App() {
     startTimers();
     if (!autoRefreshEnabled) {
       setAutoRefreshNextAt(0);
+      setAutoRefreshDurationMs(normalDuration);
     }
     document.addEventListener('visibilitychange', handleVisibilityChange);
     return () => {
@@ -2608,12 +2725,20 @@ function App() {
     const runNavLoadIfNeeded = () => {
       if (!dataSetFarm?.frmid) return;
       if (refreshInFlightRef.current) return;
+      const currentPage = String(ui?.selectedInv || "home");
+      const shouldForceNavAfterRefreshElsewhere =
+        autoRefreshHasRunRef.current &&
+        autoRefreshLastPageRef.current !== "" &&
+        autoRefreshLastPageRef.current !== currentPage;
       const required = computeRequiredSections(ui, pageSectionRequirements);
       const hasAllSections = required.every((section) => hasSectionData(dataSetFarm, section, sectionPayloadKeys, sectionTablePaths));
-      if (hasAllSections) return;
-      getPrices(false, true).catch((error) => {
+      if (hasAllSections && !shouldForceNavAfterRefreshElsewhere) return;
+      getPrices(false, true, null, false, null, shouldForceNavAfterRefreshElsewhere).catch((error) => {
         console.log(`Error: ${error}`);
       });
+      if (shouldForceNavAfterRefreshElsewhere) {
+        autoRefreshHasRunRef.current = false;
+      }
     };
     const suppressUntil = Number(suppressNavUntilRef.current || 0);
     const now = Date.now();
@@ -2625,7 +2750,7 @@ function App() {
       return () => clearTimeout(timer);
     }
     runNavLoadIfNeeded();
-  }, [ui?.selectedInv, ui?.activityDisplay, ui?.fishView, ui?.petView, dataSetFarm?.frmid, pageSectionRequirements, sectionPayloadKeys, sectionTablePaths]);
+  }, [ui?.selectedInv, ui?.activityDisplay, ui?.fishView, ui?.petView, dataSetFarm, dataSetFarm?.frmid, pageSectionRequirements, sectionPayloadKeys, sectionTablePaths]);
   useEffect(() => {
     if (!curID) return;
     if (dataSet.options.useNotifications) {
@@ -2742,7 +2867,7 @@ function App() {
                       el.dataset.locked = "1";
                     }}
                     style={{ left: 1, top: 3, zIndex: 2 }}
-                    disabled={cdButton}
+                    disabled={cdButton || !sectionsMeta}
                   >
                     <img src="./icon/ui/search.png" alt="" className="resico" />
                   </button>
@@ -2753,7 +2878,7 @@ function App() {
                     <AutoRefreshProgress
                       active={autoRefreshActive}
                       resetKey={autoRefreshResetKey}
-                      durationMs={60 * 1000}
+                      durationMs={autoRefreshDurationMs}
                       deadlineMs={autoRefreshNextAt}
                       variant="circle"
                     />
