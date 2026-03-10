@@ -14,12 +14,19 @@ import DList from "./dlist.jsx";
 import { FormControl, InputLabel, Select, MenuItem, Switch, FormControlLabel } from '@mui/material';
 import { frmtNb, filterTryit, formatUpdated, UpdatedSince, mergeFarmStateDeep, getOrCreateDeviceId } from './fct.js';
 import { computeGemsRatio } from './gemsRatio.js';
-import { promptPass } from './promptPass';
+import { promptPass, promptInfo } from './promptW';
 
 import { AppCtx } from "./context/AppCtx";
 import PanelTable from "./tables/PanelTable";
 import HeaderTrades from "./components/HeaderTrades";
 import AutoRefreshProgress from "./components/AutoRefreshProgress";
+import TryProfileSummaryModal from "./components/TryProfileSummaryModal.jsx";
+import {
+  parseTryProfileFromLocation,
+  clearTryProfileFromUrl,
+  buildTryProfileSummaryRows,
+  buildSharedBoostChangesRows,
+} from "./tryProfileShare.js";
 
 import { Capacitor } from '@capacitor/core';
 import { PushNotifications } from '@capacitor/push-notifications';
@@ -32,6 +39,9 @@ const API_URL = runLocal ? "" : process.env.REACT_APP_API_URL;
 const TRYIT_STORAGE_KEY = "SFLManTryit";
 const TRYIT_FALLBACK_BOOST_KEYS = ["nft", "nftw", "skill", "skilllgc", "buildng", "bud", "shrine"];
 const TRYIT_FALLBACK_ITEM_KEYS = ["xbuyit", "xfarmit", "xcookit", "xspottry", "xspot2try", "xspot3try"];
+const LOAD_FARM_COOLDOWN_MS = 6000;
+const LOAD_FARM_SPAM_WINDOW_MS = 2500;
+const LOAD_FARM_SPAM_THRESHOLD = 4;
 
 var vversion = 0.09;
 let dataSet = {};
@@ -97,6 +107,7 @@ const INV_COLUMNS_TEMPLATE = [
   ['When ready', 1],
   ['Price change', 1],
   ['Gain/h', 0],
+  ['Buy', 1],
 ];
 const INV_COLUMNS_PICKER = [
   // { idx: 0, label: 'Hoard' },
@@ -104,6 +115,7 @@ const INV_COLUMNS_PICKER = [
   { idx: 2, label: 'Quantity' },
   { idx: 3, label: 'Time' },
   { idx: 4, label: 'Production cost' },
+  { idx: 22, label: 'Buy' },
   { idx: 5, label: 'Shop price' },
   { idx: 6, label: 'Ratio coins/flower' },
   { idx: 7, label: 'Marketplace price' },
@@ -557,12 +569,17 @@ function writeTryitSnapshot(tryitPayload, farmId = "", options = {}) {
       });
     }
     if (!hasTryitPayloadContent(merged)) {
-      localStorage.removeItem(TRYIT_STORAGE_KEY);
-      return null;
+      localStorage.setItem(TRYIT_STORAGE_KEY, JSON.stringify({
+        frmid: String(farmId || ""),
+        payload: {},
+        updatedAt: Date.now(),
+      }));
+      return {};
     }
     localStorage.setItem(TRYIT_STORAGE_KEY, JSON.stringify({
       frmid: String(farmId || ""),
       payload: merged,
+      updatedAt: Date.now(),
     }));
     return merged;
   } catch {
@@ -658,6 +675,7 @@ function App() {
     buyNodesSubObsidian: 0,
     buyNodesBuyPerWeek: 1,
     buyNodesSplitStrategy: "short_time",
+    tryProfileShareScope: ["nodes", "buy", "collectibles", "wearables", "craft", "buds", "skills", "shrines"],
     toCM: {},
     selectedHomeBlocks: {},
     selectedHomeItems: {},
@@ -824,6 +842,18 @@ function App() {
       || next.buyNodesSplitStrategy === "short_time"
     ) ? next.buyNodesSplitStrategy : "short_time";
     next.buyNodesTimeFromStock = !!next.buyNodesTimeFromStock;
+    const allowedTryProfileShareScope = new Set(["nodes", "buy", "collectibles", "wearables", "craft", "buds", "skills", "shrines"]);
+    const normalizedTryProfileShareScope = (Array.isArray(next.tryProfileShareScope) ? next.tryProfileShareScope : [])
+      .map((v) => {
+        const key = String(v || "");
+        if (key === "nft") return "collectibles";
+        if (key === "wearable") return "wearables";
+        return key;
+      })
+      .filter((v) => allowedTryProfileShareScope.has(v));
+    next.tryProfileShareScope = normalizedTryProfileShareScope.length > 0
+      ? normalizedTryProfileShareScope
+      : ["nodes", "buy", "collectibles", "wearables", "craft", "buds", "skills", "shrines"];
     return next;
   };
   const [ui, setUI] = useState(() => {
@@ -999,6 +1029,7 @@ function App() {
   const suppressNavUntilRef = useRef(0);
   const autoRefreshHasRunRef = useRef(false);
   const autoRefreshLastPageRef = useRef("");
+  const autoRefreshForceNormalFirstCycleRef = useRef(false);
   const deliveryLastSyncRef = useRef({ farmId: "", pulse: -1 });
   const autoRefreshViewRef = useRef({
     selectedInv: "home",
@@ -1010,6 +1041,12 @@ function App() {
   const expandRequestSeqRef = useRef(0);
   const farmSectionHashesRef = useRef({});
   const farmTableHashesRef = useRef({});
+  const loadFarmCooldownUntilRef = useRef(0);
+  const loadFarmRequestInFlightRef = useRef(false);
+  const loadFarmCooldownTimerRef = useRef(null);
+  const loadFarmSpamClickTimesRef = useRef([]);
+  const loadFarmSpamPromptOpenRef = useRef(false);
+  const invBuyRefreshCooldownUntilRef = useRef(0);
   const dataSetFarmRef = useRef({});
   const deviceIdRef = useRef(getOrCreateDeviceId());
   const headerRequestCountRef = useRef(0);
@@ -1024,6 +1061,7 @@ function App() {
   const [adminData, setAdminData] = useState(null);
   const [showHelp, setShowHelp] = useState(false);
   const [showCadre, setShowCadre] = useState(false);
+  const [sharedTryProfile, setSharedTryProfile] = useState(null);
   const [sectionsMeta, setSectionsMeta] = useState(null);
   const [sectionsMetaError, setSectionsMetaError] = useState("");
   const pageSectionRequirements = sectionsMeta?.pageSectionRequirements || null;
@@ -1056,6 +1094,37 @@ function App() {
   useEffect(() => {
     dataSetFarmRef.current = dataSetFarm || {};
   }, [dataSetFarm]);
+  useEffect(() => {
+    let cancelled = false;
+    const loadSharedProfile = async () => {
+      const sharedProfile = await parseTryProfileFromLocation();
+      if (cancelled) return;
+      if (sharedProfile && typeof sharedProfile === "object") {
+        const directBoostChanges = Array.isArray(sharedProfile?.boostChanges) ? sharedProfile.boostChanges : [];
+        const sharedRows = buildSharedBoostChangesRows(sharedProfile);
+        const rows = directBoostChanges.length > 0
+          ? directBoostChanges
+          : sharedRows.length > 0
+          ? sharedRows
+          : buildTryProfileSummaryRows(sharedProfile).map((row) => ({
+            ...row,
+            status: "added",
+            section: row?.section || "",
+            category: row?.category || "Other",
+          }));
+        setSharedTryProfile({
+          ...sharedProfile,
+          compareMode: "shared",
+          profileName: String(sharedProfile?.profileName || "Shared"),
+          boostChanges: rows,
+        });
+      }
+    };
+    loadSharedProfile();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
   const beginHeaderRequest = () => {
     headerRequestCountRef.current += 1;
     setHeaderRequestLoading(true);
@@ -1243,6 +1312,24 @@ function App() {
       [index]: !prevState[index],
     }));
   };
+  const handleInvBuyRefresh = async () => {
+    const now = Date.now();
+    if (now < Number(invBuyRefreshCooldownUntilRef.current || 0)) {
+      return false;
+    }
+    invBuyRefreshCooldownUntilRef.current = now + 4000;
+    try {
+      await getPrices(false, true, ["inventory", "boosts"], true, "inv", true, "BUY");
+      autoRefreshForceNormalFirstCycleRef.current = true;
+      setAutoRefreshDurationMs(60 * 1000);
+      setAutoRefreshNextAt(Date.now() + (60 * 1000));
+      setAutoRefreshNonce((v) => v + 1);
+      return true;
+    } catch (error) {
+      console.log("Inv buy refresh error", error);
+      return false;
+    }
+  };
   const handleButtonfTNFTClick = async () => {
     const hasFullTryTables =
       hasSectionData(dataSetFarm, "boosts", sectionPayloadKeys, sectionTablePaths) &&
@@ -1333,12 +1420,14 @@ function App() {
     const mergedFarmState = mergeFarmStateDeep(dataSetFarmRef.current || {}, safeTryPayload);
     dataSetFarmRef.current = mergedFarmState;
     setdataSetFarm(mergedFarmState);
-    const tryitSnapshot = filterTryit(mergedFarmState || {}, true, tryitConfig);
-    if (hasTryitPayloadContent(tryitSnapshot)) {
-      writeTryitSnapshot(tryitSnapshot, mergedFarmState?.frmid || dataSet?.options?.farmId || curID || "", {
-        preserveEmptyTables: tryitStatefulPayloadKeys,
-      });
-    }
+    const canonicalTryitState = {
+      itables: mergedFarmState?.itables || {},
+      boostables: mergedFarmState?.boostables || {},
+    };
+    const tryitSnapshot = filterTryit(canonicalTryitState, true, tryitConfig);
+    writeTryitSnapshot(tryitSnapshot, mergedFarmState?.frmid || dataSet?.options?.farmId || curID || "", {
+      preserveEmptyTables: tryitStatefulPayloadKeys,
+    });
     setdeliveriesData(mergedFarmState?.orderstable || []);
     setShowfTNFT(false);
     if (!mergedFarmState?.ftrades && !mergedFarmState?.ftradesHeader) {
@@ -1364,12 +1453,14 @@ function App() {
     const mergedFarmState = mergeFarmStateDeep(dataSetFarmRef.current || {}, safeTryPayload);
     dataSetFarmRef.current = mergedFarmState;
     setdataSetFarm(mergedFarmState);
-    const tryitSnapshot = filterTryit(mergedFarmState || {}, true, tryitConfig);
-    if (hasTryitPayloadContent(tryitSnapshot)) {
-      writeTryitSnapshot(tryitSnapshot, mergedFarmState?.frmid || dataSet?.options?.farmId || curID || "", {
-        preserveEmptyTables: tryitStatefulPayloadKeys,
-      });
-    }
+    const canonicalTryitState = {
+      itables: mergedFarmState?.itables || {},
+      boostables: mergedFarmState?.boostables || {},
+    };
+    const tryitSnapshot = filterTryit(canonicalTryitState, true, tryitConfig);
+    writeTryitSnapshot(tryitSnapshot, mergedFarmState?.frmid || dataSet?.options?.farmId || curID || "", {
+      preserveEmptyTables: tryitStatefulPayloadKeys,
+    });
     if (!mergedFarmState?.ftrades && !mergedFarmState?.ftradesHeader) {
       getPrices(false, true, ["trades"]).catch((error) => {
         console.log("TryNFT refresh trades sync error", error);
@@ -1396,6 +1487,10 @@ function App() {
   };
   const handleCloseCadre = () => {
     setShowCadre(false);
+  };
+  const handleCloseTryProfileSummary = () => {
+    setSharedTryProfile(null);
+    clearTryProfileFromUrl();
   };
   async function subscribeToPush() {
     /* if (!dataSet.options.useNotifications) {
@@ -1765,13 +1860,51 @@ function App() {
     }));
   }
   const handleButtonClick = async (context = null) => {
+    const registerLoadFarmSpamAttempt = () => {
+      const nowTs = Date.now();
+      const recent = (loadFarmSpamClickTimesRef.current || []).filter((ts) => (nowTs - ts) <= LOAD_FARM_SPAM_WINDOW_MS);
+      recent.push(nowTs);
+      loadFarmSpamClickTimesRef.current = recent;
+      if (recent.length < LOAD_FARM_SPAM_THRESHOLD) return;
+      if (loadFarmSpamPromptOpenRef.current) return;
+      loadFarmSpamPromptOpenRef.current = true;
+      loadFarmSpamClickTimesRef.current = [];
+      promptInfo(
+        "No need to spam this button. The server can take up to 20 seconds to provide up-to-date farm data. You have a 20-second auto-refresh on page load, so just wait for the data to update.",
+        "Please wait",
+        "Got it"
+      ).finally(() => {
+        loadFarmSpamPromptOpenRef.current = false;
+      });
+    };
+
     const { inputValue } = ui;
     if (inputValue === null || inputValue === "" || inputValue === 0) return;
     if (!pageSectionRequirements || !sectionPayloadKeys || !sectionTablePaths) {
       setReqState("Initialization in progress, please retry in a second.");
       return;
     }
-    if (cdButton) return;
+    const now = Date.now();
+    if (loadFarmRequestInFlightRef.current) {
+      registerLoadFarmSpamAttempt();
+      return;
+    }
+    if (now < loadFarmCooldownUntilRef.current) {
+      registerLoadFarmSpamAttempt();
+      return;
+    }
+    loadFarmSpamClickTimesRef.current = [];
+    loadFarmRequestInFlightRef.current = true;
+    loadFarmCooldownUntilRef.current = now + LOAD_FARM_COOLDOWN_MS;
+    setcdButton(true);
+    if (loadFarmCooldownTimerRef.current) {
+      clearTimeout(loadFarmCooldownTimerRef.current);
+    }
+    loadFarmCooldownTimerRef.current = setTimeout(() => {
+      if (!loadFarmRequestInFlightRef.current && Date.now() >= loadFarmCooldownUntilRef.current) {
+        setcdButton(false);
+      }
+    }, LOAD_FARM_COOLDOWN_MS);
     activeTimers.forEach(timerId => {
       clearInterval(timerId);
     });
@@ -1974,12 +2107,6 @@ function App() {
             setdataSetFarm(newdataSetFarm);
             //console.error("Error fetching farm data:", response.status);
           }
-          //setUIField("cdButton", true);
-          setcdButton(true);
-          setTimeout(() => {
-            //setUIField("cdButton", false);
-            setcdButton(false);
-          }, 2000);
         } catch (error) {
           //setReqState(`Error : ${response.status}`);
           //console.error("Error during fetchFarmData:", error);
@@ -2004,6 +2131,17 @@ function App() {
       //console.log(`Error : ${error}`);
       //localStorage.clear();
       //console.log("Error, cleared local data");
+    } finally {
+      loadFarmRequestInFlightRef.current = false;
+      if (loadFarmCooldownTimerRef.current) {
+        clearTimeout(loadFarmCooldownTimerRef.current);
+      }
+      const remainingCooldown = Math.max(0, loadFarmCooldownUntilRef.current - Date.now());
+      loadFarmCooldownTimerRef.current = setTimeout(() => {
+        if (!loadFarmRequestInFlightRef.current && Date.now() >= loadFarmCooldownUntilRef.current) {
+          setcdButton(false);
+        }
+      }, remainingCooldown);
     }
   };
 
@@ -2175,7 +2313,8 @@ function App() {
     handleOSClick,
     handleTradeListClick,
     handleRefreshfTNFT,
-    handleSetHrvMax
+    handleSetHrvMax,
+    handleInvBuyRefresh
   }), [
     handleUIChange,
     setUIField,
@@ -2186,7 +2325,8 @@ function App() {
     handleOSClick,
     handleTradeListClick,
     handleRefreshfTNFT,
-    handleSetHrvMax
+    handleSetHrvMax,
+    handleInvBuyRefresh
   ]);
   const img = useMemo(() => ({
     imgsfl,
@@ -2265,7 +2405,7 @@ function App() {
       );
     }
   }
-  async function getPrices(onlyPrices, withSectionLoader = false, forcedSections = null, forceRecalc = false, forcedPage = null, alwaysCheckServer = false) {
+  async function getPrices(onlyPrices, withSectionLoader = false, forcedSections = null, forceRecalc = false, forcedPage = null, alwaysCheckServer = false, requestTag = "") {
     if (!onlyPrices && (!pageSectionRequirements || !sectionPayloadKeys || !sectionTablePaths)) {
       setReqState(sectionsMetaError || "Config sections manquante");
       return;
@@ -2340,6 +2480,7 @@ function App() {
       forceRecalc: !!forceRecalc,
       tryitarrays: tryItArrays,
       tryitMode,
+      requestTag: String(requestTag || ""),
     };
     if (!onlyPrices && shouldDebugHashFlow()) {
       const knownTableCount = Object.keys(knownTableHashes || {}).length;
@@ -2611,8 +2752,8 @@ function App() {
     [ui?.selectedInv, ui?.activityDisplay, ui?.fishView, ui?.petView, pageSectionRequirements]
   );
   const autoRefreshEnabled = options?.autoRefresh !== false;
-  const autoRefreshActive = !!(autoRefreshEnabled && buttonClicked && dataSetFarm?.frmid && !showfTNFT);
-  const autoRefreshResetKey = `${dataSetFarm?.frmid || ""}|${autoRefreshNonce}|${showfTNFT ? 1 : 0}|${autoRefreshPulse}`;
+  const autoRefreshActive = !!(autoRefreshEnabled && buttonClicked && dataSetFarm?.frmid && !showfTNFT && !showfGraph);
+  const autoRefreshResetKey = `${dataSetFarm?.frmid || ""}|${autoRefreshNonce}|${showfTNFT ? 1 : 0}|${showfGraph ? 1 : 0}|${autoRefreshPulse}`;
   useEffect(() => {
     autoRefreshViewRef.current = {
       selectedInv: ui?.selectedInv || "home",
@@ -2624,14 +2765,17 @@ function App() {
   }, [ui?.selectedInv, ui?.activityDisplay, ui?.fishView, ui?.petView, showfDlvr]);
   useEffect(() => {
     const normalDuration = 60 * 1000;
-    const firstDuration = dataSet?.options?.isAbo ? normalDuration : 20 * 1000;
+    const firstDuration = autoRefreshForceNormalFirstCycleRef.current
+      ? normalDuration
+      : (dataSet?.options?.isAbo ? normalDuration : 20 * 1000);
+    autoRefreshForceNormalFirstCycleRef.current = false;
     let firstCyclePending = true;
     const fetchData = async () => {
       try {
         if (!autoRefreshEnabled) return;
         if (!buttonClicked) return;
         if (!dataSetFarm?.frmid) return;
-        if (showfTNFT) return;
+        if (showfTNFT || showfGraph) return;
         if (document.visibilityState !== "visible") return;
         const view = autoRefreshViewRef.current || {};
         const refreshUI = {
@@ -2671,7 +2815,7 @@ function App() {
     };
     const startTimers = () => {
       clearAllTimers();
-      if (!autoRefreshEnabled || !buttonClicked || !dataSetFarm?.frmid || showfTNFT) {
+      if (!autoRefreshEnabled || !buttonClicked || !dataSetFarm?.frmid || showfTNFT || showfGraph) {
         setAutoRefreshNextAt(0);
         return;
       }
@@ -2715,7 +2859,7 @@ function App() {
       clearAllTimers();
       document.removeEventListener('visibilitychange', handleVisibilityChange);
     };
-  }, [dataSetFarm?.frmid, autoRefreshNonce, showfTNFT, pageSectionRequirements, autoRefreshEnabled]);
+  }, [dataSetFarm?.frmid, autoRefreshNonce, showfTNFT, showfGraph, pageSectionRequirements, autoRefreshEnabled]);
   useEffect(() => {
     getFromToExpand(Number(fromexpand) + 1, Number(toexpand), selectedExpandType);
   }, [fromexpand, toexpand, selectedExpandType]);
@@ -2843,31 +2987,12 @@ function App() {
                 <div className="coach-search-refresh-target" style={{ position: "relative", left: -4, top: 0 }}>
                   <button
                     name="getFarm"
-                    onClick={(e) => {
-                      const el = e.currentTarget;
-                      if (el.disabled) return;
+                    onClick={() => {
                       handleButtonClick();
-                      el.disabled = true;
-                      el.classList.add("is-wait");
-                      setTimeout(() => {
-                        el.disabled = false;
-                        el.classList.remove("is-wait");
-                        el.dataset.locked = "";
-                      }, 4000);
                     }}
-                    //onClick={handleButtonClick}
                     className="button"
-                    onPointerDown={(e) => {
-                      const el = e.currentTarget;
-                      if (el.dataset.locked === "1") {
-                        e.preventDefault();
-                        e.stopPropagation();
-                        return;
-                      }
-                      el.dataset.locked = "1";
-                    }}
                     style={{ left: 1, top: 3, zIndex: 2 }}
-                    disabled={cdButton || !sectionsMeta}
+                    disabled={!sectionsMeta}
                   >
                     <img src="./icon/ui/search.png" alt="" className="resico" />
                   </button>
@@ -3389,7 +3514,7 @@ function App() {
         {showfGraph && (
           <ModalGraph onClose={handleClosefGraph}
             graphtype={GraphType}
-            frmid={dataSet.options.farmid}
+            frmid={dataSet.options.farmId}
             username={dataSet.options.username}
             dataSetFarm={dataSetFarm}
             API_URL={API_URL} />
@@ -3423,6 +3548,12 @@ function App() {
             currentPage={ui?.selectedInv || "home"}
           />
         )}
+        {sharedTryProfile ? (
+          <TryProfileSummaryModal
+            profile={sharedTryProfile}
+            onClose={handleCloseTryProfileSummary}
+          />
+        ) : null}
         {tooltipData && (
           <Tooltip
             onClose={() => setTooltipData(null)}

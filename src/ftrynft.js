@@ -5,6 +5,21 @@ import CounterInput from "./counterinput.js";
 import DList from "./dlist.jsx";
 import { frmtNb, ColorValue, mergeFarmStateDeep, getOrCreateDeviceId } from './fct.js';
 import Help from './fhelp.js';
+import TryProfileShareBar from "./components/TryProfileShareBar.jsx";
+import TryProfileSummaryModal from "./components/TryProfileSummaryModal.jsx";
+import { getScopeTablesFromPayload } from "./tryProfileShare.js";
+import {
+  computeProfileSummaryPayload,
+  buildBoostDisplayMaps,
+} from "./tryProfileSummary.js";
+import {
+  BOOST_TYPE_ALIASES,
+  normalizeToken,
+  inferTypeTokens,
+  inferCategoryTokens,
+  buildItemCategoryIndex,
+  resolveItemCategoryTokens as resolveTaxonomyItemCategoryTokens,
+} from "./tryNftTaxonomy.js";
 
 let helpImage = "./image/helptrynft.jpg";
 
@@ -20,62 +35,12 @@ const BOOST_CATEGORY_LABELS = {
   skills: "Skills",
   shrines: "Shrines",
 };
-const BOOST_TYPE_ALIASES = {
-  harvest: "yield",
-  production: "yield",
-  output: "yield",
-  speed: "time",
-  duration: "time",
-  cooldown: "time",
-  discount: "cost",
-  price: "cost",
-  experience: "xp",
-};
-const BOOST_ITEM_CATEGORY_ALIASES = {
-  crop: "crop",
-  crops: "crop",
-  fruit: "fruit",
-  fruits: "fruit",
-  flower: "flower",
-  flowers: "flower",
-  fish: "fish",
-  fishing: "fish",
-  cast: "fish",
-  wood: "wood",
-  tree: "wood",
-  trees: "wood",
-  stone: "mineral",
-  mineral: "mineral",
-  minerals: "mineral",
-  mining: "mineral",
-  animal: "animal",
-  animals: "animal",
-  barn: "animal",
-  building: "building",
-  buildings: "building",
-  craft: "building",
-  greenhouse: "greenhouse",
-  cook: "cook",
-  cooking: "cook",
-  food: "cook",
-  bees: "bees",
-  compost: "compost",
-  bud: "bud",
-  buds: "bud",
-  shrine: "shrine",
-  shrines: "shrine",
-  dig: "dig",
-  digs: "dig",
-  digging: "dig",
-  treasure: "dig",
-  treasures: "dig",
-  bounty: "dig",
-  pet: "pet",
-  pets: "pet",
-};
 const NFT_PRICE_COLUMN_OPTIONS = [
   { value: "opensea", label: "OpenSea", iconSrc: "./icon/ui/openseaico.png" },
   { value: "market", label: "Market", iconSrc: "./icon/ui/exchange.png" },
+  { value: "profiles", label: "Profiles", iconSrc: "./icon/ui/save.webp" },
+  { value: "share", label: "Share link", iconSrc: "./icon/ui/copy.webp" },
+  { value: "summary", label: "Summary", iconSrc: "./icon/ui/search.png" },
 ];
 const NFT_PRICE_UNIT_OPTIONS = [
   { value: "flower", label: "Flower", iconSrc: imgsfl },
@@ -85,12 +50,33 @@ const NFT_TOTAL_COST_OPTIONS = [
   { value: "opensea", label: "OpenSea", iconSrc: "./icon/ui/openseaico.png" },
   { value: "market", label: "Market", iconSrc: "./icon/ui/exchange.png" },
 ];
+const TRY_REFRESH_BOOST_TABLES = ["nft", "nftw", "buildng", "skill", "skilllgc", "bud", "shrine"];
+function buildTryRefreshSignature(state) {
+  const boostables = state?.boostables || {};
+  const it = state?.itables?.it || {};
+  const parts = [];
+  TRY_REFRESH_BOOST_TABLES.forEach((tableName) => {
+    const table = boostables?.[tableName] || {};
+    Object.keys(table)
+      .sort((a, b) => a.localeCompare(b))
+      .forEach((itemName) => {
+        parts.push(`t:${tableName}:${itemName}:${Number(table[itemName]?.tryit === 1)}`);
+      });
+  });
+  Object.keys(it)
+    .sort((a, b) => a.localeCompare(b))
+    .forEach((itemName) => {
+      parts.push(`b:${itemName}:${Number(it[itemName]?.buyit === 1)}`);
+    });
+  return parts.join("|");
+}
 
 function ModalTNFT({ onClose }) {
   const {
     data: { dataSet, dataSetFarm, priceData },
     ui: {
       TryChecked,
+      tryProfileShareScope,
     },
     actions: {
       handleUIChange,
@@ -113,12 +99,16 @@ function ModalTNFT({ onClose }) {
   const [tableView, setTableView] = useState('both');
   const [showHelp, setShowHelp] = useState(false);
   const [cdButton, setcdButton] = useState(false);
+  const [showTryRefreshHalo, setShowTryRefreshHalo] = useState(false);
+  const [refreshBaselineSig, setRefreshBaselineSig] = useState("");
   const [iTotBuyCheck, setTotBuyCheck] = useState(false);
   const [selectedBoostTab, setSelectedBoostTab] = useState("collectibles");
   const [boostTypeFilters, setBoostTypeFilters] = useState([]);
   const [boostCategoryFilters, setBoostCategoryFilters] = useState([]);
-  const [nftPriceCols, setNftPriceCols] = useState(["market"]);
+  const [nftPriceCols, setNftPriceCols] = useState(["market", "profiles", "share", "summary"]);
   const [nftPriceUnit, setNftPriceUnit] = useState("flower");
+  const [summaryProfile, setSummaryProfile] = useState(null);
+  const currentRefreshSig = buildTryRefreshSignature(dataSetLocal);
   const deviceId = getOrCreateDeviceId();
   function key(name) {
     if (name === "active") { return TryChecked ? "tryit" : "isactive"; }
@@ -138,6 +128,18 @@ function ModalTNFT({ onClose }) {
       lastSentTryRef.current = deepClone(dataSetLocal);
     }
   }, [hasTryNftTables, dataSetLocal]);
+  useEffect(() => {
+    if (!refreshBaselineSig && currentRefreshSig) {
+      setRefreshBaselineSig(currentRefreshSig);
+    }
+  }, [refreshBaselineSig, currentRefreshSig]);
+  useEffect(() => {
+    if (!refreshBaselineSig || !currentRefreshSig) {
+      setShowTryRefreshHalo(false);
+      return;
+    }
+    setShowTryRefreshHalo(currentRefreshSig !== refreshBaselineSig);
+  }, [refreshBaselineSig, currentRefreshSig]);
   const handleChangeTotalCostDisplay = (event) => {
     const selectedValue = event.target.value;
     setTotalCostDisplay(selectedValue);
@@ -147,6 +149,194 @@ function ModalTNFT({ onClose }) {
   };
   const handleCloseHelp = () => {
     setShowHelp(false);
+  };
+  const applyTryProfilePayload = (profilePayload) => {
+    try {
+      const fullProfile = (profilePayload?.fullProfile && typeof profilePayload.fullProfile === "object")
+        ? profilePayload.fullProfile
+        : null;
+      if (fullProfile) {
+        const nextDataSet = deepClone(dataSetLocal || {});
+        const boostVals = (fullProfile?.boostables && typeof fullProfile.boostables === "object")
+          ? fullProfile.boostables
+          : {};
+        Object.entries(nextDataSet?.boostables || {}).forEach(([tableName, table]) => {
+          const srcVals = boostVals?.[tableName] || {};
+          nextDataSet.boostables[tableName] = Object.fromEntries(
+            Object.entries(table || {}).map(([itemName, value]) => [
+              itemName,
+              { ...(value || {}), tryit: Number(srcVals?.[itemName] || 0) },
+            ])
+          );
+        });
+        const itemVals = (fullProfile?.items && typeof fullProfile.items === "object") ? fullProfile.items : {};
+        const getByPath = (obj, path) => String(path || "").split(".").reduce((acc, key) => (acc ? acc[key] : undefined), obj);
+        Object.entries(tryitConfig?.itemTables || {}).forEach(([payloadKey, cfg]) => {
+          const field = cfg?.field;
+          const sources = Array.isArray(cfg?.sources) ? cfg.sources : [];
+          const vals = itemVals?.[payloadKey] || {};
+          if (!field || sources.length < 1) return;
+          sources.forEach((sourcePath) => {
+            const table = getByPath(nextDataSet, sourcePath);
+            if (!table || typeof table !== "object") return;
+            Object.keys(table).forEach((itemName) => {
+              if (!Object.prototype.hasOwnProperty.call(vals, itemName)) return;
+              table[itemName] = {
+                ...(table[itemName] || {}),
+                [field]: Number(vals[itemName] || 0),
+              };
+            });
+          });
+        });
+        setdataSetLocal(nextDataSet);
+        handleRefreshfTNFT(dataSet, nextDataSet);
+        return;
+      }
+      const scopeTables = getScopeTablesFromPayload(profilePayload);
+      if (scopeTables.length < 1) return;
+      const payloadTables = (profilePayload?.tables && typeof profilePayload.tables === "object")
+        ? profilePayload.tables
+        : {};
+      const sourceBoostables = dataSetLocal?.boostables || {};
+      const nextBoostables = { ...sourceBoostables };
+      scopeTables.forEach((tableName) => {
+        const currentTable = sourceBoostables?.[tableName] || {};
+        const rows = Array.isArray(payloadTables?.[tableName]) ? payloadTables[tableName] : [];
+        const enabledNames = new Set(
+          rows
+            .filter((entry) => Array.isArray(entry))
+            .map((entry) => String(entry[0] || ""))
+            .filter(Boolean)
+        );
+        nextBoostables[tableName] = Object.fromEntries(
+          Object.entries(currentTable).map(([itemName, value]) => [
+            itemName,
+            { ...(value || {}), tryit: enabledNames.has(itemName) ? 1 : 0 },
+          ])
+        );
+      });
+      const nextDataSet = {
+        ...dataSetLocal,
+        boostables: nextBoostables,
+      };
+      setdataSetLocal(nextDataSet);
+      handleRefreshfTNFT(dataSet, nextDataSet);
+    } catch (error) {
+      console.log("apply try profile error", error);
+    }
+  };
+  const buildFullProfilePayload = () => {
+    const state = dataSetLocal || {};
+    const out = {
+      v: 2,
+      mode: "all",
+      parts: ["all"],
+      tables: {},
+      fullProfile: {
+        boostables: {},
+        items: {},
+      },
+    };
+    Object.entries(state?.boostables || {}).forEach(([tableName, table]) => {
+      const boostRowVals = {};
+      const shareRows = [];
+      Object.entries(table || {}).forEach(([itemName, value]) => {
+        const v = Number(value?.tryit || 0);
+        boostRowVals[itemName] = v;
+        if (v === 1) {
+          shareRows.push([itemName, String(value?.boost || ""), 0, String(value?.img || ""), String(value?.cat || value?.category || "")]);
+        }
+      });
+      out.fullProfile.boostables[tableName] = boostRowVals;
+      if (shareRows.length > 0) out.tables[tableName] = shareRows;
+    });
+    const getByPath = (obj, path) => String(path || "").split(".").reduce((acc, key) => (acc ? acc[key] : undefined), obj);
+    Object.entries(tryitConfig?.itemTables || {}).forEach(([payloadKey, cfg]) => {
+      const field = cfg?.field;
+      const sources = Array.isArray(cfg?.sources) ? cfg.sources : [];
+      if (!field || sources.length < 1) return;
+      const vals = {};
+      sources.forEach((sourcePath) => {
+        const table = getByPath(state, sourcePath) || {};
+        Object.entries(table).forEach(([itemName, value]) => {
+          vals[itemName] = Number(value?.[field] || 0);
+        });
+      });
+      out.fullProfile.items[payloadKey] = vals;
+    });
+    return out;
+  };
+  const handleShowSummary = async (profilePayload, compareMode = "active") => {
+    try {
+      const currentState = deepClone(dataSetLocal || {});
+      const activeBaseSource = deepClone(activeBaselineRef.current || currentState || {});
+      const commonReq = {
+        API_URL,
+        frmid,
+        deviceId,
+        options: {
+          ...dataSet.options,
+          username: dataSet?.options?.username || dataSet?.username || dataSetLocal?.username || "",
+        },
+        username: dataSet?.options?.username || dataSet?.username || dataSetLocal?.username || "",
+        tryitConfig,
+      };
+      const { restoredCurrent, summaryPayload } = await computeProfileSummaryPayload({
+        ...commonReq,
+        currentState,
+        activeBaseState: activeBaseSource,
+        profilePayload,
+        compareMode,
+        getScopeTablesFromPayload,
+      });
+      setdataSetLocal(restoredCurrent);
+      handleRefreshfTNFT(dataSet, restoredCurrent);
+      const { boostIconMap, boostCategoryMap } = buildBoostDisplayMaps(
+        restoredCurrent?.boostables || {},
+        restoredCurrent?.itables?.it || {}
+      );
+      const itemIconMap = {};
+      Object.entries(restoredCurrent?.itables?.it || {}).forEach(([name, v]) => {
+        itemIconMap[name] = String(v?.img || "");
+      });
+      setSummaryProfile({
+        ...(summaryPayload || {}),
+        boostIconMap,
+        boostCategoryMap,
+        itemIconMap,
+      });
+    } catch (error) {
+      console.log("summary error", error);
+    }
+  };
+  const buildComputedSharePayload = async (profilePayload, compareMode = "active") => {
+    const currentState = deepClone(dataSetLocal || {});
+    const activeBaseSource = deepClone(activeBaselineRef.current || currentState || {});
+    const commonReq = {
+      API_URL,
+      frmid,
+      deviceId,
+      options: {
+        ...dataSet.options,
+        username: dataSet?.options?.username || dataSet?.username || dataSetLocal?.username || "",
+      },
+      username: dataSet?.options?.username || dataSet?.username || dataSetLocal?.username || "",
+      tryitConfig,
+    };
+    const { restoredCurrent, summaryPayload } = await computeProfileSummaryPayload({
+      ...commonReq,
+      currentState,
+      activeBaseState: activeBaseSource,
+      profilePayload,
+      compareMode,
+      getScopeTablesFromPayload,
+    });
+    setdataSetLocal(restoredCurrent);
+    handleRefreshfTNFT(dataSet, restoredCurrent);
+    return {
+      ...(summaryPayload || {}),
+      summaryComputed: 1,
+    };
   };
   const Refresh = async () => {
     if (cdButton) return;
@@ -271,6 +461,8 @@ function ModalTNFT({ onClose }) {
         // Delta baseline must follow what we sent, not what server returned partially.
         lastSentTryRef.current = deepClone(cur);
         handleRefreshfTNFT(dataSet, mergedData);
+        setRefreshBaselineSig(buildTryRefreshSignature(mergedData));
+        setShowTryRefreshHalo(false);
       } else {
         if (response.status === 429) {
           console.log('Too many requests, wait a few seconds');
@@ -380,16 +572,6 @@ function ModalTNFT({ onClose }) {
       .map((v) => String(v || "").trim())
       .filter(Boolean);
   };
-  const normalizeToken = (token, aliasMap = {}) => {
-    const txt = String(token || "")
-      .toLowerCase()
-      .replace(/[_-]/g, " ")
-      .replace(/\s+/g, " ")
-      .trim();
-    if (!txt) { return ""; }
-    const singular = txt.endsWith("s") && txt.length > 3 ? txt.slice(0, -1) : txt;
-    return aliasMap[singular] || aliasMap[txt] || singular;
-  };
   const formatTokenLabel = (token) => {
     if (!token) { return ""; }
     if (token.toLowerCase() === "xp") { return "XP"; }
@@ -398,50 +580,9 @@ function ModalTNFT({ onClose }) {
       .map((part) => part ? part.charAt(0).toUpperCase() + part.slice(1) : part)
       .join(" ");
   };
-  const inferTypeTokens = (boostText) => {
-    const txt = String(boostText || "").toLowerCase();
-    const inferred = [];
-    if (/xp|experience/.test(txt)) { inferred.push("xp"); }
-    if (/yield|harvest|production|produce|output/.test(txt)) { inferred.push("yield"); }
-    if (/time|faster|speed|cooldown|duration/.test(txt)) { inferred.push("time"); }
-    if (/cost|discount|price|cheaper/.test(txt)) { inferred.push("cost"); }
-    return inferred;
-  };
-  const inferCategoryTokens = (boostText) => {
-    const txt = String(boostText || "").toLowerCase();
-    const inferred = [];
-    if (/\b(fish|fishing|fisher|cast|rod|chum|school)\b/.test(txt)) { inferred.push("fish"); }
-    if (/\b(dig|digging|treasure|bounty|artifact|excavate|excavation)\b/.test(txt)) { inferred.push("dig"); }
-    if (/\b(crop|crops|seed|harvest)\b/.test(txt)) { inferred.push("crop"); }
-    if (/\b(fruit|fruits|tree|trees|orchard)\b/.test(txt)) { inferred.push("fruit"); }
-    if (/\b(flower|flowers|bloom|blossom)\b/.test(txt)) { inferred.push("flower"); }
-    if (/\b(mine|mining|mineral|stone|ore)\b/.test(txt)) { inferred.push("mineral"); }
-    if (/\b(animal|animals|barn|egg|milk|wool)\b/.test(txt)) { inferred.push("animal"); }
-    if (/\b(cook|cooking|food|meal|kitchen)\b/.test(txt)) { inferred.push("cook"); }
-    if (/\b(bee|bees|hive|honey)\b/.test(txt)) { inferred.push("bees"); }
-    if (/\b(compost|fertili[sz]er)\b/.test(txt)) { inferred.push("compost"); }
-    if (/\b(bud|buds)\b/.test(txt)) { inferred.push("bud"); }
-    if (/\b(shrine|shrines)\b/.test(txt)) { inferred.push("shrine"); }
-    if (/\b(pet|pets)\b/.test(txt)) { inferred.push("pet"); }
-    if (/\b(wood|chop|tree)\b/.test(txt)) { inferred.push("wood"); }
-    return inferred;
-  };
-  const resolveItemCategoryTokens = (boostItemTokens) => {
-    const itables = dataSetLocal?.itables?.it || {};
-    const itemCategoryIndex = {};
-    for (const [itemName, itemData] of Object.entries(itables)) {
-      const normName = normalizeToken(itemName);
-      const cat = normalizeToken(itemData?.cat || itemData?.scat || itemData?.matcat || "");
-      if (normName && cat && !itemCategoryIndex[normName]) {
-        itemCategoryIndex[normName] = cat;
-      }
-    }
-    return Array.from(new Set(
-      boostItemTokens
-        .map((token) => normalizeToken(token))
-        .map((token) => BOOST_ITEM_CATEGORY_ALIASES[token] || itemCategoryIndex[token] || "")
-        .filter(Boolean)
-    ));
+  const resolveItemCategoryTokensLocal = (boostItemTokens) => {
+    const itemCategoryIndex = buildItemCategoryIndex(dataSetLocal?.itables?.it || {});
+    return resolveTaxonomyItemCategoryTokens(boostItemTokens, itemCategoryIndex);
   };
   const getBoostMeta = (value) => {
     const typeRaw = [
@@ -461,7 +602,7 @@ function ModalTNFT({ onClose }) {
     const typeTokens = Array.from(new Set(typeRaw
       .map((token) => normalizeToken(token, BOOST_TYPE_ALIASES))
       .filter(Boolean)));
-    const categoryTokens = resolveItemCategoryTokens(categoryRaw);
+    const categoryTokens = resolveItemCategoryTokensLocal(categoryRaw);
     return { typeTokens, categoryTokens };
   };
   const matchesTokenFilter = (selectedSet, tokens) => {
@@ -565,7 +706,7 @@ function ModalTNFT({ onClose }) {
   const handleNftPriceColsChange = (selectedValues) => {
     const values = (selectedValues || [])
       .map((v) => String(v).toLowerCase())
-      .filter((v) => v === "opensea" || v === "market");
+      .filter((v) => v === "opensea" || v === "market" || v === "profiles" || v === "share" || v === "summary");
     setNftPriceCols(Array.from(new Set(values)));
   };
   const handleNftPriceUnitChange = (event) => {
@@ -1238,7 +1379,7 @@ function ModalTNFT({ onClose }) {
                 }, 2000);
               }}
               //onClick={Refresh}
-              class="button"
+              class={`button ${showTryRefreshHalo ? "tryset-refresh-halo" : "tryset-refresh-idle"}`}
               disabled={cdButton}>
               <img src="./icon/ui/refresh.png" alt="" className="resico" />
             </button>
@@ -1340,6 +1481,21 @@ function ModalTNFT({ onClose }) {
             />
           </div>
         </div>
+        <div style={{ padding: "2px 0 4px 0", display: "flex", justifyContent: "flex-start" }}>
+          <TryProfileShareBar
+            boostables={dataSetLocal?.boostables || {}}
+            itablesIt={dataSetLocal?.itables?.it || {}}
+            onApplyProfile={applyTryProfilePayload}
+            onShowSummary={handleShowSummary}
+            onBuildFullProfilePayload={buildFullProfilePayload}
+            onBuildComputedSharePayload={buildComputedSharePayload}
+            showProfilesPanel={nftPriceCols.includes("profiles")}
+            showSharePanel={nftPriceCols.includes("share")}
+            showSummaryPanel={nftPriceCols.includes("summary")}
+            shareScopeValue={Array.isArray(tryProfileShareScope) ? tryProfileShareScope : []}
+            onShareScopeChange={handleUIChange}
+          />
+        </div>
         {!hasTryNftTables ? (
           <div style={{ padding: '12px 8px' }}>Loading TryNFT tables...</div>
         ) : (
@@ -1361,7 +1517,7 @@ function ModalTNFT({ onClose }) {
                 minHeight: 0,
                 display: tableView === 'left' ? 'none' : 'block'
               }}>
-                <table>{tableNFT}</table>
+                <table className="trynft-boost-table">{tableNFT}</table>
               </div>
             )}
           </div>
@@ -1382,6 +1538,12 @@ function ModalTNFT({ onClose }) {
       {showHelp && (
         <Help onClose={handleCloseHelp} image={helpImage} />
       )}
+      {summaryProfile ? (
+        <TryProfileSummaryModal
+          profile={summaryProfile}
+          onClose={() => setSummaryProfile(null)}
+        />
+      ) : null}
     </div>
   );
 }

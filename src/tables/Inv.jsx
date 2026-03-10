@@ -1,3 +1,4 @@
+import { useEffect, useRef, useState } from "react";
 import { useAppCtx } from "../context/AppCtx";
 import { FormControl, InputLabel, Select, MenuItem } from '@mui/material';
 import { frmtNb, convtimenbr, convTime, ColorValue, ColorValueP, Timer, PBar, timeToDays } from '../fct.js';
@@ -9,6 +10,17 @@ xBurning.burn = [];
 xBurning.burntry = [];
 
 export default function InvTable() {
+    const [buyRefreshOnCd, setBuyRefreshOnCd] = useState(false);
+    const [showTryRefreshHalo, setShowTryRefreshHalo] = useState(false);
+    const [buyRefreshBaselineSig, setBuyRefreshBaselineSig] = useState("");
+    const buyRefreshTimerRef = useRef(null);
+    useEffect(() => {
+        return () => {
+            if (buyRefreshTimerRef.current) {
+                clearTimeout(buyRefreshTimerRef.current);
+            }
+        };
+    }, []);
     const {
         data: { dataSetFarm, farmData },
         ui: {
@@ -33,6 +45,7 @@ export default function InvTable() {
             handleNiftyClick,
             handleOSClick,
             handleTooltip,
+            handleInvBuyRefresh,
         },
         img: {
             imgSFL,
@@ -45,6 +58,40 @@ export default function InvTable() {
     const invFrmData = invPageData?.frmData || dataSetFarm?.frmData || {};
     const invTables = dataSetFarm?.itables || invPageData?.itables || {};
     const invBoostables = dataSetFarm?.boostables || invPageData?.boostables || {};
+    const buildBuyitSignature = (itMap) => {
+        if (!itMap) return "";
+        return Object.keys(itMap)
+            .sort((a, b) => a.localeCompare(b))
+            .map((itemName) => `${itemName}:${Number(itMap[itemName]?.buyit === 1)}`)
+            .join("|");
+    };
+    const currentBuyitSig = buildBuyitSignature(invTables?.it);
+    useEffect(() => {
+        if (!buyRefreshBaselineSig && currentBuyitSig) {
+            setBuyRefreshBaselineSig(currentBuyitSig);
+        }
+    }, [buyRefreshBaselineSig, currentBuyitSig]);
+    useEffect(() => {
+        if (!buyRefreshBaselineSig || !currentBuyitSig) {
+            setShowTryRefreshHalo(false);
+            return;
+        }
+        setShowTryRefreshHalo(currentBuyitSig !== buyRefreshBaselineSig);
+    }, [buyRefreshBaselineSig, currentBuyitSig]);
+    const onBuyRefreshClick = async () => {
+        if (buyRefreshOnCd) return;
+        setBuyRefreshOnCd(true);
+        if (buyRefreshTimerRef.current) {
+            clearTimeout(buyRefreshTimerRef.current);
+        }
+        buyRefreshTimerRef.current = setTimeout(() => {
+            setBuyRefreshOnCd(false);
+            buyRefreshTimerRef.current = null;
+        }, 4000);
+        await handleInvBuyRefresh();
+        setBuyRefreshBaselineSig(currentBuyitSig);
+        setShowTryRefreshHalo(false);
+    };
     if (
         invFrmData?.spot &&
         invFrmData?.buildngf &&
@@ -271,6 +318,7 @@ export default function InvTable() {
                                 {xListeCol[2][1] === 1 ? (<td className="tdcenter" style={{ color: `rgb(160, 160, 160)` }}></td>) : ("")}
                                 {xListeCol[3][1] === 1 ? (<td className="tdcenter" style={{ color: `rgb(200, 200, 200)` }}></td>) : ("")}
                                 {xListeCol[4][1] === 1 ? (<td className="tdcenter">{frmtNb(icost)}</td>) : ("")}
+                                {xListeCol[22]?.[1] === 1 ? (<td className="tdcenter"></td>) : ("")}
                                 {xListeCol[5][1] === 1 ? (<td className="tdcenter"></td>) : ("")}
                                 {xListeCol[6][1] === 1 ? (<td className="tdcenterbrd"></td>) : ("")}
                                 {xListeCol[7][1] === 1 ? (<td className="tdcenterbrd">{frmtNb(pTrad)}</td>) : ("")}
@@ -361,6 +409,18 @@ export default function InvTable() {
                                     onChange={handleUIChange}
                                     height={28}
                                 />
+                            </th>) : ("")}
+                            {xListeCol[22]?.[1] === 1 ? (<th className="thcenter">
+                                <div>Buy</div>
+                                <button
+                                    type="button"
+                                    onClick={onBuyRefreshClick}
+                                    disabled={buyRefreshOnCd}
+                                    className={`button small-btn ${showTryRefreshHalo ? "tryset-refresh-halo" : "tryset-refresh-idle"}`}
+                                    title="Refresh Buy values"
+                                >
+                                    <img src="./icon/ui/refresh.png" alt="" className="resico" />
+                                </button>
                             </th>) : ("")}
                             {xListeCol[5][1] === 1 ? (<th className="thcenter">Betty</th>) : ("")}
                             {xListeCol[6][1] === 1 ? (<th className="thcenter">Ratio<div>{imgCoins}/{imgSFL}</div></th>) : ("")}
@@ -629,6 +689,9 @@ function setInvContent(sortedInventoryItems, totCost, totShop, totTrader, totNif
             const istock = cobj ? cobj.stock : 0;
             const ifrmit = cobj ? cobj.farmit : 0;
             const ibuyit = cobj ? cobj.buyit : 0;
+            if (Number(ibuyit) === 1) {
+                cellStyle.opacity = 0.75;
+            }
             // const previousQuantity = Number(cobj?.prevstock || 0);
             // const pquant = previousQuantity;
             const itemQuantity = item === "Flower" ? it["Flower"].quant : quantity;
@@ -957,6 +1020,14 @@ function setInvContent(sortedInventoryItems, totCost, totShop, totTrader, totNif
                         ) : ("")}
                         {xListeCol[3][1] === 1 ? (<td className="tdcenter" style={{ ...cellStyle, color: `rgb(200, 200, 200)` }}>{timeToDays(time)}</td>) : ("")}
                         {xListeCol[4][1] === 1 ? (<td className="tdcenter tooltipcell" style={cellStyle} onClick={(e) => handleTooltip(item, "costp", costp, e)}>{frmtNb(costp)}{ibuyit ? imgbuyit : null}</td>) : ("")}
+                        {xListeCol[22]?.[1] === 1 ? (<td className="tdcenter" style={cellStyle}>
+                            <input
+                                type="checkbox"
+                                name={`buyit:${item}`}
+                                checked={ibuyit === 1}
+                                onChange={handleUIChange}
+                            />
+                        </td>) : ("")}
                         {xListeCol[5][1] === 1 ? (<td className="tdcenter" style={cellStyle}>{pShop > 0 ? frmtNb(pShop) : ""}</td>) : ("")}
                         {xListeCol[6][1] === 1 ? (<td className="tdcenterbrd" style={cellCoinRatioStyle}>{xcoinsRatio > 0 ? frmtNb(xcoinsRatio) : ""}</td>) : ("")}
                         {xListeCol[7][1] === 1 ? (<td className={(parseFloat(pTrad).toFixed(20) === getMaxValue(pTrad, pNifty, pOS) ? 'tdcentergreen' : 'tdcenterbrd') + " tooltipcell"}
@@ -1046,6 +1117,7 @@ function renderInvTotalCells({ xListeCol, selectedQuantity, totals, tprctN, tprc
             {xListeCol[2][1] === 1 ? (<td className="ttcenter" style={{ color: `rgb(160, 160, 160)` }}></td>) : ("")}
             {xListeCol[3][1] === 1 ? (<td className="ttcenter"></td>) : ("")}
             {xListeCol[4][1] === 1 ? (<td className="ttcenter">{parseFloat(totals.cost).toFixed(2)}</td>) : ("")}
+            {xListeCol[22]?.[1] === 1 ? (<td className="ttcenter"></td>) : ("")}
             {xListeCol[5][1] === 1 ? (<td className="ttcenter">{parseFloat(totals.shop).toFixed(2)}</td>) : ("")}
             {xListeCol[6][1] === 1 ? (<td className="ttcenterbrd"></td>) : ("")}
             {xListeCol[7][1] === 1 ? (<td className="ttcenterbrd">{parseFloat(totals.trader).toFixed(2)}</td>) : ("")}

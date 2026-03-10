@@ -8,6 +8,7 @@ import createSetCompoTable from './compoTable.js';
 const Tooltip = ({ onClose, item, context, value, clickPosition, dataSet, dataSetFarm, bdrag = true, forTry }) => {
     const Animals = dataSetFarm?.Animals || dataSetFarm?.invData?.tooltipData?.Animals || {};
     const invTooltipData = dataSetFarm?.invData?.tooltipData || {};
+    const cookTooltipData = dataSetFarm?.cookData?.tooltipData || {};
     const mapTooltipData = dataSetFarm?.mapData?.tooltipData || {};
     const fishPageData = dataSetFarm?.fishData || {};
     const bountyPageData = dataSetFarm?.bountyData || {};
@@ -28,8 +29,10 @@ const Tooltip = ({ onClose, item, context, value, clickPosition, dataSet, dataSe
     };
     const tooltipBoostables = {
         ...(dataSetFarm?.invData?.boostables || {}),
+        ...(dataSetFarm?.cookData?.boostables || {}),
         ...(dataSetFarm?.mapData?.boostables || {}),
         ...(invTooltipData?.boostables || {}),
+        ...(cookTooltipData?.boostables || {}),
         ...(mapTooltipData?.boostables || {}),
         ...(dataSetFarm?.boostables || {}),
     };
@@ -1475,7 +1478,7 @@ const Tooltip = ({ onClose, item, context, value, clickPosition, dataSet, dataSe
                                 <span><b>{petLabel}</b></span>
                             </div>
                             <div>{frmtNb(energyUnit)}{imgEnergy} for {petYieldBase}{itemImg}</div>
-                            <div>{reqLine.length ? reqLine : "N/A"} {reqLine.length ? <>{frmtNb(petReqCost)}{imgsfl} for {frmtNb(petReqEnergyTotal)}{imgEnergy}</> : null}
+                            <div>{reqLine.length ? reqLine : "No food"} {reqLine.length ? <>{frmtNb(petReqCost)}{imgsfl} for {frmtNb(petReqEnergyTotal)}{imgEnergy}</> : null}
                             </div>
                             {/* <div>Cost basis: {frmtNb(petQtyFromReqEnergy)}{itemImg} with {frmtNb(petReqEnergyTotal)}{imgEnergy}</div> */}
                             {/* {v?.quantMode === "petst" ? <div>Current: {frmtNb(petQtyNow)}{itemImg} with {frmtNb(petEnergyNow)}{imgEnergy}</div> : null} */}

@@ -172,7 +172,7 @@ function FactionCard({ factionKey, factionData, dataSet, dataSetFarm, imgExchng 
               {showContributingMember ? (
                 <span className="factions-contrib">
                   <img src={contributingIcon} alt="" className="itico" />
-                  Boost active
+                  Elligible for boost
                 </span>
               ) : null}
             </div>

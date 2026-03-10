@@ -63,6 +63,9 @@ const handleRequest = async (req, res, endpoint, method) => {
   const ip = req.headers['cf-connecting-ip'] || req.headers['x-real-ip'] || req.connection.remoteAddress;
   const frmid = req.headers['frmid'];
   logger.init(`${method} ${endpoint} ${frmid} from ${ip}`);
+  if (method === 'POST' && endpoint === '/getdatacrypto' && String(req.body?.requestTag || "").toUpperCase() === "BUY") {
+    logger.init(`[BUY] ${endpoint} ${req.body?.frmid || frmid || ""} from ${ip}`);
+  }
 
   try {
     let response;
@@ -102,6 +105,8 @@ const endpoints = [
   '/getfarm',
   '/getdatacrypto',
   '/settry',
+  '/settry-summary',
+  '/trynft-short',
   '/getfromtolvl',
   '/getfromtoexpand',
   '/getactivity',
@@ -113,6 +118,11 @@ const endpoints = [
   '/save-subscription',
   '/remove-subscription'
 ];
+
+app.get('/trynft-short/:code', (req, res) => {
+  const code = encodeURIComponent(String(req.params?.code || "").trim());
+  handleRequest(req, res, `/trynft-short/${code}`, 'GET');
+});
 
 endpoints.forEach(endpoint => {
   app.get(endpoint, (req, res) => {

@@ -399,7 +399,7 @@ function ModalDlvr({
       });
     const tableContent = (
       <>
-        <table>
+        <table className="delivery-table">
           <thead>
             <tr>
               <th>From</th>
@@ -532,10 +532,21 @@ function ModalDlvr({
       )
     });
     txtTotReward = <span>{actTotReward}/{totReward}</span>;
-    const totCompImg = <img src={"./icon/ui/cropbucket.png"} alt="" title={"Total comp"} style={{ width: "25px", height: "25px" }} />;
+    const totCompImg = <img src={"./icon/ui/cropbucket.png"} alt="" className="resico" />;
+    const componentsTooltipButton = (
+      <button
+        type="button"
+        className="button"
+        style={{ marginTop: 4 }}
+        onClick={(e) => handleTooltip(tableData.totcomp, "totChoreComp", "Weekly Chores", e)}
+        title="Total components details"
+      >
+        {totCompImg}
+      </button>
+    );
     const choreContent = (
       <>
-        <table>
+        <table className="chore-table">
           <thead>
             <tr>
               <th>Activity</th>
@@ -556,7 +567,7 @@ function ModalDlvr({
               <th> </th>
               <td className="tdcenter">{txtTotReward}</td>
               <th></th>
-              <td className="tdcenter tooltipcell" onClick={(e) => handleTooltip(tableData.totcomp, "totChoreComp", "Weekly Chores", e)}>{totCompImg}</td>
+              <td className="tdcenter">{componentsTooltipButton}</td>
               <td className="tdcenter">{frmtNb(totCostChores)}</td>
               <td className="tdcenter">{frmtNb(totMarketChores)}</td>
               <th></th>

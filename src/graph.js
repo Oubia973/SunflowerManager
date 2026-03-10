@@ -2,8 +2,59 @@ import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { Chart, registerables } from 'chart.js';
 import 'chartjs-adapter-date-fns';
 import { format, parseISO } from 'date-fns';
+import DList from "./dlist.jsx";
 
 Chart.register(...registerables);
+const imgsfl = './icon/res/flowertoken.webp';
+const imgusdc = "./usdc.png";
+const BOOST_PRICE_UNIT_OPTIONS = [
+  { value: "flower", label: "Flower", iconSrc: imgsfl },
+  { value: "usdc", label: "USDC", iconSrc: imgusdc },
+];
+
+const mondayMidnightLinePlugin = {
+  id: 'mondayMidnightLine',
+  beforeDatasetsDraw(chart) {
+    const xScale = chart?.scales?.x;
+    if (!xScale) return;
+
+    const minMs = Number(xScale.min);
+    const maxMs = Number(xScale.max);
+    if (!Number.isFinite(minMs) || !Number.isFinite(maxMs) || maxMs <= minMs) return;
+
+    const first = new Date(minMs);
+    first.setHours(0, 0, 0, 0);
+    const day = first.getDay(); // 0 = Sunday, 1 = Monday
+    const daysToAdd = (1 - day + 7) % 7;
+    first.setDate(first.getDate() + daysToAdd);
+    let cursorMs = first.getTime();
+
+    if (cursorMs < minMs) {
+      cursorMs += 7 * 24 * 60 * 60 * 1000;
+    }
+
+    const { ctx, chartArea } = chart;
+    ctx.save();
+    ctx.strokeStyle = 'rgba(0, 255, 255, 0.18)';
+    ctx.lineWidth = 1.5;
+    ctx.setLineDash([]);
+
+    while (cursorMs <= maxMs) {
+      const x = xScale.getPixelForValue(cursorMs);
+      if (Number.isFinite(x) && x >= chartArea.left && x <= chartArea.right) {
+        ctx.beginPath();
+        ctx.moveTo(x, chartArea.top);
+        ctx.lineTo(x, chartArea.bottom);
+        ctx.stroke();
+      }
+      cursorMs += 7 * 24 * 60 * 60 * 1000;
+    }
+
+    ctx.restore();
+  },
+};
+
+Chart.register(mondayMidnightLinePlugin);
 
 const categoryGroups = {
   "crops": ["crop"],
@@ -13,7 +64,7 @@ const categoryGroups = {
   "pets": ["pet"],
 };
 
-function Graph({ data, vals, dataSetFarm, graphMeta = {}, selectedCategory = 'all', legendResetToken = 0 }) {
+function Graph({ data, vals, dataSetFarm, graphMeta = {}, selectedCategory = 'all', legendResetToken = 0, isLoading = false }) {
   const chartRef = useRef(null);
   const canvasRef = useRef(null);
 
@@ -53,6 +104,62 @@ function Graph({ data, vals, dataSetFarm, graphMeta = {}, selectedCategory = 'al
 
   const [hiddenLabels, setHiddenLabels] = useState(new Set());
   const [soloLabel, setSoloLabel] = useState(null);
+  const [selectedBoostNft, setSelectedBoostNft] = useState([]);
+  const [selectedBoostNftw, setSelectedBoostNftw] = useState([]);
+  const [boostPriceUnit, setBoostPriceUnit] = useState("flower");
+  const [boostSelectionCleared, setBoostSelectionCleared] = useState(false);
+  const boostAutoInitDoneRef = useRef(false);
+  const prevCategoryRef = useRef(selectedCategory);
+  const legendResetMountedRef = useRef(false);
+  const usdPerSfl = Number(dataSetFarm?.priceData?.[2] || 0);
+
+  const pickOneRandom = (arr) => {
+    if (!Array.isArray(arr) || arr.length < 1) return [];
+    const index = Math.floor(Math.random() * arr.length);
+    return [arr[index]];
+  };
+
+  const boostKeys = useMemo(() => {
+    const nftByName = new Set();
+    const nftwByName = new Set();
+
+    Object.entries(graphMeta || {}).forEach(([idKey, meta]) => {
+      const name = String(meta?.name || "").trim();
+      const boostTable = String(meta?.boostTable || "").toLowerCase().trim();
+      if (boostTable === "nft") {
+        if (name) nftByName.add(name);
+      }
+      if (boostTable === "nftw") {
+        if (name) nftwByName.add(name);
+      }
+    });
+
+    Object.entries(dataSetFarm?.boostables?.nft || {}).forEach(([name, item]) => {
+      if (name) nftByName.add(name);
+    });
+
+    Object.entries(dataSetFarm?.boostables?.nftw || {}).forEach(([name, item]) => {
+      if (name) nftwByName.add(name);
+    });
+
+    return { nftByName, nftwByName };
+  }, [dataSetFarm, graphMeta]);
+
+  const boostSupplyByName = useMemo(() => {
+    const out = {};
+    const add = (table) => {
+      Object.entries(table || {}).forEach(([name, row]) => {
+        out[String(name || "")] = {
+          supply: Number(row?.supply || 0),
+          inactive: Number(row?.inactive || 0),
+          listed: Number(row?.listed || 0),
+        };
+      });
+    };
+    add(dataSetFarm?.boostables?.nft || {});
+    add(dataSetFarm?.boostables?.nftw || {});
+    return out;
+  }, [dataSetFarm]);
 
   const idName = useMemo(() => {
     const map = {};
@@ -104,6 +211,17 @@ function Graph({ data, vals, dataSetFarm, graphMeta = {}, selectedCategory = 'al
     return map;
   }, [it, petit, graphMeta]);
 
+  const randomBoostColor = (key) => {
+    const txt = String(key || "");
+    let hash = 0;
+    for (let i = 0; i < txt.length; i += 1) {
+      hash = ((hash << 5) - hash) + txt.charCodeAt(i);
+      hash |= 0;
+    }
+    const hue = Math.abs(hash) % 360;
+    return `hsl(${hue}, 78%, 58%)`;
+  };
+
   const datasets = useMemo(() => {
     if (!Array.isArray(data) || data.length === 0) {
       return [];
@@ -113,7 +231,12 @@ function Graph({ data, vals, dataSetFarm, graphMeta = {}, selectedCategory = 'al
     const sortedData = [...data].sort((a, b) => parseISO(a.date) - parseISO(b.date));
 
     sortedData.forEach((entry) => {
-      const info = idName[entry.id] || {
+      const rowBoostTable = String(entry?.boostTable || "").toLowerCase().trim();
+      const rowName = String(entry?.name || "").trim();
+      const rowImg = String(entry?.img || "").trim();
+      const rowColor = String(entry?.color || "").trim();
+      const rowPriceUnitBase = String(entry?.priceUnitBase || "").toLowerCase().trim();
+      const infoBase = idName[entry.id] || {
         name: `#${entry.id}`,
         color: "#6b7280",
         cat: "",
@@ -122,21 +245,37 @@ function Graph({ data, vals, dataSetFarm, graphMeta = {}, selectedCategory = 'al
         inactive: 0,
         listed: 0,
       };
+      const info = {
+        ...infoBase,
+        name: rowName || infoBase.name,
+        img: rowImg || infoBase.img,
+        color: rowColor || infoBase.color,
+      };
 
-      if (selectedCategory !== 'all' && !categoryGroups[selectedCategory]?.includes(info.cat)) {
+      if (selectedCategory === 'boost') {
+        const isBoostByTable = rowBoostTable === "nft" || rowBoostTable === "nftw";
+        const isBoostByName = boostKeys.nftByName.has(info.name) || boostKeys.nftwByName.has(info.name);
+        if (!isBoostByTable && !isBoostByName) return;
+      } else if (selectedCategory !== 'all' && !categoryGroups[selectedCategory]?.includes(info.cat)) {
         return;
       }
 
-      if (!grouped[entry.id]) {
-        grouped[entry.id] = {
+      const groupKey = selectedCategory === 'boost' ? `${rowBoostTable || "boost"}:${entry.id}` : String(entry.id);
+      if (!grouped[groupKey]) {
+        const boostStroke = selectedCategory === 'boost' ? randomBoostColor(groupKey) : info.color;
+        grouped[groupKey] = {
+          key: groupKey,
+          id: Number(entry.id),
+          boostTable: rowBoostTable,
+          priceUnitBase: rowPriceUnitBase || "flower",
           label: info.name,
           icon: info.img || "./icon/nft/na.png",
           active: Number(info.active || 0),
           inactive: Number(info.inactive || 0),
           listed: Number(info.listed || 0),
           data: [],
-          borderColor: info.color,
-          backgroundColor: info.color,
+          borderColor: boostStroke,
+          backgroundColor: boostStroke,
           borderWidth: 2,
           pointRadius: 0.8,
           pointHitRadius: 8,
@@ -155,21 +294,37 @@ function Graph({ data, vals, dataSetFarm, graphMeta = {}, selectedCategory = 'al
       let pointListed = null;
       if (vals === 'price') {
         unitValue = Number(entry.unit);
+        if (selectedCategory === 'boost' && usdPerSfl > 0) {
+          const baseUnit = rowPriceUnitBase || "flower";
+          if (baseUnit === "flower" && boostPriceUnit === "usdc") {
+            unitValue = unitValue * usdPerSfl;
+          } else if (baseUnit === "usdc" && boostPriceUnit === "flower") {
+            unitValue = unitValue / usdPerSfl;
+          }
+        }
       } else if (vals === 'supply') {
         const normalizeSupplyValue = (value) => {
           const n = Number(value ?? 0);
           if (!Number.isFinite(n)) return 0;
           return n > 1000000000000 ? n / Math.pow(10, 18) : n;
         };
-        unitValue = normalizeSupplyValue(entry.supply);
-        pointActive = normalizeSupplyValue(entry.supply);
-        pointInactive = normalizeSupplyValue(entry.supplyInactive);
-        pointListed = normalizeSupplyValue(entry.supplyListed);
+        if (selectedCategory === 'boost' && boostSupplyByName[info.name]) {
+          const localSupply = boostSupplyByName[info.name];
+          unitValue = normalizeSupplyValue(localSupply.supply);
+          pointActive = normalizeSupplyValue(localSupply.supply);
+          pointInactive = normalizeSupplyValue(localSupply.inactive);
+          pointListed = normalizeSupplyValue(localSupply.listed);
+        } else {
+          unitValue = normalizeSupplyValue(entry.supply);
+          pointActive = normalizeSupplyValue(entry.supply);
+          pointInactive = normalizeSupplyValue(entry.supplyInactive);
+          pointListed = normalizeSupplyValue(entry.supplyListed);
+        }
       } else if (vals === 'ntrade') {
         unitValue = entry.ntrade;
       }
 
-      grouped[entry.id].data.push({
+      grouped[groupKey].data.push({
         x: dateLabel,
         y: unitValue,
         active: pointActive,
@@ -179,9 +334,87 @@ function Graph({ data, vals, dataSetFarm, graphMeta = {}, selectedCategory = 'al
     });
 
     return Object.values(grouped).sort((a, b) => a.label.localeCompare(b.label));
-  }, [data, idName, selectedCategory, vals]);
+  }, [data, idName, selectedCategory, vals, boostKeys, boostPriceUnit, usdPerSfl, boostSupplyByName]);
 
-  const isLogarithmicScale = vals === 'price';
+  const boostNftLegendOptions = useMemo(() => {
+    return datasets
+      .filter((dataset) => {
+        return dataset?.boostTable === "nft" || boostKeys.nftByName.has(dataset.label);
+      })
+      .map((dataset) => ({
+        value: dataset.key,
+        label: dataset.label,
+        iconSrc: dataset.icon || "./icon/nft/na.png",
+      }));
+  }, [datasets, boostKeys]);
+
+  const boostNftwLegendOptions = useMemo(() => {
+    return datasets
+      .filter((dataset) => {
+        return dataset?.boostTable === "nftw" || boostKeys.nftwByName.has(dataset.label);
+      })
+      .map((dataset) => ({
+        value: dataset.key,
+        label: dataset.label,
+        iconSrc: dataset.icon || "./icon/nft/na.png",
+      }));
+  }, [datasets, boostKeys]);
+
+  useEffect(() => {
+    const wasBoost = prevCategoryRef.current === "boost";
+    const isBoost = selectedCategory === "boost";
+    if (isBoost && !wasBoost) {
+      boostAutoInitDoneRef.current = false;
+      setBoostSelectionCleared(false);
+      setSelectedBoostNftw([]);
+    }
+    if (!isBoost && wasBoost) {
+      setBoostSelectionCleared(false);
+      boostAutoInitDoneRef.current = false;
+    }
+    prevCategoryRef.current = selectedCategory;
+  }, [selectedCategory]);
+
+  useEffect(() => {
+    const allowed = new Set(boostNftLegendOptions.map((opt) => opt.value));
+    setSelectedBoostNft((prev) => {
+      const kept = (Array.isArray(prev) ? prev : []).filter((value) => allowed.has(value));
+      return kept;
+    });
+  }, [boostNftLegendOptions]);
+
+  useEffect(() => {
+    const allowed = new Set(boostNftwLegendOptions.map((opt) => opt.value));
+    setSelectedBoostNftw((prev) => {
+      const kept = (Array.isArray(prev) ? prev : []).filter((value) => allowed.has(value));
+      return kept;
+    });
+  }, [boostNftwLegendOptions]);
+
+  useEffect(() => {
+    if (selectedCategory !== "boost") return;
+    if (boostSelectionCleared) return;
+    if (boostAutoInitDoneRef.current) return;
+    if (boostNftLegendOptions.length < 1) return;
+    if (Array.isArray(selectedBoostNft) && selectedBoostNft.length > 0) {
+      boostAutoInitDoneRef.current = true;
+      return;
+    }
+    boostAutoInitDoneRef.current = true;
+    setSelectedBoostNft(pickOneRandom(boostNftLegendOptions.map((opt) => opt.value)));
+  }, [selectedCategory, boostNftLegendOptions, selectedBoostNft, boostSelectionCleared]);
+
+  const effectiveHiddenLabels = useMemo(() => {
+    if (selectedCategory !== 'boost') return hiddenLabels;
+    const selectedSet = new Set([...(selectedBoostNft || []), ...(selectedBoostNftw || [])]);
+    const next = new Set();
+    datasets.forEach((dataset) => {
+      if (!selectedSet.has(dataset.key)) next.add(dataset.key);
+    });
+    return next;
+  }, [selectedCategory, hiddenLabels, selectedBoostNft, selectedBoostNftw, datasets]);
+
+  const isLogarithmicScale = vals === 'price' && selectedCategory !== 'boost';
   const tooltipTitle = (context) => {
     const dateLabel = context[0].parsed.x;
     return format(dateLabel, 'yyyy-MM-dd HH:mm:ss');
@@ -190,13 +423,19 @@ function Graph({ data, vals, dataSetFarm, graphMeta = {}, selectedCategory = 'al
     const datasetLabel = context.dataset.label;
     const value = context.parsed.y;
     if (vals === 'price') {
-      return `${datasetLabel}: ${frmtNb(value)}`;
+      const unitTxt = (selectedCategory === "boost")
+        ? (boostPriceUnit === "flower" ? " Flower" : " USDC")
+        : "";
+      return `${datasetLabel}: ${frmtNb(value)}${unitTxt}`;
     }
     if (vals === 'supply') {
       const active = Number(context.raw?.active ?? value ?? 0);
       const inactive = Number(context.raw?.inactive ?? 0);
       const listed = Number(context.raw?.listed ?? 0);
       const total = active + inactive;
+      if (selectedCategory === "boost") {
+        return `${datasetLabel}: Active ${frmtNb(active)} | Total ${frmtNb(total)}`;
+      }
       const listedPct = active > 0 ? ((listed / active) * 100).toFixed(2) : "0.00";
       return `${datasetLabel}: Active ${frmtNb(active)} | Total ${frmtNb(total)} | Listed ${listedPct}%`;
     }
@@ -221,8 +460,16 @@ function Graph({ data, vals, dataSetFarm, graphMeta = {}, selectedCategory = 'al
   }, [datasets, soloLabel]);
 
   useEffect(() => {
+    if (!legendResetMountedRef.current) {
+      legendResetMountedRef.current = true;
+      return;
+    }
     setHiddenLabels(new Set());
     setSoloLabel(null);
+    setSelectedBoostNft([]);
+    setSelectedBoostNftw([]);
+    setBoostSelectionCleared(true);
+    boostAutoInitDoneRef.current = true;
   }, [legendResetToken]);
 
   useEffect(() => {
@@ -283,7 +530,7 @@ function Graph({ data, vals, dataSetFarm, graphMeta = {}, selectedCategory = 'al
               display: false,
             },
             tooltip: {
-              mode: 'index',
+              mode: 'x',
               intersect: false,
               itemSort: (a, b) => b.parsed.y - a.parsed.y,
               callbacks: {
@@ -304,10 +551,11 @@ function Graph({ data, vals, dataSetFarm, graphMeta = {}, selectedCategory = 'al
     chartRef.current.options.plugins.tooltip.callbacks.title = tooltipTitle;
     chartRef.current.options.plugins.tooltip.callbacks.label = tooltipLabel;
     chartRef.current.data.datasets.forEach((dataset, index) => {
-      chartRef.current.setDatasetVisibility(index, !hiddenLabels.has(dataset.label));
+      const visibilityKey = selectedCategory === "boost" ? dataset.key : dataset.label;
+      chartRef.current.setDatasetVisibility(index, !effectiveHiddenLabels.has(visibilityKey));
     });
     chartRef.current.update();
-  }, [datasets, isLogarithmicScale, vals, hiddenLabels]);
+  }, [datasets, isLogarithmicScale, vals, effectiveHiddenLabels, selectedCategory]);
 
   useEffect(() => {
     return () => {
@@ -351,39 +599,82 @@ function Graph({ data, vals, dataSetFarm, graphMeta = {}, selectedCategory = 'al
   return (
     <div className="graph-root">
       <div className="graph-legend-grid">
-        {datasets.map((dataset) => {
-          const isHidden = hiddenLabels.has(dataset.label);
-          const isSoloActive = soloLabel === dataset.label && hiddenLabels.size > 0;
-          return (
-            <div
-              key={dataset.label}
-              className={`graph-legend-item ${isHidden ? 'is-hidden' : ''} ${isSoloActive ? 'is-solo-active' : ''}`}
-              style={{ borderColor: dataset.borderColor }}
-            >
-              <button
-                type="button"
-                className="graph-legend-main"
-                title="Afficher / masquer"
-                onClick={() => toggleLegendItem(dataset.label)}
+        {selectedCategory === 'boost' ? (
+          <>
+            <DList
+              name="graphBoostPriceUnit"
+              title="Price"
+              options={BOOST_PRICE_UNIT_OPTIONS}
+              value={boostPriceUnit}
+              onChange={(event) => setBoostPriceUnit(String(event?.target?.value || "flower"))}
+              iconOnly={true}
+              menuIconOnly={true}
+              width={38}
+              height={28}
+            />
+            <DList
+              name="graphBoostNft"
+              title="Collectibles"
+              options={boostNftLegendOptions}
+              multiple={true}
+              value={selectedBoostNft}
+              onChange={(event) => setSelectedBoostNft(event.target.value)}
+              searchable={true}
+              closeOnSelect={false}
+              width={280}
+              menuMinWidth={280}
+            />
+            <DList
+              name="graphBoostNftw"
+              title="Wearables"
+              options={boostNftwLegendOptions}
+              multiple={true}
+              value={selectedBoostNftw}
+              onChange={(event) => setSelectedBoostNftw(event.target.value)}
+              searchable={true}
+              closeOnSelect={false}
+              width={280}
+              menuMinWidth={280}
+            />
+          </>
+        ) : (
+          datasets.map((dataset) => {
+            const isHidden = effectiveHiddenLabels.has(dataset.label);
+            const isSoloActive = soloLabel === dataset.label && effectiveHiddenLabels.size > 0;
+            return (
+              <div
+                key={dataset.label}
+                className={`graph-legend-item ${isHidden ? 'is-hidden' : ''} ${isSoloActive ? 'is-solo-active' : ''}`}
+                style={{ borderColor: dataset.borderColor }}
               >
-                <img src={dataset.icon || "./icon/nft/na.png"} alt="" className="graph-legend-item-icon" />
-                <span className="graph-legend-label">{dataset.label}</span>
-              </button>
-              <button
-                type="button"
-                className="graph-legend-solo"
-                title="N'afficher que cet objet"
-                aria-label={`Solo ${dataset.label}`}
-                onClick={() => soloLegendItem(dataset.label)}
-              >
-                <img src="./icon/ui/lightning.png" alt="" className="graph-legend-solo-icon" />
-              </button>
-            </div>
-          );
-        })}
+                <button
+                  type="button"
+                  className="graph-legend-main"
+                  title="Show / Hide"
+                  onClick={() => toggleLegendItem(dataset.label)}
+                >
+                  <img src={dataset.icon || "./icon/nft/na.png"} alt="" className="graph-legend-item-icon" />
+                  <span className="graph-legend-label">{dataset.label}</span>
+                </button>
+                <button
+                  type="button"
+                  className="graph-legend-solo"
+                  title="Only show this"
+                  aria-label={`Solo ${dataset.label}`}
+                  onClick={() => soloLegendItem(dataset.label)}
+                >
+                  <img src="./icon/ui/lightning.png" alt="" className="graph-legend-solo-icon" />
+                </button>
+              </div>
+            );
+          })
+        )}
       </div>
 
       <div className="graph-canvas-wrap">
+        <div className={`graph-loading-indicator ${isLoading ? "is-visible" : ""}`} aria-hidden={!isLoading}>
+          <span className="graph-loading-spinner"></span>
+        </div>
         <canvas ref={canvasRef}></canvas>
       </div>
     </div>

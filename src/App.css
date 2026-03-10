@@ -2463,6 +2463,42 @@ th {
 .graph-canvas-wrap {
   flex: 1;
   min-height: 240px;
+  position: relative;
+}
+
+.graph-loading-indicator {
+  position: absolute;
+  top: 8px;
+  right: 10px;
+  width: 18px;
+  height: 18px;
+  border-radius: 999px;
+  background: rgba(0, 0, 0, 0.58);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  display: none;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+  z-index: 5;
+}
+
+.graph-loading-indicator.is-visible {
+  display: inline-flex;
+}
+
+.graph-loading-spinner {
+  width: 11px;
+  height: 11px;
+  border-radius: 999px;
+  border: 2px solid rgba(95, 219, 255, 0.35);
+  border-top-color: #5fdbff;
+  animation: graphSpin 700ms linear infinite;
+}
+
+@keyframes graphSpin {
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 .modalgraph-header-left {
@@ -2692,6 +2728,62 @@ th {
 
 .toplists-has-remove {
   padding-right: 34px;
+}
+
+.chore-table th:nth-child(2),
+.chore-table td:nth-child(2) {
+  position: sticky;
+  left: 0;
+  background-color: rgba(0, 0, 0, 0.9);
+}
+
+.chore-table td:nth-child(2) {
+  z-index: 2;
+}
+
+.chore-table thead th {
+  z-index: 10;
+  background-color: rgb(0, 0, 0);
+}
+
+.chore-table thead th:nth-child(2) {
+  z-index: 11;
+  background-color: rgb(0, 0, 0);
+}
+
+.delivery-table,
+.chore-table,
+.trynft-boost-table {
+  border-collapse: collapse;
+  border-spacing: 0;
+}
+
+.delivery-table thead tr,
+.chore-table thead tr,
+.trynft-boost-table thead tr {
+  background-color: rgb(0, 0, 0);
+}
+
+.tryset-refresh-halo {
+  box-shadow: 0 0 0 1px rgba(156, 255, 188, 0.5), 0 0 12px rgba(83, 255, 143, 0.6), 0 0 20px rgba(42, 214, 114, 0.5);
+  animation: trysetRefreshHaloPulse 1.8s ease-in-out infinite;
+}
+
+.tryset-refresh-idle {
+  opacity: 0.72;
+  filter: saturate(0.78) brightness(0.9);
+}
+
+@keyframes trysetRefreshHaloPulse {
+  0% {
+    box-shadow: 0 0 0 1px rgba(156, 255, 188, 0.35), 0 0 8px rgba(83, 255, 143, 0.45), 0 0 14px rgba(42, 214, 114, 0.35);
+  }
+  50% {
+    box-shadow: 0 0 0 1px rgba(156, 255, 188, 0.65), 0 0 14px rgba(83, 255, 143, 0.75), 0 0 24px rgba(42, 214, 114, 0.6);
+  }
+  100% {
+    box-shadow: 0 0 0 1px rgba(156, 255, 188, 0.35), 0 0 8px rgba(83, 255, 143, 0.45), 0 0 14px rgba(42, 214, 114, 0.35);
+  }
 }
 
 .toplists-sort-indicator {

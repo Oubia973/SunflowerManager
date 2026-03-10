@@ -85,12 +85,17 @@ function extractGraphMetaFromFarmState(farmState) {
 }
 
 function ModalGraph({ onClose, graphtype, frmid, dataSetFarm, API_URL, username }) {
-  const GRAPH_CATEGORY_KEYS = ["all", "crops", "wood minerals", "fruits honey", "animals", "pets"];
+  const GRAPH_CATEGORY_KEYS = ["all", "crops", "wood minerals", "fruits honey", "animals", "pets", "boost"];
   const [chartData, setChartData] = useState([]);
+  const [sharedChartData, setSharedChartData] = useState([]);
+  const [boostChartData, setBoostChartData] = useState([]);
+  const [boostDataCache, setBoostDataCache] = useState({});
   const [Graphstartdate, setGraphstartdate] = useState('31d');
   const [selectedCategory, setSelectedCategory] = useState('crops');
   const [legendResetToken, setLegendResetToken] = useState(0);
   const [graphMetaById, setGraphMetaById] = useState({});
+  const [graphLoadingCount, setGraphLoadingCount] = useState(0);
+  const isGraphLoading = graphLoadingCount > 0;
   useEffect(() => {
     const localMeta = extractGraphMetaFromFarmState(dataSetFarm);
     if (!localMeta || Object.keys(localMeta).length < 1) return;
@@ -117,8 +122,15 @@ function ModalGraph({ onClose, graphtype, frmid, dataSetFarm, API_URL, username 
     const selectedValue = event.target.value;
     setGraphstartdate(selectedValue);
   };
-  async function ReqGraph() {
+  async function ReqGraph(fetchMode = "shared") {
     try {
+      const boostCacheKey = `${String(graphtype || "")}|${String(Graphstartdate || "")}`;
+      if (fetchMode === "boost" && Array.isArray(boostDataCache?.[boostCacheKey])) {
+        setBoostChartData(boostDataCache[boostCacheKey]);
+        return;
+      }
+      setGraphLoadingCount((prev) => prev + 1);
+
       let graphstart = "";
       var xformdate = "";
       let xinterval = "";
@@ -149,9 +161,13 @@ function ModalGraph({ onClose, graphtype, frmid, dataSetFarm, API_URL, username 
         xinterval = "3d";
       }
       let fetchtype = "";
-      if (graphtype === "Marketplace") { fetchtype = API_URL + "/getHT" }
-      if (graphtype === "Nifty") { fetchtype = API_URL + "/getHN" }
-      if (graphtype === "OpenSea") { fetchtype = API_URL + "/getHO" }
+      if (fetchMode === "boost") {
+        fetchtype = API_URL + "/getHB";
+      } else {
+        if (graphtype === "Marketplace") { fetchtype = API_URL + "/getHT" }
+        if (graphtype === "Nifty") { fetchtype = API_URL + "/getHN" }
+        if (graphtype === "OpenSea") { fetchtype = API_URL + "/getHO" }
+      }
       const response = await fetch(fetchtype, {
         method: 'GET',
         headers: {
@@ -159,19 +175,28 @@ function ModalGraph({ onClose, graphtype, frmid, dataSetFarm, API_URL, username 
           xinterval: xinterval,
           xgraphdate: graphstart.toISOString(),
           frmid: frmid,
-          username: username
+          username: username,
+          xsource: graphtype,
         }
       });
       if (response.ok) {
         const responseData = await response.json();
-        const sampledRows = downsampleGraphResponse(responseData, Graphstartdate);
-        setChartData(sampledRows);
+        const sampledRows = (fetchMode === "boost")
+          ? (Array.isArray(responseData) ? responseData : [])
+          : downsampleGraphResponse(responseData, Graphstartdate);
+        if (fetchMode === "boost") {
+          setBoostChartData(sampledRows);
+          setBoostDataCache((prev) => ({ ...(prev || {}), [boostCacheKey]: sampledRows }));
+        } else {
+          setSharedChartData(sampledRows);
+        }
 
         const localMeta = extractGraphMetaFromFarmState(dataSetFarm);
         const nextMeta = { ...localMeta, ...graphMetaById };
         const rowIds = [...new Set(sampledRows.map((row) => Number(row?.id)).filter((id) => Number.isFinite(id)))];
         const missingIds = rowIds.filter((id) => !nextMeta[id]);
-        if (missingIds.length > 0) {
+        const idsToFetch = fetchMode === "boost" ? rowIds : missingIds;
+        if (idsToFetch.length > 0) {
           const metaResp = await fetch(API_URL + "/getGraphMeta", {
             method: 'POST',
             headers: {
@@ -179,7 +204,7 @@ function ModalGraph({ onClose, graphtype, frmid, dataSetFarm, API_URL, username 
               frmid: frmid,
               username: username
             },
-            body: JSON.stringify({ ids: missingIds })
+            body: JSON.stringify({ ids: idsToFetch })
           });
           if (metaResp.ok) {
             const payload = await metaResp.json();
@@ -197,11 +222,22 @@ function ModalGraph({ onClose, graphtype, frmid, dataSetFarm, API_URL, username 
       }
     } catch (error) {
       console.log(`Error : ${error}`);
+    } finally {
+      setGraphLoadingCount((prev) => Math.max(0, prev - 1));
     }
   }
   useEffect(() => {
-    ReqGraph();
-  }, [Graphstartdate]);
+    ReqGraph("shared");
+  }, [Graphstartdate, graphtype]);
+
+  useEffect(() => {
+    if (selectedCategory !== "boost") return;
+    ReqGraph("boost");
+  }, [selectedCategory, Graphstartdate, graphtype]);
+
+  useEffect(() => {
+    setChartData(selectedCategory === "boost" ? boostChartData : sharedChartData);
+  }, [selectedCategory, boostChartData, sharedChartData]);
   return (
     <div className="modalgraph">
       <div className="modalgraph-buttons">
@@ -259,6 +295,7 @@ function ModalGraph({ onClose, graphtype, frmid, dataSetFarm, API_URL, username 
           graphMeta={graphMetaById}
           selectedCategory={selectedCategory}
           legendResetToken={legendResetToken}
+          isLoading={isGraphLoading}
         />
       </div>
     </div>
