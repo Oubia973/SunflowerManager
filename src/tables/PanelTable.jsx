@@ -18,6 +18,7 @@ import MarketTable from "./Market";
 import FactionsTable from "./Factions";
 import TopListsTable from "./TopListsLazy";
 import BuyNodesTable from "./BuyNodes";
+import AuctionsTable from "./Auctions";
 
 export default function PanelTable() {
   const { ui: { selectedInv } } = useAppCtx();
@@ -39,6 +40,7 @@ export default function PanelTable() {
   if (selectedInv === "factions") return <FactionsTable />;
   if (selectedInv === "toplists") return <TopListsTable />;
   if (selectedInv === "buynodes") return <BuyNodesTable />;
+  if (selectedInv === "auctions") return <AuctionsTable />;
 
   return null;
 }

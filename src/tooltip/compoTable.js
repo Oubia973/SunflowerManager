@@ -113,6 +113,23 @@ const createSetCompoTable = ({
         });
         return out;
     };
+    const buildCompoTreeFromMap = (compoMap) => {
+        const out = {};
+        if (!isObj(compoMap)) return out;
+        Object.entries(compoMap).forEach(([name, rawQty]) => {
+            const qty = Number(rawQty || 0);
+            if (!(qty > 0)) return;
+            const itemSrc = getItemBase(name);
+            const itemEntry = itemSrc?.[name];
+            const node = { qty };
+            const childTree = cloneScaledTree(itemEntry?.compoit || {}, qty);
+            if (Object.keys(childTree).length > 0) {
+                node.compoit = childTree;
+            }
+            out[name] = node;
+        });
+        return out;
+    };
 
     const getRowValues = (keyItem, compoQuant) => {
         const cleanName = ForTry ? keyItem.replace(/try$/, "") : keyItem;
@@ -154,7 +171,7 @@ const createSetCompoTable = ({
         const forceFlatTool = !!override?.forceFlatTool;
 
         if (customCompo) {
-            itemTable = customCompo;
+            itemTable = isTreeCompo(customCompo) ? customCompo : buildCompoTreeFromMap(customCompo);
             itemImgName = customImg || itemImgName;
         }
 
@@ -241,6 +258,7 @@ const createSetCompoTable = ({
         }
 
         const isTool = tool?.[item];
+        const isPfood = !!pfood?.[item];
         const headerLabel = customLabel || item;
         const itemImg = <img src={itemImgName} alt={headerLabel ?? "?"} style={{ width: "22px", height: "22px" }} />;
         let totalCost = 0;
@@ -300,7 +318,8 @@ const createSetCompoTable = ({
                         if (!rowVals) return;
                         const rowKey = `${path}-${keyItem}-${idx}`;
                         const hasChildren = Object.keys(node.compoit).length > 0;
-                        const isOpen = !!compoExpanded[rowKey];
+                        const defaultOpen = isPfood && depth === 0;
+                        const isOpen = (compoExpanded[rowKey] === undefined) ? defaultOpen : !!compoExpanded[rowKey];
                         const isSelfClosing = !!compoClosing[rowKey];
                         const isClosingRow = ancestorClosing;
                         const childClosing = ancestorClosing || isSelfClosing;

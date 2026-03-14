@@ -188,7 +188,11 @@ export default function HomeTable() {
             blockCost += Number(rowSet?.cost || 0);
             blockMarket += Number(rowSet?.market || 0);
         });
-        const blockProfit = blockMarket - blockCost;
+        const blockProfit = rows.reduce((sum, row) => {
+            if (!isItemActive(row)) return sum;
+            const rowSet = readSet(row, forTry);
+            return sum + Number(rowSet?.profit || 0);
+        }, 0);
         if (isBlockSelected) {
             totalCost += blockCost;
             totalMarket += blockMarket;
@@ -237,7 +241,7 @@ export default function HomeTable() {
                                     const harvest = rowActive ? Number(rowSet?.harvest || 0) : 0;
                                     const cost = rowActive ? Number(rowSet?.cost || 0) : 0;
                                     const market = rowActive ? Number(rowSet?.market || 0) : 0;
-                                    const profit = market - cost;
+                                    const profit = rowActive ? Number(rowSet?.profit || 0) : 0;
                                     return (
                                         <tr key={(row?.key || row?.name || "row") + "-" + itemIndex} style={{ opacity: rowActive ? 1 : 0.5 }}>
                                             {xListeColBounty[1][1] === 1 && (
@@ -287,7 +291,18 @@ export default function HomeTable() {
         );
     });
 
-    const totalProfit = totalMarket - totalCost;
+    const totalProfit = blocks.reduce((sum, block, index) => {
+        const rows = Array.isArray(block?.rows) ? block.rows : [];
+        const isBlockSelected = selectedHomeBlocks?.[index] ?? true;
+        if (!isBlockSelected) return sum;
+        return sum + rows.reduce((rowSum, row) => {
+            const selectionKey = String(row?.selectionKey || row?.key || row?.name || "");
+            const rowActive = !block?.itemToggle ? true : (selectedHomeItems?.[selectionKey] ?? true);
+            if (!rowActive) return rowSum;
+            const rowSet = readSet(row, forTry);
+            return rowSum + Number(rowSet?.profit || 0);
+        }, 0);
+    }, 0);
     return (
         <div className="home-container">
             {leftPanel}

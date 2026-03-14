@@ -66,7 +66,11 @@ function buildTryRefreshSignature(state) {
   Object.keys(it)
     .sort((a, b) => a.localeCompare(b))
     .forEach((itemName) => {
-      parts.push(`b:${itemName}:${Number(it[itemName]?.buyit === 1)}`);
+      const item = it[itemName] || {};
+      parts.push(`b:${itemName}:${Number(item?.buyit === 1)}`);
+      parts.push(
+        `s:${itemName}:${Number(item?.spottry ?? item?.spot ?? 0)}:${Number(item?.spot2try ?? item?.spot2 ?? 0)}:${Number(item?.spot3try ?? item?.spot3 ?? 0)}`
+      );
     });
   return parts.join("|");
 }

@@ -126,6 +126,19 @@ const Tooltip = ({ onClose, item, context, value, clickPosition, dataSet, dataSe
     const [compoExpanded, setCompoExpanded] = useState({});
     const [compoClosing, setCompoClosing] = useState({});
     const compoCloseTimersRef = useRef({});
+    const seasonButtons = [
+        { key: "spring", title: "Spring", icon: "./icon/ui/spring.webp" },
+        { key: "summer", title: "Summer", icon: "./icon/ui/summer.webp" },
+        { key: "autumn", title: "Autumn", icon: "./icon/ui/autumn.webp" },
+        { key: "winter", title: "Winter", icon: "./icon/ui/winter.webp" },
+    ];
+    const initialTooltipSeason = String(
+        dataSet?.frmData?.curSeason ||
+        dataSetFarm?.frmData?.curSeason ||
+        dataSetFarm?.curSeason ||
+        "spring"
+    ).toLowerCase();
+    const [tooltipSeason, setTooltipSeason] = useState(initialTooltipSeason);
 
     const handleBackdropDown = (e) => {
         if (e.target === wrapperRef.current) startClose();
@@ -306,6 +319,36 @@ const Tooltip = ({ onClose, item, context, value, clickPosition, dataSet, dataSe
             compoCloseTimersRef,
         },
     });
+    const renderSeasonButtons = (activeSeason) => (
+        <div style={{ display: "flex", gap: 6, marginTop: 6, marginBottom: 8, justifyContent: "center", flexWrap: "wrap" }}>
+            {seasonButtons.map((season) => {
+                const isActive = activeSeason === season.key;
+                return (
+                    <button
+                        key={season.key}
+                        type="button"
+                        onClick={() => setTooltipSeason(season.key)}
+                        title={season.title}
+                        style={{
+                            display: "inline-flex",
+                            alignItems: "center",
+                            justifyContent: "center",
+                            width: 28,
+                            height: 28,
+                            padding: 0,
+                            borderRadius: 6,
+                            border: isActive ? "1px solid rgb(255, 208, 120)" : "1px solid rgba(255, 255, 255, 0.2)",
+                            background: isActive ? "rgba(255, 196, 92, 0.2)" : "rgba(20, 8, 8, 0.85)",
+                            boxShadow: isActive ? "0 0 10px rgba(255, 196, 92, 0.18)" : "none",
+                            cursor: "pointer",
+                        }}
+                    >
+                        <img src={season.icon} alt={season.title} style={{ width: 18, height: 18 }} />
+                    </button>
+                );
+            })}
+        </div>
+    );
 
     try {
         if (it?.[item]) {
@@ -1017,15 +1060,37 @@ const Tooltip = ({ onClose, item, context, value, clickPosition, dataSet, dataSe
         if (context === "costitem") {
             const itemBase = [it, fish, bounty, flower, craft, petit, crustacean, food, pfood].find(src => src?.[item]);
             const icost = (itemBase[item][key("cost")] / dataSet.options.coinsRatio) * value;
+            const marketUnit = Number(itemBase[item]?.[key("costp2pt")] ?? itemBase[item]?.costp2pt ?? 0);
+            const marketFallback = Number(itemBase[item]?.[key("cost")] ?? itemBase[item]?.cost ?? 0) / dataSet.options.coinsRatio;
+            const imarket = (marketUnit > 0 ? marketUnit : marketFallback) * value;
             const itemimg = itemBase[item]?.img || imgna;
             const itemImg = <img src={itemimg} style={{ width: "20px", height: "20px" }} />;
             const txtQuant = value === 1 ? '' : "x" + value;
             let txtCost = "";
-            if (itemBase[item]?.compoit) {
+            const seasonalCompoit = pfood?.[item]?.seasonalCompoit;
+            const seasonalCompo = pfood?.[item]?.seasonalCompo;
+            const seasonalSource = seasonalCompoit && Object.keys(seasonalCompoit).length ? seasonalCompoit : seasonalCompo;
+            const hasSeasonButtons = seasonalSource && Object.keys(seasonalSource).length >= 4;
+            if (hasSeasonButtons) {
+                const recipe = seasonalSource?.[tooltipSeason] || seasonalSource?.[initialTooltipSeason] || seasonalSource?.spring || {};
+                const { table } = setCompoTable(item, value, {
+                    compoit: recipe,
+                    img: itemimg,
+                    label: `${item} - ${tooltipSeason.charAt(0).toUpperCase()}${tooltipSeason.slice(1)}`,
+                });
+                txtCost = (
+                    <div>
+                        {renderSeasonButtons(tooltipSeason)}
+                        {table}
+                    </div>
+                );
+            } else if (itemBase[item]?.compoit) {
                 const { table, totalCost, totalCostM } = setCompoTable(item, value);
                 txtCost = (<div>{table}</div>);
             } else {
-                txtCost = <>cost: {frmtNb(icost)}{imgsfl}</>;
+                txtCost = <>
+                    <div>cost: {frmtNb(icost)}{imgsfl} | {imgmp}: {frmtNb(imarket)}{imgsfl}</div>
+                </>;
             }
             txt = <><div>{itemImg}{item} {txtQuant}</div>
                 <div>{txtCost}</div></>;
@@ -1265,12 +1330,32 @@ const Tooltip = ({ onClose, item, context, value, clickPosition, dataSet, dataSe
             );
         }
         if (context === "cookcost") {
-            txt = <CompoTablesTooltip
-                items={item}
-                value={value}
-                filterFn={(cookItem) => !!food?.[cookItem] || !!pfood?.[cookItem]}
-                setCompoTable={setCompoTable}
-            />;
+            const cookItems = (Array.isArray(item) ? item : [item]).filter((cookItem) => !!food?.[cookItem] || !!pfood?.[cookItem]);
+            txt = <>
+                {cookItems.map((cookItem, idx) => {
+                    const seasonalCompoit = pfood?.[cookItem]?.seasonalCompoit;
+                    const seasonalCompo = pfood?.[cookItem]?.seasonalCompo;
+                    const seasonalSource = seasonalCompoit && Object.keys(seasonalCompoit).length ? seasonalCompoit : seasonalCompo;
+                    const hasSeasonButtons = seasonalSource && Object.keys(seasonalSource).length >= 4;
+                    if (hasSeasonButtons) {
+                        const recipe = seasonalSource?.[tooltipSeason] || seasonalSource?.[initialTooltipSeason] || seasonalSource?.spring || {};
+                        const itemImg = pfood?.[cookItem]?.img || imgna;
+                        const { table } = setCompoTable(cookItem, value, {
+                            compoit: recipe,
+                            img: itemImg,
+                            label: `${cookItem} - ${tooltipSeason.charAt(0).toUpperCase()}${tooltipSeason.slice(1)}`,
+                        });
+                        return (
+                            <React.Fragment key={`${cookItem}-${idx}`}>
+                                {renderSeasonButtons(tooltipSeason)}
+                                {table}
+                            </React.Fragment>
+                        );
+                    }
+                    const { table } = setCompoTable(cookItem, value);
+                    return <React.Fragment key={`${cookItem}-${idx}`}>{table}</React.Fragment>;
+                })}
+            </>;
         }
         if (context === "shrinecost") {
             txt = <CompoTablesTooltip

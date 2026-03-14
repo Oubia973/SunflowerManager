@@ -523,16 +523,13 @@ function TryProfileShareBar({
         shareIncludeBuy
       );
       const payload = {
-        ...(selectedProfile?.payload ? { ...selectedProfile.payload } : {}),
         ...scoped,
       };
       if (shareIncludeNodes || shareIncludeBuy) {
-        if (selectedProfile?.payload?.fullProfile) {
-          payload.fullProfile = selectedProfile.payload.fullProfile;
-        } else if (typeof onBuildFullProfilePayload === "function") {
-          const built = onBuildFullProfilePayload() || {};
-          if (built?.fullProfile) payload.fullProfile = built.fullProfile;
-        }
+        const built = (typeof onBuildFullProfilePayload === "function")
+          ? (onBuildFullProfilePayload() || {})
+          : {};
+        if (built?.fullProfile) payload.fullProfile = built.fullProfile;
       } else {
         delete payload.fullProfile;
       }

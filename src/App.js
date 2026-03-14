@@ -2940,12 +2940,18 @@ function App() {
     { value: "expand", label: "Expand", iconSrc: "./icon/tools/hammer.png" },
     { value: "buynodes", label: "Buy nodes", iconSrc: "./icon/res/sunstone_rock_1.webp" },
     { value: "factions", label: "Factions", iconSrc: "./icon/ui/factions.webp" },
-    { value: "toplists", label: "Lists", iconSrc: "./icon/ui/trophy.png" },
+    { value: "auctions", label: "Auctions", iconSrc: "./icon/ui/calendar.webp" },
     { value: "market", label: "Market", iconSrc: imgexchng },
+    { value: "toplists", label: "Lists", iconSrc: "./icon/ui/trophy.png" },
     ...(dataSet.options.isAbo
       ? [{ value: "activity", label: "Activity", iconSrc: "./icon/ui/stopwatch.png" }]
       : []),
   ];
+  useEffect(() => {
+    if (ui?.selectedInv !== "auctions") return;
+    if (dataSet?.options?.isAbo) return;
+    setUIField("selectedInv", "home");
+  }, [ui?.selectedInv, dataSet?.options?.isAbo, setUIField]);
   const requiredSectionsForView = useMemo(
     () => computeRequiredSections(ui, pageSectionRequirements),
     [ui?.selectedInv, ui?.activityDisplay, ui?.fishView, ui?.petView, pageSectionRequirements]
