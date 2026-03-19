@@ -5,6 +5,13 @@ import { FormControl, InputLabel, Select, MenuItem } from '@mui/material';
 import { frmtNb, flattenCompoit } from '../fct.js';
 import DList from "../dlist.jsx";
 
+function getSflBalance(balance) {
+    if (balance && typeof balance === "object") {
+        return Number(balance.sfl || 0);
+    }
+    return Number(balance || 0);
+}
+
 export default function ActivityTable() {
     const {
         data: { dataSetFarm },
@@ -21,7 +28,6 @@ export default function ActivityTable() {
     const [activityData, setActivityData] = useState(null);
     const [loading, setLoading] = useState(false);
     const farmId = dataSetFarm?.frmid;
-
     useEffect(() => {
         let cancelled = false;
 
@@ -805,8 +811,8 @@ function setActivityTot(activityData, xContext, dataSetFarm, dataSet) {
             tot.tktMax += 1 + itktbertMax; //+ itktwactMax;
             //console.log("tktMax +1+bert -> " + (itktbertMax + 1));
             compoHarvested["TKT"] += itktcrop + itktdchest + itktbert; // + itktwact; // + itkttntcl;
-            const prevBalance = activityData[i + 1] ? activityData[i + 1].data.balance : 0;
-            const dayBalance = DataContext.data.balance;
+            const prevBalance = activityData[i + 1] ? getSflBalance(activityData[i + 1].data.balance) : 0;
+            const dayBalance = getSflBalance(DataContext.data.balance);
             const dayGain = activityData[i + 1] ? prevBalance - dayBalance : 0;
             tot.balSfl += activityData.length > 1 ? dayGain : 0;
             const totHarvestEntries = Object.entries(DataContext.data.totharvest);

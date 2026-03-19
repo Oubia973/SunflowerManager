@@ -71,7 +71,7 @@ export default function BuyNodesTable() {
 
   const buyNodesData = dataSetFarm?.buyNodesData || {};
   const buyNodesFrmData = buyNodesData?.frmData || {};
-  const buyNodesObsidian = buyNodesData?.itables?.it?.Obsidian || {};
+  const buyNodesObsidian = buyNodesData?.itables?.it?.Obsidian || dataSetFarm?.itables?.it?.Obsidian || {};
   const nodeT1 = buyNodesFrmData?.nodes || dataSetFarm?.frmData?.nodes || {};
   const nodeBought = buyNodesFrmData?.nodeBought || dataSetFarm?.frmData?.nodeBought || {};
   const buyMap = buyNodesQty || {};
@@ -94,11 +94,7 @@ export default function BuyNodesTable() {
   }, [xListeColBuyNodes, buyNodesSubMode, buyNodesSubObsidian, buyNodesBuyPerWeek]);
 
   const obsidianTime = String(buyNodesObsidian?.[key("time")] || buyNodesObsidian?.time || "00:00:00");
-  const obsidianBuyUnitPrice = Number(
-    TryChecked
-      ? (buyNodesObsidian?.costp2pttry ?? buyNodesObsidian?.costp2pt ?? 0)
-      : (buyNodesObsidian?.costp2pt ?? 0)
-  ) || 0;
+  const obsidianBuyUnitPrice = Number(buyNodesObsidian?.costp2pt ?? 0) || 0;
   const obsidianSpot = toInt(buyNodesObsidian?.[key("spot")] ?? nodeT1?.["Lava Pit"] ?? 0);
   const obsidianMyield = Number(buyNodesObsidian?.[key("myield")] || buyNodesObsidian?.myield || 0);
   const obsidianHarvestNode = Number(buyNodesObsidian?.[key("harvestnode")] || buyNodesObsidian?.harvestnode || 0);

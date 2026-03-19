@@ -289,20 +289,22 @@ export default function CookTable() {
             const ixphcomp = cobj ? timecrpnbr > 0 ? parseFloat(ixp / (timecrpnbr * 24)).toFixed(1) : 0 : 0;
             var icost = cobj ? selectedQuantCook === "unit" ? ((!TryChecked ? cobj.cost : cobj.costtry) / dataSet.options.coinsRatio) : ((!TryChecked ? cobj.cost : cobj.costtry) / dataSet.options.coinsRatio) * iQuant : 0;
             const getMarketUnitWithFallback = (name) => {
-                const src = it[name] || fish[name] || bounty[name] || crustacean[name] || pfood[name] || food[name];
+                const src = it[name] || fish[name] || bounty[name] || crustacean[name] || pfood[name] || food[name] || cookTables?.tool?.[name] || cookTables?.petit?.[name];
                 if (!src) { return 0; }
-                const market = Number(!TryChecked ? (src.costp2pt || 0) : (src.costp2pttry || 0));
+                const market = Number(!TryChecked ? (src.costp2pt || 0) : (src.costp2pttry ?? src.costp2pt ?? 0));
                 const prod = (Number(!TryChecked ? src.cost : src.costtry) || 0) / dataSet.options.coinsRatio;
                 return market > 0 ? market : prod;
             };
             const traderUnitFromCompo = cobjCompo
                 ? Object.entries(cobjCompo).reduce((sum, [name, quant]) => sum + (Number(quant || 0) * getMarketUnitWithFallback(name)), 0)
                 : 0;
-            const traderUnit = traderUnitFromCompo > 0
-                ? traderUnitFromCompo
-                : (cobj ? ((Number(!TryChecked ? (cobj.costp2pt || 0) : (cobj.costp2pttry ?? cobj.costp2pt ?? 0)) > 0
+            const traderUnit = cobj
+                ? ((Number(!TryChecked ? (cobj.costp2pt || 0) : (cobj.costp2pttry ?? cobj.costp2pt ?? 0)) > 0
                     ? Number(!TryChecked ? (cobj.costp2pt || 0) : (cobj.costp2pttry ?? cobj.costp2pt ?? 0))
-                    : (Number(!TryChecked ? cobj.cost : cobj.costtry) || 0) / dataSet.options.coinsRatio)) : 0);
+                    : (traderUnitFromCompo > 0
+                        ? traderUnitFromCompo
+                        : (Number(!TryChecked ? cobj.cost : cobj.costtry) || 0) / dataSet.options.coinsRatio)))
+                : 0;
             var icostp2p = cobj ? selectedQuantCook === "unit" ?
                 selectedCostCook === "shop" ? (cobj.costshop / dataSet.options.coinsRatio) : selectedCostCook === "trader" ? traderUnit : selectedCostCook === "nifty" ? cobj.costp2pn : selectedCostCook === "opensea" ? cobj.costp2po : 0
                 : selectedCostCook === "shop" ? (cobj.costshop / dataSet.options.coinsRatio) * iQuant : selectedCostCook === "trader" ? traderUnit * iQuant : selectedCostCook === "nifty" ? cobj.costp2pn * iQuant : selectedCostCook === "opensea" ? cobj.costp2po * iQuant : 0 : 0;

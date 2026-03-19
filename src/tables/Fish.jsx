@@ -3,6 +3,7 @@ import { useAppCtx } from "../context/AppCtx";
 import { FormControl, InputLabel, Select, MenuItem } from '@mui/material';
 import { PBar, formatdate, frmtNb, buildSeriesMeta } from '../fct.js';
 import DList from "../dlist.jsx";
+import { getChumQuantity, normalizeChumName } from "../fishChumQuantities";
 
 export default function FishTable() {
   const stickyBarRef = useRef(null);
@@ -152,15 +153,19 @@ export default function FishTable() {
         }
         const iperiod = xPeriodImg;
         const fishMyield = Number(TryChecked ? (cobj.myieldtry ?? cobj.myield ?? 1) : (cobj.myield ?? 1)) || 1;
+        const chumName = normalizeChumName(cobj?.[key("cheaperchum")] ?? cobj?.cheaperchum ?? "");
+        const chumQty = getChumQuantity(chumName);
         const chumCostCoinsKey = Number(cobj?.[key("cheaperchumCost")] ?? cobj?.cheaperchumCost ?? 0);
         const chumCostMarketKey = Number(cobj?.[key("cheaperchumCostp2pt")] ?? cobj?.cheaperchumCostp2pt ?? 0);
         const chumUnitCostRaw = chumCostCoinsKey / dataSet.options.coinsRatio;
         const chumUnitCostRawM = chumCostMarketKey;
+        const chumCostRaw = chumUnitCostRaw * chumQty;
+        const chumCostRawM = chumUnitCostRawM * chumQty;
         let icost = cobj ? (Number(!TryChecked ? cobj.cost : cobj.costtry) / dataSet.options.coinsRatio) : 0;
         let icostM = cobj ? Number(!TryChecked ? (cobj.costp2pt ?? 0) : (cobj.costp2pttry ?? cobj.costp2pt ?? 0)) : 0;
         if (countChumCost && fishMyield > 0) {
-          icost += (chumUnitCostRaw / fishMyield);
-          icostM += (chumUnitCostRawM / fishMyield);
+          icost += (chumCostRaw / fishMyield);
+          icostM += (chumCostRawM / fishMyield);
         }
         icost = Number.isFinite(icost) ? Math.max(0, icost) : 0;
         const fishUnitCostRaw = icost;
@@ -202,7 +207,8 @@ export default function FishTable() {
           fishUnitMarket: fishUnitMarketRaw,
           fishMyield: fishMyield,
           includeChum: countChumCost,
-          chumName: (cobj?.[key("cheaperchum")] ?? cobj?.cheaperchum ?? ""),
+          chumName,
+          chumQty,
           chumUnitCost: chumUnitCostRaw,
           chumUnitMarket: chumUnitCostRawM,
         };

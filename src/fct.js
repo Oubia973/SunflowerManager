@@ -63,19 +63,19 @@ export function frmtNb(nombre, decimal=2) {
 
 export function flattenCompoit(rawCompo) {
   const out = {};
-  const walk = (tree) => {
+  const walk = (tree, multiplier = 1) => {
     if (!tree || typeof tree !== "object") return;
     Object.entries(tree).forEach(([name, rawNode]) => {
       if (typeof rawNode === "number") {
-        out[name] = (out[name] || 0) + Number(rawNode || 0);
+        out[name] = (out[name] || 0) + (Number(rawNode || 0) * multiplier);
         return;
       }
       const qty = Number(rawNode?.qty ?? rawNode?.quant ?? rawNode?.q ?? 0) || 0;
       const children = rawNode?.compoit && typeof rawNode.compoit === "object" ? rawNode.compoit : null;
       if (children && Object.keys(children).length > 0) {
-        walk(children);
+        walk(children, qty > 0 ? multiplier * qty : multiplier);
       } else {
-        out[name] = (out[name] || 0) + qty;
+        out[name] = (out[name] || 0) + (qty * multiplier);
       }
     });
   };

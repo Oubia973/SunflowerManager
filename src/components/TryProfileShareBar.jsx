@@ -601,6 +601,26 @@ function TryProfileShareBar({
           height={22}
           width={112}
         />
+        {showSharePanel ? (
+        <DList
+          name="shareScope"
+          options={shareScopeOptions}
+          value={shareScope}
+          onChange={(e) => {
+          const next = Array.isArray(e?.target?.value) ? e.target.value : [];
+          const filtered = normalizeShareScope(next);
+          setShareScope(filtered);
+          if (typeof onShareScopeChange === "function") {
+            onShareScopeChange({ target: { name: "tryProfileShareScope", value: filtered } });
+            }
+          }}
+          multiple
+          closeOnSelect={false}
+          listIcon="./icon/ui/list.webp"
+          iconOnly
+          height={22}
+        />
+        ) : null}
         <button class="button" style={smallBtnStyle} onClick={loadProfile} title="Load profile">
           <img src="./icon/ui/confirm.png" alt="Load" style={iconStyle} />
         </button>
@@ -625,6 +645,7 @@ function TryProfileShareBar({
       ) : null}
       {showSharePanel ? (
       <div style={frameStyle}>
+        {!showProfilesPanel ? (
         <DList
           name="shareScope"
           options={shareScopeOptions}
@@ -643,6 +664,7 @@ function TryProfileShareBar({
           iconOnly
           height={22}
         />
+        ) : null}
         <button
           class="button"
           style={{ ...smallBtnStyle, opacity: copyOnCooldown ? 0.55 : 1, pointerEvents: copyOnCooldown ? "none" : "auto" }}

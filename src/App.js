@@ -14,7 +14,7 @@ import DList from "./dlist.jsx";
 import { FormControl, InputLabel, Select, MenuItem, Switch, FormControlLabel } from '@mui/material';
 import { frmtNb, filterTryit, formatUpdated, UpdatedSince, mergeFarmStateDeep, getOrCreateDeviceId } from './fct.js';
 import { computeGemsRatio } from './gemsRatio.js';
-import { promptPass, promptInfo } from './promptW';
+import { promptPass, promptInfo, promptConfirm, promptChoice } from './promptW';
 
 import { AppCtx } from "./context/AppCtx";
 import PanelTable from "./tables/PanelTable";
@@ -42,6 +42,90 @@ const TRYIT_FALLBACK_ITEM_KEYS = ["xbuyit", "xfarmit", "xcookit", "xspottry", "x
 const LOAD_FARM_COOLDOWN_MS = 6000;
 const LOAD_FARM_SPAM_WINDOW_MS = 2500;
 const LOAD_FARM_SPAM_THRESHOLD = 4;
+const AUCTION_NOTIF_SYNC_DEBOUNCE_MS = 4000;
+const NOTIF_PREFS_STORAGE_KEY = "SFLManNotifPrefs";
+
+function normalizeNotifPrefs(raw) {
+  const source = (raw && typeof raw === "object") ? raw : {};
+  const enabledFarmIds = Array.isArray(source.enabledFarmIds)
+    ? [...new Set(
+      source.enabledFarmIds
+        .map((farmId) => String(farmId || "").trim())
+        .filter(Boolean)
+    )]
+    : [];
+  return {
+    enabledFarmIds,
+    skipMultiFarmPrompt: source.skipMultiFarmPrompt === true,
+    updatedAt: Number(source.updatedAt || 0) || 0,
+  };
+}
+
+function readNotifPrefs() {
+  try {
+    return normalizeNotifPrefs(JSON.parse(localStorage.getItem(NOTIF_PREFS_STORAGE_KEY) || "{}"));
+  } catch {
+    return normalizeNotifPrefs({});
+  }
+}
+
+function writeNotifPrefs(nextValue) {
+  const normalized = normalizeNotifPrefs({
+    ...nextValue,
+    updatedAt: Date.now(),
+  });
+  localStorage.setItem(NOTIF_PREFS_STORAGE_KEY, JSON.stringify(normalized));
+  return normalized;
+}
+
+function updateNotifPrefs(updater) {
+  const current = readNotifPrefs();
+  const nextValue = typeof updater === "function" ? updater(current) : updater;
+  return writeNotifPrefs(nextValue);
+}
+
+function setNotifFarmEnabledLocal(farmId, enabled) {
+  const farmKey = String(farmId || "").trim();
+  if (!farmKey) return readNotifPrefs();
+  return updateNotifPrefs((current) => {
+    const enabledSet = new Set(current.enabledFarmIds || []);
+    if (enabled) enabledSet.add(farmKey);
+    else enabledSet.delete(farmKey);
+    return {
+      ...current,
+      enabledFarmIds: [...enabledSet],
+    };
+  });
+}
+
+function resetMultiFarmNotifPromptLocal() {
+  return updateNotifPrefs((current) => ({
+    ...current,
+    skipMultiFarmPrompt: false,
+  }));
+}
+
+function setSkipMultiFarmNotifPromptLocal(skipValue) {
+  return updateNotifPrefs((current) => ({
+    ...current,
+    skipMultiFarmPrompt: skipValue === true,
+  }));
+}
+
+function getOtherEnabledNotifFarmIdsLocal(currentFarmId) {
+  const farmKey = String(currentFarmId || "").trim();
+  return readNotifPrefs().enabledFarmIds.filter((farmId) => farmId !== farmKey);
+}
+async function detectBraveBrowser() {
+  try {
+    return !!(typeof navigator !== "undefined"
+      && navigator.brave
+      && typeof navigator.brave.isBrave === "function"
+      && await navigator.brave.isBrave());
+  } catch {
+    return false;
+  }
+}
 
 var vversion = 0.09;
 let dataSet = {};
@@ -382,6 +466,14 @@ const BUYNODES_COLUMNS_TEMPLATE = [
   // ['Priority', 1],
   // ['Remaining Obs', 1],
 ];
+const AUCTIONS_COLUMNS_TEMPLATE = [
+  ['Item', 1],
+  ['Type', 1],
+  ['cur', 1],
+  ['Supply', 1],
+  ['End', 1],
+  ['Notifications', 1],
+];
 const BUYNODES_COLUMNS_PICKER = [
   { idx: 0, label: 'Node' },
   { idx: 1, label: 'Base' },
@@ -397,6 +489,14 @@ const BUYNODES_COLUMNS_PICKER = [
   { idx: 11, label: 'Bought to reach' },
   // { idx: 12, label: 'Priority' },
   // { idx: 13, label: 'Remaining Obs' },
+];
+const AUCTIONS_COLUMNS_PICKER = [
+  { idx: 0, label: 'Item' },
+  { idx: 1, label: 'Type' },
+  { idx: 2, label: 'cur' },
+  { idx: 3, label: 'Supply' },
+  { idx: 4, label: 'End' },
+  { idx: 5, label: 'Notifications' },
 ];
 const ACTIVITY_COLUMNS_TEMPLATE = [
   ['From', 1],
@@ -439,6 +539,20 @@ function buildSectionsKey(sections) {
     .join("|");
 }
 
+function getBalanceValue(balance, key = "sfl") {
+  if (balance && typeof balance === "object") {
+    return Number(balance[key] || 0);
+  }
+  return key === "sfl" ? Number(balance || 0) : 0;
+}
+
+function hasBalanceData(balance) {
+  if (balance && typeof balance === "object") {
+    return Object.values(balance).some((value) => Number(value || 0) > 0);
+  }
+  return Number(balance || 0) > 0;
+}
+
 function shouldDebugHashFlow() {
   try {
     if (typeof window !== "undefined" && window.__SFL_DEBUG_HASH_FLOW === true) return true;
@@ -466,6 +580,15 @@ function computeRequiredSections(uiState, pageSectionRequirements) {
     required.delete("toplists");
   }
   return [...required];
+}
+
+function buildTryitCoverageSignature(farmState) {
+  const payload = (farmState && typeof farmState === "object") ? farmState : {};
+  const tryitMode = String(payload?.tryitMode || "");
+  const tryitarrays = (payload?.tryitarrays && typeof payload.tryitarrays === "object")
+    ? payload.tryitarrays
+    : {};
+  return JSON.stringify({ tryitMode, tryitarrays });
 }
 
 function hasPathData(payload, path) {
@@ -517,6 +640,23 @@ function extractReceivedTableHashes(responsePayload, tableHashes) {
     });
   });
   return picked;
+}
+
+function mergeKnownHashesFromPayload(responsePayload, farmSectionHashesRef, farmTableHashesRef) {
+  const payload = (responsePayload && typeof responsePayload === "object") ? responsePayload : {};
+  if (payload?.sectionHashes && typeof payload.sectionHashes === "object") {
+    farmSectionHashesRef.current = {
+      ...(farmSectionHashesRef.current || {}),
+      ...payload.sectionHashes,
+    };
+  }
+  if (payload?.tableHashes && typeof payload.tableHashes === "object") {
+    const knownFromPayload = extractReceivedTableHashes(payload, payload.tableHashes);
+    farmTableHashesRef.current = {
+      ...(farmTableHashesRef.current || {}),
+      ...knownFromPayload,
+    };
+  }
 }
 
 function normalizeTryitPayload(raw) {
@@ -622,6 +762,7 @@ function App() {
   const [notifListInitial, setNotifListInitial] = useState(null);
   const uiDefaults = {
     selectedInv: "home",
+    selectedHomeMode: "current",
     selectedCurr: "SFL",
     selectedQuant: "unit",
     selectedQuantCook: "quant",
@@ -716,6 +857,7 @@ function App() {
     xListeColActivityItem: ACTIVITY_ITEM_COLUMNS_TEMPLATE,
     xListeColActivityQuest: ACTIVITY_QUEST_COLUMNS_TEMPLATE,
     xListeColBuyNodes: BUYNODES_COLUMNS_TEMPLATE,
+    xListeColAuctions: AUCTIONS_COLUMNS_TEMPLATE,
   };
   const normalizeUI = (raw) => {
     const next = { ...(raw || {}) };
@@ -827,6 +969,12 @@ function App() {
     const currentBuyNodesCols = Array.isArray(next.xListeColBuyNodes) ? next.xListeColBuyNodes : [];
     next.xListeColBuyNodes = BUYNODES_COLUMNS_TEMPLATE.map((tpl, i) => {
       const cur = Array.isArray(currentBuyNodesCols[i]) ? currentBuyNodesCols[i] : null;
+      const enabled = cur && (cur[1] === 1 || cur[1] === 0) ? cur[1] : tpl[1];
+      return [tpl[0], enabled];
+    });
+    const currentAuctionsCols = Array.isArray(next.xListeColAuctions) ? next.xListeColAuctions : [];
+    next.xListeColAuctions = AUCTIONS_COLUMNS_TEMPLATE.map((tpl, i) => {
+      const cur = Array.isArray(currentAuctionsCols[i]) ? currentAuctionsCols[i] : null;
       const enabled = cur && (cur[1] === 1 || cur[1] === 0) ? cur[1] : tpl[1];
       return [tpl[0], enabled];
     });
@@ -967,6 +1115,16 @@ function App() {
       .map((c) => String(c.idx)),
     [ui?.xListeColBuyNodes]
   );
+  const auctionsPickerOptions = useMemo(
+    () => AUCTIONS_COLUMNS_PICKER.map((c) => ({ value: String(c.idx), label: c.label })),
+    []
+  );
+  const auctionsPickerValue = useMemo(
+    () => AUCTIONS_COLUMNS_PICKER
+      .filter((c) => ui?.xListeColAuctions?.[c.idx]?.[1] === 1)
+      .map((c) => String(c.idx)),
+    [ui?.xListeColAuctions]
+  );
   const activePetColumnsPicker = useMemo(() => {
     if (ui?.petView === "shrines") {
       return {
@@ -1029,8 +1187,15 @@ function App() {
   const suppressNavUntilRef = useRef(0);
   const autoRefreshHasRunRef = useRef(false);
   const autoRefreshLastPageRef = useRef("");
+  const postTryCloseCoverageRef = useRef(null);
   const autoRefreshForceNormalFirstCycleRef = useRef(false);
   const deliveryLastSyncRef = useRef({ farmId: "", pulse: -1 });
+  const notifBootCheckedRef = useRef("");
+  const notifPromptOpenRef = useRef(false);
+  const notifActivationInFlightRef = useRef(false);
+  const nativePushListenersBoundRef = useRef(false);
+  const auctionNotifSyncTimerRef = useRef(null);
+  const auctionNotifPendingSelectionRef = useRef(null);
   const autoRefreshViewRef = useRef({
     selectedInv: "home",
     activityDisplay: "item",
@@ -1336,7 +1501,7 @@ function App() {
       hasSectionData(dataSetFarm, "inventory", sectionPayloadKeys, sectionTablePaths);
     if (!hasFullTryTables) {
       try {
-        await getPrices(false, true, ["boosts", "inventory"]);
+        await getPrices(false, true, ["boosts", "inventory"], false, "trynft", true);
       } catch (error) {
         console.log("TryNFT preload error", error);
       }
@@ -1418,6 +1583,7 @@ function App() {
       safeTryPayload.ftradesHeader = prevFarmState?.ftradesHeader;
     }
     const mergedFarmState = mergeFarmStateDeep(dataSetFarmRef.current || {}, safeTryPayload);
+    mergeKnownHashesFromPayload(safeTryPayload, farmSectionHashesRef, farmTableHashesRef);
     dataSetFarmRef.current = mergedFarmState;
     setdataSetFarm(mergedFarmState);
     const canonicalTryitState = {
@@ -1430,6 +1596,24 @@ function App() {
     });
     setdeliveriesData(mergedFarmState?.orderstable || []);
     setShowfTNFT(false);
+    autoRefreshHasRunRef.current = true;
+    autoRefreshLastPageRef.current = String(ui?.selectedInv || "home");
+    if (pageSectionRequirements) {
+      const closeRefreshUI = {
+        ...ui,
+        selectedInv: ui?.selectedInv || "home",
+      };
+      const activeSections = computeRequiredSections(closeRefreshUI, pageSectionRequirements);
+      getPrices(false, false, activeSections, true, closeRefreshUI.selectedInv, true, "TRYNFT_CLOSE").catch((error) => {
+        console.log("TryNFT close page refresh error", error);
+      });
+      postTryCloseCoverageRef.current = {
+        page: String(closeRefreshUI.selectedInv || "home"),
+        sections: [...new Set(activeSections)],
+        signature: buildTryitCoverageSignature(getTryitRequestPayload(mergedFarmState)),
+        updatedAt: Date.now(),
+      };
+    }
     if (!mergedFarmState?.ftrades && !mergedFarmState?.ftradesHeader) {
       getPrices(false, true, ["trades"]).catch((error) => {
         console.log("TryNFT close trades sync error", error);
@@ -1451,6 +1635,7 @@ function App() {
       safeTryPayload.ftradesHeader = prevFarmState?.ftradesHeader;
     }
     const mergedFarmState = mergeFarmStateDeep(dataSetFarmRef.current || {}, safeTryPayload);
+    mergeKnownHashesFromPayload(safeTryPayload, farmSectionHashesRef, farmTableHashesRef);
     dataSetFarmRef.current = mergedFarmState;
     setdataSetFarm(mergedFarmState);
     const canonicalTryitState = {
@@ -1492,67 +1677,172 @@ function App() {
     setSharedTryProfile(null);
     clearTryProfileFromUrl();
   };
-  async function subscribeToPush() {
+  function buildDisabledNotifItems() {
+    return (dataSet.options?.notifList || [])
+      .filter(([, enabled]) => Number(enabled) !== 1)
+      .map(([key]) => key);
+  }
+  function buildAuctionWatchEntries(source = dataSet.options?.auctionNotifSelection) {
+    const farmKey = String(curID || dataSet.options?.farmId || "").trim();
+    const allSelections = (source && typeof source === "object") ? source : {};
+    const src = farmKey && allSelections?.[farmKey] && typeof allSelections[farmKey] === "object"
+      ? allSelections[farmKey]
+      : {};
+    return Object.entries(src)
+      .map(([auctionId, rawEntry]) => {
+        const entry = (rawEntry && typeof rawEntry === "object") ? rawEntry : {};
+        const endAt = Number(entry?.e ?? entry?.endAt ?? 0);
+        const label = String(entry?.l ?? entry?.label ?? "").trim();
+        const id = String(auctionId || entry?.id || "").trim();
+        if (!id || !Number.isFinite(endAt) || endAt <= Date.now()) return null;
+        return { id, e: endAt, l: label || id };
+      })
+      .filter(Boolean)
+      .sort((a, b) => Number(a.e || 0) - Number(b.e || 0));
+  }
+  async function subscribeToPush(options = {}) {
+    const forceWebRenew = options?.forceWebRenew === true;
     /* if (!dataSet.options.useNotifications) {
       return;
     } */
-    if (isNativeApp) {
-      const permStatus = await PushNotifications.requestPermissions();
-      if (permStatus.receive === 'granted') {
-        await PushNotifications.register();
-        PushNotifications.addListener('registration', async (token) => {
-          console.log('FCM token:', token.value);
-          dataSet.options.pushToken = token.value;
-          const subfarm = {
-            farmId: curID,
-            token: token.value,
-            type: 'fcm'
-          };
-          await fetch('/save-subscription', {
-            method: 'POST',
-            body: JSON.stringify(subfarm),
-            headers: { 'Content-Type': 'application/json' },
-          });
-          console.log('FCM subscription saved');
-        });
-        PushNotifications.addListener('registrationError', (err) => {
-          console.error('FCM registration error:', err);
-        });
+    try {
+      if (isNativeApp) {
+        const permStatus = await PushNotifications.requestPermissions();
+        if (permStatus.receive === 'granted') {
+          if (!nativePushListenersBoundRef.current) {
+            nativePushListenersBoundRef.current = true;
+            PushNotifications.addListener('registration', async (token) => {
+              console.log('FCM token:', token.value);
+              dataSet.options.pushToken = token.value;
+              setCookie();
+              const subfarm = {
+                farmId: curID,
+                deviceId: deviceIdRef.current,
+                token: token.value,
+                type: 'fcm',
+                notifOffItems: buildDisabledNotifItems(),
+                auctionWatch: buildAuctionWatchEntries()
+              };
+              await fetch('/save-subscription', {
+                method: 'POST',
+                body: JSON.stringify(subfarm),
+                headers: { 'Content-Type': 'application/json' },
+              });
+              console.log('FCM subscription saved');
+            });
+            PushNotifications.addListener('registrationError', (err) => {
+              console.error('FCM registration error:', err);
+              promptInfo("Unable to activate notifications on this device right now.", "Notifications", "OK");
+            });
+          }
+          await PushNotifications.register();
+        } else {
+          console.warn('Push permission not granted');
+          await promptInfo("Notification permission was not granted on this device.", "Notifications", "OK");
+          return false;
+        }
       } else {
-        console.warn('Push permission not granted');
-      }
-    } else {
-      function urlBase64ToUint8Array(base64String) {
-        const padding = '='.repeat((4 - base64String.length % 4) % 4);
-        const base64 = (base64String + padding)
-          .replace(/\-/g, '+').replace(/_/g, '/');
+        function urlBase64ToUint8Array(base64String) {
+          const padding = '='.repeat((4 - base64String.length % 4) % 4);
+          const base64 = (base64String + padding)
+            .replace(/\-/g, '+').replace(/_/g, '/');
 
-        const rawData = atob(base64);
-        return Uint8Array.from([...rawData].map(char => char.charCodeAt(0)));
+          const rawData = atob(base64);
+          return Uint8Array.from([...rawData].map(char => char.charCodeAt(0)));
+        }
+        if (!("Notification" in window) || !("serviceWorker" in navigator) || !("PushManager" in window)) {
+          await promptInfo("This browser does not fully support push notifications.", "Notifications", "OK");
+          return false;
+        }
+        const browserPermission = await Notification.requestPermission();
+        if (browserPermission !== "granted") {
+          await promptInfo("Browser notification permission was not granted.", "Notifications", "OK");
+          return false;
+        }
+        const registration = await navigator.serviceWorker.ready;
+        const webPushK = process.env.REACT_APP_WEBPUSH_PUBLICKEY;
+        if (!webPushK) {
+          throw new Error("Missing REACT_APP_WEBPUSH_PUBLICKEY");
+        }
+        const applicationServerKey = urlBase64ToUint8Array(webPushK);
+        const subscribeWebPush = async (renewExisting = false) => {
+          let subscription = await registration.pushManager.getSubscription();
+          if (subscription && renewExisting) {
+            try {
+              await subscription.unsubscribe();
+            } catch (error) {
+              console.warn("Unable to unsubscribe existing web push subscription before renew:", error);
+            }
+            subscription = null;
+          }
+          if (!subscription) {
+            subscription = await registration.pushManager.subscribe({
+              userVisibleOnly: true,
+              applicationServerKey
+            });
+          }
+          return subscription;
+        };
+        let subscription;
+        try {
+          subscription = await subscribeWebPush(forceWebRenew);
+        } catch (firstError) {
+          console.warn("Initial web push subscription attempt failed, retrying with forced renew:", {
+            name: firstError?.name,
+            message: firstError?.message,
+          });
+          subscription = await subscribeWebPush(true);
+        }
+        const subscriptionJson = subscription?.toJSON ? subscription.toJSON() : null;
+        if (!subscriptionJson?.endpoint) {
+          throw new Error("Invalid web push subscription payload");
+        }
+        const subfarm = {
+          farmId: curID,
+          deviceId: deviceIdRef.current,
+          subscription: subscriptionJson,
+          type: 'web',
+          notifOffItems: buildDisabledNotifItems(),
+          auctionWatch: buildAuctionWatchEntries()
+        }
+        const response = await fetch('/save-subscription', {
+          method: 'POST',
+          body: JSON.stringify(subfarm),
+          headers: { 'Content-Type': 'application/json' },
+        });
+        if (!response.ok) {
+          throw new Error(`save-subscription failed (${response.status})`);
+        }
+        console.log('Notif on');
       }
-      const registration = await navigator.serviceWorker.ready;
-      const webPushK = process.env.REACT_APP_WEBPUSH_PUBLICKEY;
-      const subscription = await registration.pushManager.subscribe({
-        userVisibleOnly: true,
-        applicationServerKey: urlBase64ToUint8Array(webPushK)
+      return true;
+    } catch (error) {
+      const isBraveBrowser = !isNativeApp && await detectBraveBrowser();
+      console.error('subscribeToPush error:', {
+        name: error?.name,
+        message: error?.message,
+        stack: error?.stack,
+        userAgent: typeof navigator !== "undefined" ? navigator.userAgent : "",
       });
-      const subfarm = {
-        farmId: curID,
-        subscription: subscription.toJSON(),
-        type: 'web'
+      if (isBraveBrowser) {
+        await promptInfo(
+          "Brave accepted the site permission but is still blocking web push. In Brave, open brave://settings/privacy and enable 'Use Google services for push messaging', then restart Brave and try again.",
+          "Notifications",
+          "OK"
+        );
+      } else {
+        await promptInfo("Unable to activate notifications right now on this device/browser.", "Notifications", "OK");
       }
-      await fetch('/save-subscription', {
-        method: 'POST',
-        body: JSON.stringify(subfarm),
-        headers: { 'Content-Type': 'application/json' },
-      });
-      console.log('Notif on');
+      return false;
     }
   }
   async function UpdateNotifList() {
     const subfarm = {
       farmId: curID,
-      notifList: Object.fromEntries(dataSet.options.notifList)
+      deviceId: deviceIdRef.current,
+      type: isNativeApp ? 'fcm' : 'web',
+      notifOffItems: buildDisabledNotifItems(),
+      auctionWatch: buildAuctionWatchEntries()
     }
     await fetch('/notiflist-subscription', {
       method: 'POST',
@@ -1561,42 +1851,121 @@ function App() {
     });
     //console.log('FCM subscription saved');
   }
+  async function UpdateAuctionNotifList(auctionWatchInput = null) {
+    const subfarm = {
+      farmId: curID,
+      deviceId: deviceIdRef.current,
+      type: isNativeApp ? 'fcm' : 'web',
+      auctionWatch: Array.isArray(auctionWatchInput) ? auctionWatchInput : buildAuctionWatchEntries()
+    };
+    await fetch('/auctionlist-subscription', {
+      method: 'POST',
+      body: JSON.stringify(subfarm),
+      headers: { 'Content-Type': 'application/json' },
+    });
+  }
   async function unsubscribeFromPush() {
     if (isNativeApp) {
       const token = dataSet.options.pushToken; //await getFCMToken();
+      const subfarm = {
+        farmId: curID,
+        deviceId: deviceIdRef.current,
+        type: 'fcm'
+      };
       if (token) {
-        const subfarm = {
-          farmId: curID,
-          token: token,
-          type: 'fcm'
-        };
-        await fetch('/remove-subscription', {
-          method: 'POST',
-          body: JSON.stringify(subfarm),
-          headers: { 'Content-Type': 'application/json' },
-        });
-        console.log('FCM token removed');
+        subfarm.token = token;
       }
+      await fetch('/remove-subscription', {
+        method: 'POST',
+        body: JSON.stringify(subfarm),
+        headers: { 'Content-Type': 'application/json' },
+      });
+      dataSet.options.pushToken = "";
+      setCookie();
+      console.log(token ? 'FCM token removed' : 'FCM subscription removal requested');
     } else {
       const registration = await navigator.serviceWorker.ready;
       const subscription = await registration.pushManager.getSubscription();
       if (subscription) {
         await subscription.unsubscribe();
-        const subfarm = {
-          farmId: curID,
-          subscription: subscription.toJSON(),
-          type: 'web'
-        }
-        await fetch('/remove-subscription', {
-          method: 'POST',
-          body: JSON.stringify(subfarm),
-          headers: { 'Content-Type': 'application/json' },
-        });
-        console.log('Notif off');
-      } else {
-        console.log('No subscription');
       }
+      const subfarm = {
+        farmId: curID,
+        deviceId: deviceIdRef.current,
+        type: 'web'
+      };
+      if (subscription) {
+        subfarm.subscription = subscription.toJSON();
+      }
+      await fetch('/remove-subscription', {
+        method: 'POST',
+        body: JSON.stringify(subfarm),
+        headers: { 'Content-Type': 'application/json' },
+      });
+      console.log(subscription ? 'Notif off' : 'Web subscription removal requested');
     }
+  }
+  async function checkDeviceSubscriptionStatus(farmId) {
+    const subfarm = {
+      farmId,
+      deviceId: deviceIdRef.current,
+    };
+    const response = await fetch('/subscription-status', {
+      method: 'POST',
+      body: JSON.stringify(subfarm),
+      headers: { 'Content-Type': 'application/json' },
+    });
+    if (!response.ok) {
+      throw new Error(`Subscription status error (${response.status})`);
+    }
+    return response.json();
+  }
+  async function handleNotificationToggle(nextValue, options = {}) {
+    const fromUserGesture = options?.fromUserGesture === true;
+    const farmId = String(curID || dataSet.options?.farmId || "").trim();
+    if (!curID) {
+      setOptionField("useNotifications", nextValue);
+      return;
+    }
+    if (!nextValue) {
+      setOptionField("useNotifications", false);
+      resetMultiFarmNotifPromptLocal();
+      await unsubscribeFromPush();
+      setNotifFarmEnabledLocal(farmId, false);
+      console.log("useNotif:", false);
+      return;
+    }
+    if (isNativeApp) {
+      setOptionField("useNotifications", true);
+      const activated = await subscribeToPush();
+      setNotifFarmEnabledLocal(farmId, activated);
+      console.log("useNotif:", activated);
+      return;
+    }
+    if (!fromUserGesture) {
+      setOptionField("useNotifications", false);
+      setNotifFarmEnabledLocal(farmId, false);
+      setShowOptions(true);
+      await promptInfo(
+        "Browser notifications must be activated from a direct click in Options. Tick Notifications again to reactivate them.",
+        "Notifications",
+        "OK"
+      );
+      return;
+    }
+    setOptionField("useNotifications", true);
+    let activated = false;
+    notifActivationInFlightRef.current = true;
+    try {
+      activated = await subscribeToPush();
+    } finally {
+      notifActivationInFlightRef.current = false;
+    }
+    if (!activated) {
+      setOptionField("useNotifications", false);
+    }
+    setNotifFarmEnabledLocal(farmId, activated);
+    console.log("useNotif:", activated);
   }
 
   const handleUIChange = (e) => {
@@ -1728,14 +2097,18 @@ function App() {
 
     if (name.includes(".")) {
       const [root, key] = name.split(".", 2);
-      const n = parseInt(String(value).replace(/\D/g, ""), 10);
-      const parsed = Number.isFinite(n) ? n : 0;
+      const parsedValue = String(value ?? "").trim();
+      const isHarvestCounter = root === "xHrvst" || root === "xHrvsttry";
+      const parsed = isHarvestCounter
+        ? Number(parsedValue.replace(/[^0-9.]/g, ""))
+        : parseInt(parsedValue.replace(/\D/g, ""), 10);
+      const normalized = Number.isFinite(parsed) ? parsed : 0;
 
       setUI(prev => ({
         ...(prev ?? {}),
         [root]: {
           ...(prev?.[root] ?? {}),
-          [key]: parsed,
+          [key]: normalized,
         },
       }));
       return;
@@ -1754,6 +2127,22 @@ function App() {
         ...(prev ?? {}),
         [name]: nextValue,
       };
+    });
+  };
+  const setOptionField = (name, valueOrUpdater) => {
+    setOptions((prev) => {
+      const prevValue = prev?.[name];
+      const nextValue =
+        typeof valueOrUpdater === "function"
+          ? valueOrUpdater(prevValue)
+          : valueOrUpdater;
+      const nextOptions = {
+        ...(prev ?? {}),
+        [name]: nextValue,
+      };
+      dataSet.options = nextOptions;
+      setCookie();
+      return nextOptions;
     });
   };
 
@@ -1786,6 +2175,7 @@ function App() {
     if (!name) {
       if (Array.isArray(eventOrValue)) {
         if (JSON.stringify(dataSet.options.notifList) !== JSON.stringify(eventOrValue)) {
+          resetMultiFarmNotifPromptLocal();
           dataSet.options.notifList = eventOrValue;
           setOptions({ ...dataSet.options, notifList: eventOrValue });
           //UpdateNotifListDebounced();
@@ -1811,6 +2201,11 @@ function App() {
       setOptions(newOptions);
       return;
     }
+    if (name === "useNotifications") {
+      resetMultiFarmNotifPromptLocal();
+      handleNotificationToggle(!!xvalue, { fromUserGesture: !!eventOrValue?.target });
+      return;
+    }
     switch (name) {
       case "FarmTime":
         if (xvalue > 24) xvalue = 24;
@@ -1830,6 +2225,9 @@ function App() {
         break;
       default:
         try {
+          if (name === "auctionNotifSelection") {
+            resetMultiFarmNotifPromptLocal();
+          }
           dataSet.options[name] = xvalue;
           setOptions({ ...dataSet.options });
         } catch (error) {
@@ -1839,6 +2237,35 @@ function App() {
     }
     //setCookie();
   };
+  const syncAuctionNotifSelection = async (selectionSource = null) => {
+    if (!dataSet.options?.useNotifications) return;
+    if (!curID) return;
+    try {
+      await UpdateAuctionNotifList(buildAuctionWatchEntries(selectionSource || dataSet.options?.auctionNotifSelection));
+    } catch (error) {
+      console.error("Error syncing auction notifications:", error);
+    }
+  };
+  const scheduleAuctionNotifSelectionSync = (selectionSource = null) => {
+    auctionNotifPendingSelectionRef.current = selectionSource || dataSet.options?.auctionNotifSelection || null;
+    if (auctionNotifSyncTimerRef.current) {
+      clearTimeout(auctionNotifSyncTimerRef.current);
+    }
+    auctionNotifSyncTimerRef.current = setTimeout(() => {
+      auctionNotifSyncTimerRef.current = null;
+      const pendingSelection = auctionNotifPendingSelectionRef.current;
+      auctionNotifPendingSelectionRef.current = null;
+      syncAuctionNotifSelection(pendingSelection);
+    }, AUCTION_NOTIF_SYNC_DEBOUNCE_MS);
+  };
+  useEffect(() => {
+    return () => {
+      if (auctionNotifSyncTimerRef.current) {
+        clearTimeout(auctionNotifSyncTimerRef.current);
+        auctionNotifSyncTimerRef.current = null;
+      }
+    };
+  }, []);
   function handleSetHrvMax(TryChecked) {
     const it = dataSetFarm?.itables?.it
       || dataSetFarm?.invData?.itables?.it
@@ -1850,7 +2277,7 @@ function App() {
         ? (it[item]?.dailycycletry ?? it[item]?.dailycycle ?? 0)
         : (it[item]?.dailycycle ?? 0);
 
-      if (dc > 0) next[item] = Math.ceil(Number(dc));
+      if (dc > 0) next[item] = Number(dc);
     }
     setUI((prev) => ({
       ...prev,
@@ -2069,9 +2496,9 @@ function App() {
             //setanimalData(responseData.Animals);
             refreshDataSet(mergedInitialFarm);
             const { frmData, expandData, Fish, taxFreeSFL } = mergedInitialFarm;
-            dataSet.balance = frmData.balance;
-            dataSet.coins = frmData.coins;
-            const balance = frmData.balance;
+            dataSet.balance = getBalanceValue(frmData.balance, "sfl");
+            dataSet.coins = getBalanceValue(frmData.balance, "coins");
+            const balance = getBalanceValue(frmData.balance, "sfl");
             const withdrawreduc = (expandData?.type === "desert" || expandData?.type === "spring" || expandData?.type === "volcano") ? 2.5 : 0;
             const withdrawtax = (balance < 10 ? 30 : balance < 100 ? 25 : balance < 1000 ? 20 : balance < 5000 ? 15 : 10) - withdrawreduc;
             dataSet.withdrawtax = withdrawtax;
@@ -2306,6 +2733,8 @@ function App() {
     handleUIChange,
     handleOptionChange,
     setUIField,
+    setOptionField,
+    syncAuctionNotifSelection: scheduleAuctionNotifSelectionSync,
     handleTooltip,
     handleHomeClic,
     handleTraderClick,
@@ -2317,7 +2746,10 @@ function App() {
     handleInvBuyRefresh
   }), [
     handleUIChange,
+    handleOptionChange,
     setUIField,
+    setOptionField,
+    scheduleAuctionNotifSelectionSync,
     handleTooltip,
     handleHomeClic,
     handleTraderClick,
@@ -2385,9 +2817,9 @@ function App() {
 
   function PBarSFL() {
     const maxh = 255;
-    if (farmData.balance) {
-      const previousQuantity = farmData.previousBalance;
-      const Quantity = farmData.balance;
+    if (hasBalanceData(farmData.balance)) {
+      const previousQuantity = getBalanceValue(farmData.previousBalance, "sfl");
+      const Quantity = getBalanceValue(farmData.balance, "sfl");
       const difference = Quantity - previousQuantity;
       const absDifference = Math.abs(difference);
       const isNegativeDifference = difference < 0;
@@ -2541,9 +2973,9 @@ function App() {
         dataSet.bumpkin = mergedFarmData?.Bumpkin?.[0];
         setBumpkinData(mergedFarmData?.Bumpkin || []);
         const { frmData, expandData, Fish, taxFreeSFL } = mergedFarmData;
-        dataSet.balance = frmData.balance;
-        dataSet.coins = frmData.coins;
-        const balance = frmData.balance;
+        dataSet.balance = getBalanceValue(frmData.balance, "sfl");
+        dataSet.coins = getBalanceValue(frmData.balance, "coins");
+        const balance = getBalanceValue(frmData.balance, "sfl");
         dataSet.updated = formatUpdated(frmData?.updated);
         let refreshOptions = false;
         if (dataSet?.options?.tradeTax !== frmData?.tradeTax && dataSet?.options?.tradeTax > 0 && dataSet.options.autoTradeTax) {
@@ -2875,8 +3307,21 @@ function App() {
         autoRefreshLastPageRef.current !== "" &&
         autoRefreshLastPageRef.current !== currentPage;
       const required = computeRequiredSections(ui, pageSectionRequirements);
+      const currentTrySignature = buildTryitCoverageSignature(getTryitRequestPayload(dataSetFarmRef.current || {}));
+      const coverage = postTryCloseCoverageRef.current;
+      const isCoveredByRecentTryClose = !!(
+        shouldForceNavAfterRefreshElsewhere &&
+        coverage &&
+        coverage.signature === currentTrySignature &&
+        required.every((section) => Array.isArray(coverage.sections) && coverage.sections.includes(section))
+      );
       const hasAllSections = required.every((section) => hasSectionData(dataSetFarm, section, sectionPayloadKeys, sectionTablePaths));
-      if (hasAllSections && !shouldForceNavAfterRefreshElsewhere) return;
+      if (hasAllSections && (!shouldForceNavAfterRefreshElsewhere || isCoveredByRecentTryClose)) {
+        if (isCoveredByRecentTryClose) {
+          autoRefreshHasRunRef.current = false;
+        }
+        return;
+      }
       getPrices(false, true, null, false, null, shouldForceNavAfterRefreshElsewhere).catch((error) => {
         console.log(`Error: ${error}`);
       });
@@ -2896,15 +3341,68 @@ function App() {
     runNavLoadIfNeeded();
   }, [ui?.selectedInv, ui?.activityDisplay, ui?.fishView, ui?.petView, dataSetFarm, dataSetFarm?.frmid, pageSectionRequirements, sectionPayloadKeys, sectionTablePaths]);
   useEffect(() => {
-    if (!curID) return;
-    if (dataSet.options.useNotifications) {
-      subscribeToPush();
-      console.log("useNotif:", dataSet.options.useNotifications);
-    } else {
-      unsubscribeFromPush();
-      console.log("useNotif:", dataSet.options.useNotifications);
-    }
-  }, [dataSet.options.useNotifications]);
+    const farmId = String(curID || dataSet.options?.farmId || "").trim();
+    if (!farmId) return;
+    if (!dataSet.options?.useNotifications) return;
+    const checkKey = `${farmId}|${deviceIdRef.current}`;
+    if (notifBootCheckedRef.current === checkKey) return;
+    notifBootCheckedRef.current = checkKey;
+    let cancelled = false;
+    const run = async () => {
+      try {
+        const status = await checkDeviceSubscriptionStatus(farmId);
+        if (cancelled) return;
+        if (status?.active) {
+          setNotifFarmEnabledLocal(farmId, true);
+          return;
+        }
+        setNotifFarmEnabledLocal(farmId, false);
+        if (notifActivationInFlightRef.current) return;
+        if (notifPromptOpenRef.current) return;
+        const notifPrefs = readNotifPrefs();
+        const otherEnabledFarmIds = getOtherEnabledNotifFarmIdsLocal(farmId);
+        if (otherEnabledFarmIds.length > 0) {
+          if (notifPrefs.skipMultiFarmPrompt) return;
+          notifPromptOpenRef.current = true;
+          const choice = await promptChoice(
+            "Notifications are already active on another farm on this device. Do you want to activate them on this farm too?",
+            "Notifications",
+            [
+              { value: "activate", label: "Activate here too", primary: true },
+              { value: "later", label: "Not for now" },
+              { value: "skip-multi", label: "Don't ask again" },
+            ]
+          );
+          notifPromptOpenRef.current = false;
+          if (cancelled) return;
+          if (choice === "skip-multi") {
+            setSkipMultiFarmNotifPromptLocal(true);
+            return;
+          }
+          if (choice !== "activate") return;
+          await handleNotificationToggle(true, { fromUserGesture: isNativeApp });
+          return;
+        }
+        notifPromptOpenRef.current = true;
+        const confirmed = await promptConfirm(
+          "Notifications are no longer active on this device. Do you want to reactivate them now?",
+          "Notifications",
+          "Reactivate",
+          "Later"
+        );
+        notifPromptOpenRef.current = false;
+        if (cancelled || !confirmed) return;
+        await handleNotificationToggle(true, { fromUserGesture: isNativeApp });
+      } catch (error) {
+        notifPromptOpenRef.current = false;
+        console.error("Notification startup status check failed:", error);
+      }
+    };
+    run();
+    return () => {
+      cancelled = true;
+    };
+  }, [curID, dataSet.options?.farmId, dataSet.options?.useNotifications]);
   useEffect(() => {
     const it = dataSetFarm?.itables?.it
       || dataSetFarm?.invData?.itables?.it
@@ -2940,18 +3438,13 @@ function App() {
     { value: "expand", label: "Expand", iconSrc: "./icon/tools/hammer.png" },
     { value: "buynodes", label: "Buy nodes", iconSrc: "./icon/res/sunstone_rock_1.webp" },
     { value: "factions", label: "Factions", iconSrc: "./icon/ui/factions.webp" },
-    { value: "auctions", label: "Auctions", iconSrc: "./icon/ui/calendar.webp" },
     { value: "market", label: "Market", iconSrc: imgexchng },
     { value: "toplists", label: "Lists", iconSrc: "./icon/ui/trophy.png" },
+    { value: "auctions", label: "Auctions", iconSrc: "./icon/ui/calendar.webp" },
     ...(dataSet.options.isAbo
       ? [{ value: "activity", label: "Activity", iconSrc: "./icon/ui/stopwatch.png" }]
       : []),
   ];
-  useEffect(() => {
-    if (ui?.selectedInv !== "auctions") return;
-    if (dataSet?.options?.isAbo) return;
-    setUIField("selectedInv", "home");
-  }, [ui?.selectedInv, dataSet?.options?.isAbo, setUIField]);
   const requiredSectionsForView = useMemo(
     () => computeRequiredSections(ui, pageSectionRequirements),
     [ui?.selectedInv, ui?.activityDisplay, ui?.fishView, ui?.petView, pageSectionRequirements]
@@ -3021,7 +3514,7 @@ function App() {
                 fontSize: '9px',
                 color: 'gray',
               }}>{farmData?.updated ? (<UpdatedSince unixTime={farmData?.updated} />) : ""}</div>
-              {farmData.balance ? (
+              {hasBalanceData(farmData.balance) ? (
                 <div className="vertical" style={{ transform: 'translate(105px, 0%)' }}>
                   <div className="horizontal">
                     <button onClick={handleButtonfTNFTClick} title="NFT" class="button coach-boosts-btn">
@@ -3057,7 +3550,7 @@ function App() {
               ) : ""}
             </div>
             <div class="h1-container"><img src={logo} alt="" className="App-logo" />Sunflower Manager</div>
-            {farmData.balance ? (
+            {hasBalanceData(farmData.balance) ? (
               <div className="currencies">
                 <div className="currency-controls">
                   {/* <div className="selectcurrback">
@@ -3115,7 +3608,7 @@ function App() {
           </h1>
           <div style={{ marginTop: 0, margin: 0, padding: 0 }}>
             <div class="horizontal" style={{ margin: "0", padding: "0" }}>
-              {farmData.balance ? (<>
+              {hasBalanceData(farmData.balance) ? (<>
                 <div class="horizontal" onClick={(e) => handleTooltip("", "balance", "", e)} style={{ margin: "0", padding: "0" }}>
                   {imgSFL}{frmtNb(dataSet.balance)} {imgCoins}{parseFloat(dataSet.coins).toFixed(0)}{dataSet.isBanned ? dataSet.isBanned : null}
                 </div>
@@ -3128,7 +3621,7 @@ function App() {
                 </p>
               ) : null}
             </div>
-            {farmData.balance ? (<>
+            {hasBalanceData(farmData.balance) ? (<>
               <HeaderTrades
                 API_URL={API_URL}
                 farmId={String(dataSetFarm?.frmid || "")}
@@ -3181,6 +3674,18 @@ function App() {
                       { value: "all", label: "All lvl" },
                     ]}
                     value={ui.selectedAnimalLvl}
+                    onChange={handleUIChange}
+                    height={20}
+                  />
+                )}
+                {selectedInv === "home" && (
+                  <DList
+                    name="selectedHomeMode"
+                    options={[
+                      { value: "current", label: "Current harvests" },
+                      { value: "daily", label: "Daily harvests" },
+                    ]}
+                    value={ui.selectedHomeMode}
                     onChange={handleUIChange}
                     height={20}
                   />
@@ -3280,6 +3785,28 @@ function App() {
                         return [col[0], selectedSet.has(String(idx)) ? 1 : 0];
                       });
                       setUIField("xListeColBuyNodes", next);
+                    }}
+                    listIcon="./options.png"
+                    iconOnly={true}
+                    height={28}
+                    menuMinWidth={220}
+                  />
+                )}
+                {selectedInv === "auctions" && (
+                  <DList
+                    options={auctionsPickerOptions}
+                    value={auctionsPickerValue}
+                    multiple={true}
+                    closeOnSelect={false}
+                    emitEvent={false}
+                    onChange={(selectedValues) => {
+                      const selectedSet = new Set((selectedValues || []).map(String));
+                      const next = (ui.xListeColAuctions || AUCTIONS_COLUMNS_TEMPLATE).map((col, idx) => {
+                        const isPickerCol = AUCTIONS_COLUMNS_PICKER.some((c) => c.idx === idx);
+                        if (!isPickerCol) return col;
+                        return [col[0], selectedSet.has(String(idx)) ? 1 : 0];
+                      });
+                      setUIField("xListeColAuctions", next);
                     }}
                     listIcon="./options.png"
                     iconOnly={true}
@@ -3655,6 +4182,7 @@ function App() {
       if (!dataSet.options?.animalLvl?.Chicken) { dataSet.options.animalLvl.Chicken = 7 }
       if (!dataSet.options?.animalLvl?.Cow) { dataSet.options.animalLvl.Cow = 7 }
       if (!dataSet.options?.animalLvl?.Sheep) { dataSet.options.animalLvl.Sheep = 7 }
+      if (!dataSet.options?.auctionNotifSelection || typeof dataSet.options.auctionNotifSelection !== "object") { dataSet.options.auctionNotifSelection = {} }
       if (!dataSet.options?.usePriceFood) { dataSet.options.usePriceFood = 1 }
       if (!dataSet.options?.oilFood) { dataSet.options.oilFood = 0 }
       if (dataSet.options?.chumFishCost === undefined) { dataSet.options.chumFishCost = 0 }
@@ -3750,9 +4278,11 @@ function App() {
       if (!dataSet.options.notifList.some(([key]) => key === 'Crustaceans')) {
         dataSet.options.notifList.push(['Crustaceans', 1]);
       }
+      if (!dataSet.options.notifList.some(([key]) => key === 'Auctions')) {
+        dataSet.options.notifList.push(['Auctions', 1]);
+      }
     }
   }
 }
 
 export default App;
-

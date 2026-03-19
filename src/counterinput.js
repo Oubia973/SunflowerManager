@@ -1,6 +1,33 @@
 import React from "react";
 
 function CounterInput({ value, onChange, min = 0, max = 99, activate = true }) {
+  const toNumber = (input, fallback = 0) => {
+    const parsed = Number(input);
+    return Number.isFinite(parsed) ? parsed : fallback;
+  };
+
+  const currentValue = toNumber(value, min);
+  const minValue = toNumber(min, 0);
+  const maxValue = Math.max(minValue, toNumber(max, 99));
+  const flooredMax = Math.floor(maxValue);
+  const hasFractionalCap = Math.abs(maxValue - flooredMax) > Number.EPSILON;
+  const displayValue = Number.isInteger(currentValue) ? currentValue : currentValue.toFixed(1);
+
+  const getPrevValue = () => {
+    if (currentValue <= minValue) return minValue;
+    if (hasFractionalCap && currentValue > flooredMax) {
+      return Math.max(minValue, flooredMax);
+    }
+    return Math.max(minValue, currentValue - 1);
+  };
+
+  const getNextValue = () => {
+    if (currentValue >= maxValue) return maxValue;
+    if (currentValue < flooredMax) {
+      return Math.min(flooredMax, currentValue + 1);
+    }
+    return maxValue;
+  };
   const btnStyle = {
     padding: "0px 0px",
     border: "none",
@@ -26,17 +53,17 @@ function CounterInput({ value, onChange, min = 0, max = 99, activate = true }) {
   };
 
   const decrement = () => {
-    if (value > min && activate) onChange(value - 1);
+    if (activate && currentValue > minValue) onChange(getPrevValue());
   };
 
   const increment = () => {
-    if (value < max && activate) onChange(value + 1);
+    if (activate && currentValue < maxValue) onChange(getNextValue());
   };
 
   return (
     <div style={containerStyle}>
       <button style={btnStyle} onClick={decrement}>−</button>
-      <div style={valueStyle}>{value}</div>
+      <div style={valueStyle}>{displayValue}</div>
       <button style={btnStyle} onClick={increment}>+</button>
     </div>
   );

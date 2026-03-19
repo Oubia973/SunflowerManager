@@ -17,6 +17,13 @@ function readSet(row, forTry) {
     return forTry ? (row?.tryset || {}) : (row?.active || {});
 }
 
+function readModeSet(row, mode, forTry) {
+    if (mode === "daily") {
+        return forTry ? (row?.dailytryset || {}) : (row?.daily || {});
+    }
+    return readSet(row, forTry);
+}
+
 export default function HomeTable() {
     const [isBumpkinCooldown, setIsBumpkinCooldown] = useState(false);
     const [isBumpkinRefreshing, setIsBumpkinRefreshing] = useState(false);
@@ -28,7 +35,8 @@ export default function HomeTable() {
             TryChecked,
             isOpen,
             selectedHomeBlocks,
-            selectedHomeItems
+            selectedHomeItems,
+            selectedHomeMode,
         },
         actions: {
             handleHomeClic,
@@ -86,10 +94,10 @@ export default function HomeTable() {
 
     const blocks = Array.isArray(homeData?.blocks) ? homeData.blocks : [];
     const forTry = !!TryChecked;
-    const setName = forTry ? "tryset" : "active";
-    const curHrvst = forTry ? "average" : "current";
+    const homeMode = selectedHomeMode === "daily" ? "daily" : "current";
+    const isDailyMode = homeMode === "daily";
+    const curHrvst = isDailyMode ? "daily" : (forTry ? "average" : "current");
     let totalCost = 0;
-    let totalMarket = 0;
 
     const leftPanel = (
         <div className="home-left-panel">
@@ -162,7 +170,6 @@ export default function HomeTable() {
         const iconSrc = block?.img || "./icon/nft/na.png";
         const blockIcon = <img src={iconSrc} alt="" className="nodico" title={blockLabel} />;
         let blockCost = 0;
-        let blockMarket = 0;
 
         const isItemActive = (row) => {
             if (!block?.itemToggle) return true;
@@ -183,19 +190,17 @@ export default function HomeTable() {
         };
 
         rows.forEach((row) => {
-            const rowSet = readSet(row, forTry);
+            const rowSet = readModeSet(row, homeMode, forTry);
             if (!isItemActive(row)) return;
             blockCost += Number(rowSet?.cost || 0);
-            blockMarket += Number(rowSet?.market || 0);
         });
         const blockProfit = rows.reduce((sum, row) => {
             if (!isItemActive(row)) return sum;
-            const rowSet = readSet(row, forTry);
+            const rowSet = readModeSet(row, homeMode, forTry);
             return sum + Number(rowSet?.profit || 0);
         }, 0);
         if (isBlockSelected) {
             totalCost += blockCost;
-            totalMarket += blockMarket;
         }
 
         return (
@@ -227,17 +232,19 @@ export default function HomeTable() {
                                 <tr>
                                     {xListeColBounty[1][1] === 1 ? <th className="collapsible-content-th">Item</th> : null}
                                     {xListeColBounty[2][1] === 1 ? <th className="collapsible-content-th">Nodes</th> : null}
+                                    {isDailyMode && xListeColBounty[5][1] === 1 ? <th className="collapsible-content-th">Cycles</th> : null}
                                     {xListeColBounty[3][1] === 1 ? <th className="collapsible-content-th">Harvest</th> : null}
                                     {xListeColBounty[4][1] === 1 ? <th className="collapsible-content-th">Cost</th> : null}
-                                    {xListeColBounty[5][1] === 1 ? <th className="collapsible-content-th">Market</th> : null}
+                                    {!isDailyMode && xListeColBounty[5][1] === 1 ? <th className="collapsible-content-th">Market</th> : null}
                                     {xListeColBounty[5][1] === 1 ? <th className="collapsible-content-th">Profit</th> : null}
                                 </tr>
                             </thead>
                             <tbody>
                                 {rows.map((row, itemIndex) => {
                                     const rowActive = isItemActive(row);
-                                    const rowSet = readSet(row, forTry);
+                                    const rowSet = readModeSet(row, homeMode, forTry);
                                     const planted = rowActive ? Number(rowSet?.planted || 0) : 0;
+                                    const cycles = rowActive ? Number(rowSet?.cycles || 0) : 0;
                                     const harvest = rowActive ? Number(rowSet?.harvest || 0) : 0;
                                     const cost = rowActive ? Number(rowSet?.cost || 0) : 0;
                                     const market = rowActive ? Number(rowSet?.market || 0) : 0;
@@ -274,11 +281,12 @@ export default function HomeTable() {
                                                         <img src={row?.img || "./icon/nft/na.png"} alt={row?.name || ""} className="nodico" />
                                                     )}
                                                 </td>
-                                            )}
+                                                )}
                                             {xListeColBounty[2][1] === 1 && <td className="tdcenter">{frmtNb(planted)}</td>}
+                                            {isDailyMode && xListeColBounty[5][1] === 1 && <td className="tdcenter">{frmtNb(cycles)}</td>}
                                             {xListeColBounty[3][1] === 1 && <td className="tdcenter">{frmtNb(harvest)}</td>}
                                             {xListeColBounty[4][1] === 1 && <td className="tdcenter">{frmtNb(cost)}</td>}
-                                            {xListeColBounty[5][1] === 1 && <td className="tdcenter">{frmtNb(market)}</td>}
+                                            {!isDailyMode && xListeColBounty[5][1] === 1 && <td className="tdcenter">{frmtNb(market)}</td>}
                                             {xListeColBounty[5][1] === 1 && <td className="tdcenter" style={{ color: ColorValue(profit, 0, 10) }}>{frmtNb(profit)}</td>}
                                         </tr>
                                     );
@@ -299,7 +307,7 @@ export default function HomeTable() {
             const selectionKey = String(row?.selectionKey || row?.key || row?.name || "");
             const rowActive = !block?.itemToggle ? true : (selectedHomeItems?.[selectionKey] ?? true);
             if (!rowActive) return rowSum;
-            const rowSet = readSet(row, forTry);
+            const rowSet = readModeSet(row, homeMode, forTry);
             return rowSum + Number(rowSet?.profit || 0);
         }, 0);
     }, 0);

@@ -4,6 +4,7 @@ import TradesTooltip from './TradesTooltip.jsx';
 import TryNftTooltip from './TryNftTooltip.jsx';
 import CompoTablesTooltip from './CompoTablesTooltip.jsx';
 import createSetCompoTable from './compoTable.js';
+import { getChumQuantity, normalizeChumName } from '../fishChumQuantities';
 
 const Tooltip = ({ onClose, item, context, value, clickPosition, dataSet, dataSetFarm, bdrag = true, forTry }) => {
     const Animals = dataSetFarm?.Animals || dataSetFarm?.invData?.tooltipData?.Animals || {};
@@ -88,6 +89,12 @@ const Tooltip = ({ onClose, item, context, value, clickPosition, dataSet, dataSe
     const imgsfl = <img src="./icon/res/flowertoken.webp" style={{ width: "15px", height: "15px" }} />
     const imgcoins = <img src="./icon/res/coins.png" style={{ width: "15px", height: "15px" }} />
     const imggem = <img src="./icon/res/gem.webp" style={{ width: "15px", height: "15px" }} />
+    const imgmark = <img src="./icon/res/mark.webp" style={{ width: "15px", height: "15px" }} />
+    const imgpotionticket = <img src="./icon/res/tiketpotion.png" style={{ width: "20px", height: "15px" }} />
+    const imgkeytreasure = <img src="./icon/res/keytreasure.png" style={{ width: "15px", height: "15px" }} />
+    const imgkeyrare = <img src="./icon/res/keyrare.png" style={{ width: "15px", height: "15px" }} />
+    const imgkeyluxury = <img src="./icon/res/keyluxury.png" style={{ width: "15px", height: "15px" }} />
+    const imglovecharm = <img src="./icon/res/lovecharm.webp" style={{ width: "20px", height: "15px" }} />
     const imgusdc = <img src="./usdc.png" style={{ width: "15px", height: "15px" }} />
     const imgmp = <img src="./icon/ui/exchange.png" style={{ width: "15px", height: "15px" }} />
     const imgexchng = './icon/ui/exchange.png';
@@ -1320,12 +1327,40 @@ const Tooltip = ({ onClose, item, context, value, clickPosition, dataSet, dataSe
             />;
         }
         if (context === "balance") {
+            const balanceData = dataSetFarm?.frmData?.balance || {};
+            const sflCount = Number(balanceData?.sfl || 0);
+            const gemsCount = Number(balanceData?.gems || 0);
+            const potionTicketCount = Number(balanceData?.potionticket || 0);
+            const keyTreasureCount = Number(balanceData?.keytreasure || 0);
+            const keyRareCount = Number(balanceData?.keyrare || 0);
+            const keyLuxuryCount = Number(balanceData?.keyluxury || 0);
+            const gemsRatio = Number(dataSetFarm?.frmData?.gemsRatio || dataSet?.options?.gemsRatio || 0);
+            const gemsSflValue = gemsCount * gemsRatio;
+            const markCount = Number(balanceData?.mark || 0);
+            const loveCharmCount = Number(balanceData?.lovecharm || 0);
+            const usdPerSfl = Number(dataSet?.options?.usdSfl || 0);
+            const balanceUsd = sflCount * usdPerSfl;
+            const expandType = String(dataSetFarm?.expandData?.type || dataSetFarm?.frmData?.expandData?.type || "");
+            const withdrawreduc = (expandType === "desert" || expandType === "spring" || expandType === "volcano") ? 2.5 : 0;
+            const withdrawtax = (sflCount < 10 ? 30 : sflCount < 100 ? 25 : sflCount < 1000 ? 20 : sflCount < 5000 ? 15 : 10) - withdrawreduc;
+            const taxFreeSFL = Number(dataSetFarm?.frmData?.taxFreeSFL || 0);
+            const withdrawSFLbeyondTaxFree = taxFreeSFL - sflCount;
+            const withdrawsflFree = withdrawSFLbeyondTaxFree < 0 ? taxFreeSFL : sflCount;
+            const withdrawsflNotFree = withdrawsflFree >= sflCount ? 0 : (sflCount - withdrawsflFree);
+            const withdrawSflNotFreeTaxed = withdrawsflNotFree > 0 ? (withdrawsflNotFree - (withdrawsflNotFree * (withdrawtax / 100))) : 0;
+            const sflwithdraw = withdrawsflFree + withdrawSflNotFreeTaxed;
+            const usdwithdraw = sflwithdraw * usdPerSfl;
             txt = (
                 <>
-                    <div>On Your farm : {dataSet.balanceUSD}{imgusdc}</div>
-                    <div>Your withdraw tax : {dataSet.withdrawtax}%</div>
-                    <div>You have {dataSet.taxFreeSFL}{imgsfl} tax free</div>
-                    <div>You can withdraw {dataSet.sflwithdraw}{imgsfl} : {dataSet.usdwithdraw}{imgusdc}</div>
+                    <div>{frmtNb(gemsCount)}{imggem} : {frmtNb(gemsSflValue)}{imgsfl} {"("}{frmtNb(gemsRatio)}{imgsfl}/{imggem}{")"}</div>
+                    <div>{frmtNb(markCount)}{imgmark}</div>
+                    <div>{frmtNb(loveCharmCount)}{imglovecharm}</div>
+                    <div>{frmtNb(potionTicketCount)}{imgpotionticket}</div>
+                    <div>{frmtNb(keyTreasureCount)}{imgkeytreasure} {frmtNb(keyRareCount)}{imgkeyrare} {frmtNb(keyLuxuryCount)}{imgkeyluxury}</div>
+                    <div>{frmtNb(sflCount)}{imgsfl} : {frmtNb(balanceUsd)}{imgusdc}</div>
+                    <div>Your withdraw tax : {frmtNb(withdrawtax)}%</div>
+                    <div>You have {frmtNb(taxFreeSFL)}{imgsfl} tax free</div>
+                    <div>You can withdraw {frmtNb(sflwithdraw)}{imgsfl} : {frmtNb(usdwithdraw)}{imgusdc}</div>
                 </>
             );
         }
@@ -1376,11 +1411,12 @@ const Tooltip = ({ onClose, item, context, value, clickPosition, dataSet, dataSe
             const fishUnitCost = Number(v.fishUnitCost ?? 0);
             const fishUnitMarket = Number(v.fishUnitMarket ?? 0);
             const chumFallback = String(fish?.[item]?.chum || "").split("*").map((s) => String(s || "").trim()).filter(Boolean)[0] || "";
-            const chumName = v.chumName || fish?.[item]?.[key("cheaperchum")] || fish?.[item]?.cheaperchum || chumFallback;
+            const chumName = normalizeChumName(v.chumName || fish?.[item]?.[key("cheaperchum")] || fish?.[item]?.cheaperchum || chumFallback);
+            const chumQty = Number(v.chumQty ?? getChumQuantity(chumName));
             const chumUnitCost = Number(v.chumUnitCost ?? (Number(fish?.[item]?.[key("cheaperchumCost")] ?? fish?.[item]?.cheaperchumCost ?? 0) / dataSet.options.coinsRatio));
             const chumUnitMarket = Number(v.chumUnitMarket ?? (fish?.[item]?.[key("cheaperchumCostp2pt")] ?? fish?.[item]?.cheaperchumCostp2pt ?? 0));
-            const chumTotalCost = chumUnitCost * qty;
-            const chumTotalMarket = chumUnitMarket * qty;
+            const chumTotalCost = chumUnitCost * chumQty * qty;
+            const chumTotalMarket = chumUnitMarket * chumQty * qty;
             const productionTotal = fishUnitCost * qty;
             const productionTotalM = fishUnitMarket * qty;
             const fishIconSrc = Item?.img ?? imgna;
@@ -1397,20 +1433,16 @@ const Tooltip = ({ onClose, item, context, value, clickPosition, dataSet, dataSe
                 rodTree.Rod.compoit.Stone = { qty: Number(tool["Rod"].Stone) };
             }
             if (includeChum && chumName) {
-                const chumNode = { qty: 1 };
+                const chumNode = { qty: chumQty };
                 if (chumBase?.[chumName]?.compoit) {
                     chumNode.compoit = chumBase[chumName].compoit;
                 }
                 rodTree[chumName] = chumNode;
             }
             const fishCompo = setCompoTable(item, qty, { compoit: rodTree, img: fishIconSrc, label: item });
-            const chumTxt = includeChum ? (
-                <div>Chum: {chumIcon} {chumName || "None"} {frmtNb(chumTotalCost)}{imgsfl} | {frmtNb(chumTotalMarket)}{imgmp}</div>
-            ) : null;
             txt = (
                 <>
                     {fishCompo?.table}
-                    {/* {chumTxt} */}
                     <div></div>
                     <div>{fishIcon}x{frmtNb(myield)} average per {rodIcon}</div>
                     <div>Your production cost {frmtNb(productionTotal)}{imgsfl} | {frmtNb(productionTotalM)}{imgmp}</div>
@@ -1587,7 +1619,7 @@ const Tooltip = ({ onClose, item, context, value, clickPosition, dataSet, dataSe
             ) : (
                 <>
                     <div>{itemImg} {item} fetch cost</div>
-                    {producerRows.length ? <div style={{ marginTop: 6 }}>Producers & requests:</div> : null}
+                    {producerRows.length ? <div style={{ marginTop: 6 }}>Pets & requests:</div> : null}
                     {producerRows}
                     {averageLine}
                     <div style={{ marginTop: 6 }}>Prod cost: {frmtNb(unitCost)}{imgsfl} x {frmtNb(quantity)} = {frmtNb(totalCost)}{imgsfl}</div>

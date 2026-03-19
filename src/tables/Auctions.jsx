@@ -2,6 +2,14 @@ import React, { useEffect, useLayoutEffect, useMemo, useRef, useState } from "re
 import { useAppCtx } from "../context/AppCtx";
 
 const GET_AUCTION_COOLDOWN_MS = 10_000;
+const AUCTIONS_COLUMNS_TEMPLATE = [
+  ["Item", 1],
+  ["Type", 1],
+  ["cur", 1],
+  ["Supply", 1],
+  ["End", 1],
+  ["Notifications", 1],
+];
 
 function toYmd(date) {
   const d = date instanceof Date ? date : new Date();
@@ -141,7 +149,10 @@ function detectLeaderboardRewardKind(rows, auction) {
     const itemName = extractSingleItemName(row.items);
     if (itemName) {
       const lbl = String(itemName);
-      const img = lbl.toLowerCase() === "gem" ? "./icon/res/gem.webp" : "";
+      const low = lbl.toLowerCase();
+      const img = low === "gem"
+        ? "./icon/res/gem.webp"
+        : (low === "flower" || low === "sfl" ? "./icon/res/flowertoken.webp" : "");
       return { kind: "item", label: lbl, img };
     }
   }
@@ -170,11 +181,58 @@ function formatLeaderboardRewardCell(row, rewardKind) {
   return formatItems(row?.items);
 }
 
+function formatCompactNumber(value) {
+  const num = Number(value || 0);
+  if (!Number.isFinite(num)) return "-";
+  const abs = Math.abs(num);
+  if (abs >= 1e9) return `${(num / 1e9).toFixed(3)}B`;
+  if (abs >= 1e6) return `${(num / 1e6).toFixed(3)}M`;
+  if (abs >= 1e3) return `${(num / 1e3).toFixed(3)}K`;
+  return String(Math.round(num));
+}
+
+function getLeaderboardRewardUsd(row, rewardKind, usdPerSfl, gemsRatio) {
+  const kind = String(rewardKind?.kind || "items");
+  if (!(usdPerSfl > 0)) return null;
+  if (kind === "tickets") return null;
+  if (kind === "sfl") {
+    const qty = Number(row?.sfl || 0);
+    return qty > 0 ? (qty * usdPerSfl) : null;
+  }
+  if (kind === "item") {
+    const itemName = String(extractSingleItemName(row?.items) || "").toLowerCase();
+    const qty = Number(extractSingleItemValue(row?.items) || 0);
+    if (qty <= 0) return null;
+    if (itemName === "flower" || itemName === "sfl") {
+      return qty * usdPerSfl;
+    }
+    if (itemName === "gem") {
+      return gemsRatio > 0 ? (qty * gemsRatio * usdPerSfl) : null;
+    }
+  }
+  return null;
+}
+
+function isFlowerRewardLabel(label) {
+  const low = String(label || "").trim().toLowerCase();
+  return low === "flower" || low === "sfl" || low === "flower token";
+}
+
+function isGemRewardLabel(label) {
+  return String(label || "").trim().toLowerCase() === "gem";
+}
+
+function isTicketRewardLabel(label) {
+  const low = String(label || "").trim().toLowerCase();
+  return low === "ticket" || low === "tickets" || low.includes("ticket");
+}
+
 export default function AuctionsTable() {
   const {
-    data: { dataSetFarm },
-    ui: { selectedInv },
+    data: { dataSet, dataSetFarm, priceData },
+    ui: { selectedInv, xListeColAuctions },
     config: { API_URL },
+    actions: { setOptionField, syncAuctionNotifSelection },
   } = useAppCtx();
 
   const today = useMemo(() => toYmd(new Date()), []);
@@ -204,6 +262,14 @@ export default function AuctionsTable() {
   const [viewportWidth, setViewportWidth] = useState(1024);
 
   const farmId = String(dataSetFarm?.frmid || "").trim();
+  const auctionColumns = Array.isArray(xListeColAuctions) ? xListeColAuctions : AUCTIONS_COLUMNS_TEMPLATE;
+  const isColOn = (idx) => auctionColumns?.[idx]?.[1] === 1;
+  const auctionSelectionByFarm = (dataSet?.options?.auctionNotifSelection && typeof dataSet.options.auctionNotifSelection === "object")
+    ? dataSet.options.auctionNotifSelection
+    : {};
+  const auctionSelection = (farmId && auctionSelectionByFarm?.[farmId] && typeof auctionSelectionByFarm[farmId] === "object")
+    ? auctionSelectionByFarm[farmId]
+    : {};
   const selectedAuction = useMemo(
     () => auctions.find((a) => String(getAuctionId(a)) === String(selectedAuctionId)) || null,
     [auctions, selectedAuctionId]
@@ -214,6 +280,21 @@ export default function AuctionsTable() {
     () => detectLeaderboardRewardKind(leaderboardRows, selectedAuction),
     [leaderboardRows, selectedAuction]
   );
+  const auctionCurrencyLabel = String(getAuctionIngredientKey(selectedAuction) || "");
+  const usdPerSfl = Number(priceData?.[2] ?? dataSet?.options?.usdSfl ?? 0);
+  const gemsRatio = Number(dataSet?.options?.gemsRatio || 0);
+  const showUsdColumn = useMemo(() => {
+    if (!(usdPerSfl > 0)) return false;
+    if (isTicketRewardLabel(auctionCurrencyLabel)) return false;
+    if (isFlowerRewardLabel(auctionCurrencyLabel) || isGemRewardLabel(auctionCurrencyLabel)) return true;
+    if (String(leaderboardReward?.kind || "") === "tickets") return false;
+    if (String(leaderboardReward?.kind || "") === "sfl") return true;
+    if (String(leaderboardReward?.kind || "") === "item") {
+      const label = String(leaderboardReward?.label || "").toLowerCase();
+      return isGemRewardLabel(label) || isFlowerRewardLabel(label);
+    }
+    return false;
+  }, [auctionCurrencyLabel, leaderboardReward, usdPerSfl]);
   const highlightedEndTs = useMemo(() => {
     const nowMs = Date.now();
     const todayRows = [];
@@ -317,8 +398,53 @@ export default function AuctionsTable() {
       cancelled = true;
     };
   }, [selectedInv, API_URL, startDate, endDate]);
+  useEffect(() => {
+    if (!farmId) return;
+    const currentSelection = (auctionSelectionByFarm?.[farmId] && typeof auctionSelectionByFarm[farmId] === "object")
+      ? auctionSelectionByFarm[farmId]
+      : null;
+    if (!currentSelection) return;
+    const nowTs = Date.now();
+    const nextFarmSelection = Object.fromEntries(
+      Object.entries(currentSelection).filter(([, rawEntry]) => {
+        const entry = (rawEntry && typeof rawEntry === "object") ? rawEntry : {};
+        const endAt = Number(entry?.e ?? entry?.endAt ?? 0);
+        return Number.isFinite(endAt) && endAt > nowTs;
+      })
+    );
+    if (Object.keys(nextFarmSelection).length === Object.keys(currentSelection).length) return;
+    const nextSelectionByFarm = { ...(auctionSelectionByFarm || {}) };
+    if (Object.keys(nextFarmSelection).length > 0) nextSelectionByFarm[farmId] = nextFarmSelection;
+    else delete nextSelectionByFarm[farmId];
+    setOptionField("auctionNotifSelection", nextSelectionByFarm);
+    syncAuctionNotifSelection(nextSelectionByFarm);
+  }, [farmId, auctionSelectionByFarm, setOptionField, syncAuctionNotifSelection]);
 
   if (selectedInv !== "auctions") return null;
+
+  function toggleAuctionNotif(auction, enabled) {
+    const auctionId = String(getAuctionId(auction) || "").trim();
+    const endTs = Number(getAuctionDateMs(auction) || 0);
+    if (!farmId || !auctionId || !Number.isFinite(endTs)) return;
+    if (enabled && endTs <= Date.now()) return;
+    const itemLabel = String(getAuctionItemLabel(auction) || auctionId).trim();
+    const nextSelectionByFarm = {
+      ...auctionSelectionByFarm,
+      [farmId]: {
+        ...(auctionSelectionByFarm?.[farmId] || {}),
+      },
+    };
+    if (enabled) {
+      nextSelectionByFarm[farmId][auctionId] = { e: endTs, l: itemLabel };
+    } else {
+      delete nextSelectionByFarm[farmId][auctionId];
+      if (Object.keys(nextSelectionByFarm[farmId]).length < 1) {
+        delete nextSelectionByFarm[farmId];
+      }
+    }
+    setOptionField("auctionNotifSelection", nextSelectionByFarm);
+    syncAuctionNotifSelection(nextSelectionByFarm);
+  }
 
   async function onSelectAuction(auction) {
     const auctionId = getAuctionId(auction);
@@ -376,7 +502,7 @@ export default function AuctionsTable() {
     flex: "1 1 auto",
     minHeight: 0,
     width: "90%",
-    maxWidth: 500,
+    maxWidth: 550,
     margin: "0",
     border: "1px solid #3b3b3b",
     borderRadius: 8,
@@ -393,7 +519,7 @@ export default function AuctionsTable() {
     maxHeight: "38vh",
     position: "relative",
     width: "90%",
-    maxWidth: 500,
+    maxWidth: 550,
     margin: "0",
     border: "1px solid #3b3b3b",
     borderRadius: 8,
@@ -459,19 +585,26 @@ export default function AuctionsTable() {
             <table className="table">
               <thead>
                 <tr>
-                  <th className="thcenter" style={{ textAlign: "left" }}>Item</th>
-                  <th className="thcenter">Type</th>
-                  <th className="thcenter">cur</th>
-                  <th className="thcenter">Supply</th>
-                  <th className="thcenter">End</th>
+                  {isColOn(0) ? <th className="thcenter" style={{ textAlign: "left" }}>Item</th> : null}
+                  {isColOn(1) ? <th className="thcenter">Type</th> : null}
+                  {isColOn(2) ? <th className="thcenter">cur</th> : null}
+                  {isColOn(3) ? <th className="thcenter">Supply</th> : null}
+                  {isColOn(4) ? <th className="thcenter">End</th> : null}
+                  {isColOn(5) ? (
+                    <th className="thcenter" title="Auction notifications">
+                      <span style={{ fontSize: 16, lineHeight: 1 }} aria-label="Notifications">🔔</span>
+                    </th>
+                  ) : null}
                 </tr>
               </thead>
               <tbody>
                 {auctions.map((auction, idx) => {
                   const auctionId = getAuctionId(auction) || `#${idx + 1}`;
+                  const auctionNotifEnabled = !!auctionSelection?.[auctionId];
                   const isSelected = String(selectedAuctionId) === String(auctionId);
                   const endValue = auction?.endAt ?? auction?.endedAt ?? auction?.date;
                   const endTs = toTs(endValue);
+                  const canNotifyAuction = Number.isFinite(endTs) && endTs > now;
                   const isTodayEnd = isTodayTs(endValue);
                   const isClosestFuture = !isTodayEnd && highlightedEndTs != null && Number(endTs) === Number(highlightedEndTs);
                   const mustHighlightEnd = isTodayEnd || isClosestFuture;
@@ -497,30 +630,53 @@ export default function AuctionsTable() {
                       }}
                       title={cooldownLeftMs > 0 ? `Cooldown ${cooldownLeftSec}s` : "Load auction results"}
                     >
-                      <td className="tdcenter" style={{ textAlign: "left" }}>
-                        <span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
-                          {getAuctionItemImg(auction)
-                            ? <img src={getAuctionItemImg(auction)} alt="" className="itico" style={{ width: 18, height: 18 }} />
-                            : null}
-                          <span>{getAuctionItemLabel(auction)}</span>
-                        </span>
-                      </td>
-                      <td className="tdcenter">{getAuctionType(auction)}</td>
-                      <td className="tdcenter">
-                        {getAuctionIngredientImg(auction)
-                          ? <img src={getAuctionIngredientImg(auction)} alt="" className="itico" style={{ width: 16, height: 16 }} />
-                          : "-"}
-                      </td>
-                      <td className="tdcenter">{Number(auction?.supply || 0) || "-"}</td>
-                      <td
-                        className="tdcenter"
-                        style={{
-                          ...(mustHighlightEnd ? { color: "#ffd54f", fontWeight: 700 } : null),
-                          whiteSpace: "nowrap",
-                        }}
-                      >
-                        {endText}
-                      </td>
+                      {isColOn(0) ? (
+                        <td className="tdcenter" style={{ textAlign: "left" }}>
+                          <span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
+                            {getAuctionItemImg(auction)
+                              ? <img src={getAuctionItemImg(auction)} alt="" className="itico" style={{ width: 18, height: 18 }} />
+                              : null}
+                            <span>{getAuctionItemLabel(auction)}</span>
+                          </span>
+                        </td>
+                      ) : null}
+                      {isColOn(1) ? <td className="tdcenter">{getAuctionType(auction)}</td> : null}
+                      {isColOn(2) ? (
+                        <td className="tdcenter">
+                          {getAuctionIngredientImg(auction)
+                            ? <img src={getAuctionIngredientImg(auction)} alt="" className="itico" style={{ width: 16, height: 16 }} />
+                            : "-"}
+                        </td>
+                      ) : null}
+                      {isColOn(3) ? <td className="tdcenter">{Number(auction?.supply || 0) || "-"}</td> : null}
+                      {isColOn(4) ? (
+                        <td
+                          className="tdcenter"
+                          style={{
+                            ...(mustHighlightEnd ? { color: "#ffd54f", fontWeight: 700 } : null),
+                            whiteSpace: "nowrap",
+                          }}
+                        >
+                          {endText}
+                        </td>
+                      ) : null}
+                      {isColOn(5) ? (
+                        <td className="tdcenter">
+                          {canNotifyAuction ? (
+                            <input
+                              type="checkbox"
+                              checked={auctionNotifEnabled}
+                              onChange={(e) => {
+                                e.stopPropagation();
+                                toggleAuctionNotif(auction, !!e.target.checked);
+                              }}
+                              onClick={(e) => e.stopPropagation()}
+                              title="Notify 10 minutes before end"
+                              style={{ width: 16, height: 16 }}
+                            />
+                          ) : null}
+                        </td>
+                      ) : null}
                     </tr>
                   );
                 })}
@@ -586,6 +742,11 @@ export default function AuctionsTable() {
                       <span>{leaderboardReward?.label || "Items"}</span>
                     </span>
                   </th>
+                  {showUsdColumn ? (
+                    <th className="thcenter">
+                      <img src="./usdc.png" alt="USDC" className="itico" style={{ width: 16, height: 16 }} />
+                    </th>
+                  ) : null}
                   <th className="thcenter">XP</th>
                 </tr>
               </thead>
@@ -595,7 +756,26 @@ export default function AuctionsTable() {
                     <td className="tdcenter">{Number(row?.rank || 0) || "-"}</td>
                     <td className="tdcenter">{String(row?.username || "-")}</td>
                     <td className="tdcenter">{formatLeaderboardRewardCell(row, leaderboardReward)}</td>
-                    <td className="tdcenter">{Number(row?.experience || 0) || "-"}</td>
+                    {showUsdColumn ? (
+                      <td className="tdcenter">
+                        {(() => {
+                          const usdValue = getLeaderboardRewardUsd(row, leaderboardReward, usdPerSfl, gemsRatio);
+                          if (usdValue != null) return usdValue.toFixed(3);
+                          if (isFlowerRewardLabel(auctionCurrencyLabel)) {
+                            const displayedQty = Number(formatLeaderboardRewardCell(row, leaderboardReward) || 0);
+                            return Number.isFinite(displayedQty) && displayedQty > 0 ? (displayedQty * usdPerSfl).toFixed(3) : "-";
+                          }
+                          if (isGemRewardLabel(auctionCurrencyLabel)) {
+                            const displayedQty = Number(formatLeaderboardRewardCell(row, leaderboardReward) || 0);
+                            return Number.isFinite(displayedQty) && displayedQty > 0 && gemsRatio > 0
+                              ? (displayedQty * gemsRatio * usdPerSfl).toFixed(3)
+                              : "-";
+                          }
+                          return "-";
+                        })()}
+                      </td>
+                    ) : null}
+                    <td className="tdcenter">{formatCompactNumber(row?.experience || 0)}</td>
                   </tr>
                 ))}
               </tbody>

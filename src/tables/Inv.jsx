@@ -672,7 +672,7 @@ function setInvContent(sortedInventoryItems, totCost, totShop, totTrader, totNif
             const dailyprodmx = !TryChecked ? iharvestdmax : iharvestdmaxtry;
             const idailycycle = !TryChecked ? cobj.dailycycle : cobj.dailycycletry;
             const idailycycleNum = Number(idailycycle);
-            const hrvMaxControl = Number.isFinite(idailycycleNum) ? Math.max(1, Math.ceil(idailycycleNum)) : 1;
+            const hrvMaxControl = Number.isFinite(idailycycleNum) ? Math.max(0, idailycycleNum) : 0;
             const hrvMaxDisplay = Number.isFinite(Number(idailycycle))
                 ? (Number.isInteger(Number(idailycycle)) ? Number(idailycycle) : Number(idailycycle).toFixed(1))
                 : idailycycle;
@@ -750,7 +750,7 @@ function setInvContent(sortedInventoryItems, totCost, totShop, totTrader, totNif
             const hrvstFieldName = TryChecked ? `xHrvsttry.${item}` : `xHrvst.${item}`;
             const hrvstRaw = TryChecked ? (xHrvsttry?.[item] ?? idailycycle) : (xHrvst?.[item] ?? idailycycle);
             const hrvstFieldValue = Number.isFinite(Number(hrvstRaw))
-                ? Math.max(1, Math.min(hrvMaxControl, Math.ceil(Number(hrvstRaw))))
+                ? Math.max(0, Math.min(hrvMaxControl, Number(hrvstRaw)))
                 : hrvMaxControl;
             /* if (!cstPrices?.[xIndex]) {
                 const newcstPrices = { ...cstPrices };
@@ -990,11 +990,11 @@ function setInvContent(sortedInventoryItems, totCost, totShop, totTrader, totNif
                                 value={hrvstFieldValue}
                                 onChange={(newValue) => {
                                     const nextValue = Number.isFinite(Number(newValue))
-                                        ? Math.max(1, Math.min(hrvMaxControl, Math.round(Number(newValue))))
-                                        : 1;
+                                        ? Math.max(0, Math.min(hrvMaxControl, Number(newValue)))
+                                        : 0;
                                     handleUIChange({ target: { name: hrvstFieldName, value: nextValue } });
                                 }}
-                                min={1}
+                                min={0}
                                 max={hrvMaxControl}
                             />
                         </td>) : ("")}
