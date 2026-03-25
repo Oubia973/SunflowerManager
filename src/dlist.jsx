@@ -218,7 +218,7 @@ export default function DList({
 
     const triggerContent = useMemo(() => {
         if (!selectedOptions.length) return <span className="cd-muted">{placeholder}</span>;
-        if (!effectiveMultiple) return <span className="cd-triggerLabel">{selectedOptions[0].label}</span>;
+        if (!effectiveMultiple) return <span className="cd-triggerLabel">{selectedOptions[0].triggerLabel ?? selectedOptions[0].label}</span>;
         const n = selectedOptions.length;
         return <span className="cd-triggerLabel">{n} sélection{n > 1 ? "s" : ""}</span>;
     }, [selectedOptions, placeholder, effectiveMultiple]);
@@ -320,7 +320,12 @@ export default function DList({
                                         ) : (
                                             <span />
                                         )}
-                                        {!menuIconOnly ? <span className="cd-label">{o.label}</span> : null}
+                                        {!menuIconOnly ? (
+                                            <span className={"cd-label" + (o.labelEnd != null ? " cd-labelCols" : "")}>
+                                                <span className="cd-labelMain">{o.label}</span>
+                                                {o.labelEnd != null ? <span className="cd-labelEnd">{o.labelEnd}</span> : null}
+                                            </span>
+                                        ) : null}
                                     </button>
                                 );
                             })
@@ -440,6 +445,8 @@ function normalizeOptions(options) {
             value: rawValue,
             valueKey: String(rawValue),
             label,
+            triggerLabel: o.triggerLabel ?? null,
+            labelEnd: o.labelEnd ?? null,
             searchText,
             icon: o.icon ?? null,
             iconSrc: o.iconSrc ?? o.img ?? o.iconURL ?? null,

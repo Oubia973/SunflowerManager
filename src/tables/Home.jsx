@@ -41,6 +41,7 @@ export default function HomeTable() {
         actions: {
             handleHomeClic,
             setUIField,
+            handleTooltip,
         },
         config: { API_URL },
     } = useAppCtx();
@@ -164,7 +165,13 @@ export default function HomeTable() {
     );
 
     const collapsibleBlocks = blocks.map((block, index) => {
-        const rows = Array.isArray(block?.rows) ? block.rows : [];
+        const rawRows = Array.isArray(block?.rows) ? block.rows : [];
+        const rows = (isDailyMode && block?.key === "cropmachine")
+            ? rawRows
+                .filter((row) => !row?.hideInDaily)
+                .slice()
+                .sort((a, b) => Number(a?.dailySortOrder || 0) - Number(b?.dailySortOrder || 0))
+            : rawRows;
         const isBlockSelected = selectedHomeBlocks?.[index] ?? true;
         const blockLabel = forTry ? (block?.labelTry || block?.label || `Block ${index + 1}`) : (block?.label || `Block ${index + 1}`);
         const iconSrc = block?.img || "./icon/nft/na.png";
@@ -227,16 +234,28 @@ export default function HomeTable() {
                 </div>
                 {isOpen[index] && (
                     <div className="collapsible-content">
+                        {(() => {
+                            const showNodesCol = xListeColBounty[2][1] === 1 && !block?.hideNodes;
+                            const showCyclesCol = isDailyMode && xListeColBounty[5][1] === 1;
+                            const showSeedsCol = !!block?.showSeeds;
+                            const showHarvestCol = xListeColBounty[3][1] === 1;
+                            const showOilCol = !!block?.showOil;
+                            const showCostCol = xListeColBounty[4][1] === 1;
+                            const showMarketCol = !isDailyMode && xListeColBounty[5][1] === 1;
+                            const showProfitCol = xListeColBounty[5][1] === 1;
+                            return (
                         <table className="table" style={{ width: "100%" }}>
                             <thead>
                                 <tr>
                                     {xListeColBounty[1][1] === 1 ? <th className="collapsible-content-th">Item</th> : null}
-                                    {xListeColBounty[2][1] === 1 ? <th className="collapsible-content-th">Nodes</th> : null}
-                                    {isDailyMode && xListeColBounty[5][1] === 1 ? <th className="collapsible-content-th">Cycles</th> : null}
-                                    {xListeColBounty[3][1] === 1 ? <th className="collapsible-content-th">Harvest</th> : null}
-                                    {xListeColBounty[4][1] === 1 ? <th className="collapsible-content-th">Cost</th> : null}
-                                    {!isDailyMode && xListeColBounty[5][1] === 1 ? <th className="collapsible-content-th">Market</th> : null}
-                                    {xListeColBounty[5][1] === 1 ? <th className="collapsible-content-th">Profit</th> : null}
+                                    {showNodesCol ? <th className="collapsible-content-th">Nodes</th> : null}
+                                    {showCyclesCol ? <th className="collapsible-content-th">Cycles</th> : null}
+                                    {showSeedsCol ? <th className="collapsible-content-th">Seeds</th> : null}
+                                    {showHarvestCol ? <th className="collapsible-content-th">Harvest</th> : null}
+                                    {showOilCol ? <th className="collapsible-content-th">Oil</th> : null}
+                                    {showCostCol ? <th className="collapsible-content-th">Cost</th> : null}
+                                    {showMarketCol ? <th className="collapsible-content-th">Market</th> : null}
+                                    {showProfitCol ? <th className="collapsible-content-th">Profit</th> : null}
                                 </tr>
                             </thead>
                             <tbody>
@@ -246,11 +265,24 @@ export default function HomeTable() {
                                     const planted = rowActive ? Number(rowSet?.planted || 0) : 0;
                                     const cycles = rowActive ? Number(rowSet?.cycles || 0) : 0;
                                     const harvest = rowActive ? Number(rowSet?.harvest || 0) : 0;
+                                    const oil = rowActive ? Number(rowSet?.oil || 0) : 0;
                                     const cost = rowActive ? Number(rowSet?.cost || 0) : 0;
                                     const market = rowActive ? Number(rowSet?.market || 0) : 0;
                                     const profit = rowActive ? Number(rowSet?.profit || 0) : 0;
+                                    const rowTooltip = rowSet?.tooltip || null;
+                                    const isCropMachineDailyRow = !!(isDailyMode && block?.key === "cropmachine" && rowTooltip);
+                                    const tooltipClick = (event) => {
+                                        if (!isCropMachineDailyRow) return;
+                                        event.stopPropagation();
+                                        handleTooltip(row?.name || "", "homecmdailyqueue", rowTooltip, event);
+                                    };
                                     return (
-                                        <tr key={(row?.key || row?.name || "row") + "-" + itemIndex} style={{ opacity: rowActive ? 1 : 0.5 }}>
+                                        <tr
+                                            key={(row?.key || row?.name || "row") + "-" + itemIndex}
+                                            style={{ opacity: rowActive ? 1 : 0.5, cursor: isCropMachineDailyRow ? "pointer" : undefined }}
+                                            onClick={isCropMachineDailyRow ? tooltipClick : undefined}
+                                            title={isCropMachineDailyRow ? "Click to see daily simulation details" : undefined}
+                                        >
                                             {xListeColBounty[1][1] === 1 && (
                                                 <td className="tdcenter">
                                                     {block?.itemToggle ? (
@@ -282,17 +314,21 @@ export default function HomeTable() {
                                                     )}
                                                 </td>
                                                 )}
-                                            {xListeColBounty[2][1] === 1 && <td className="tdcenter">{frmtNb(planted)}</td>}
-                                            {isDailyMode && xListeColBounty[5][1] === 1 && <td className="tdcenter">{frmtNb(cycles)}</td>}
-                                            {xListeColBounty[3][1] === 1 && <td className="tdcenter">{frmtNb(harvest)}</td>}
-                                            {xListeColBounty[4][1] === 1 && <td className="tdcenter">{frmtNb(cost)}</td>}
-                                            {!isDailyMode && xListeColBounty[5][1] === 1 && <td className="tdcenter">{frmtNb(market)}</td>}
-                                            {xListeColBounty[5][1] === 1 && <td className="tdcenter" style={{ color: ColorValue(profit, 0, 10) }}>{frmtNb(profit)}</td>}
+                                            {showNodesCol && <td className="tdcenter">{frmtNb(planted)}</td>}
+                                            {showCyclesCol && <td className={isCropMachineDailyRow ? "tdcenter tooltipcell" : "tdcenter"}>{frmtNb(cycles)}</td>}
+                                            {showSeedsCol && <td className={isCropMachineDailyRow ? "tdcenter tooltipcell" : "tdcenter"}>{frmtNb(planted)}</td>}
+                                            {showHarvestCol && <td className={isCropMachineDailyRow ? "tdcenter tooltipcell" : "tdcenter"}>{frmtNb(harvest)}</td>}
+                                            {showOilCol && <td className={isCropMachineDailyRow ? "tdcenter tooltipcell" : "tdcenter"}>{frmtNb(oil)}</td>}
+                                            {showCostCol && <td className={isCropMachineDailyRow ? "tdcenter tooltipcell" : "tdcenter"}>{frmtNb(cost)}</td>}
+                                            {showMarketCol && <td className="tdcenter">{frmtNb(market)}</td>}
+                                            {showProfitCol && <td className={isCropMachineDailyRow ? "tdcenter tooltipcell" : "tdcenter"} style={{ color: ColorValue(profit, 0, 10) }}>{frmtNb(profit)}</td>}
                                         </tr>
                                     );
                                 })}
                             </tbody>
                         </table>
+                            );
+                        })()}
                     </div>
                 )}
             </div>

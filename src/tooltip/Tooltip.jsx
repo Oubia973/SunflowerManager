@@ -17,6 +17,7 @@ const Tooltip = ({ onClose, item, context, value, clickPosition, dataSet, dataSe
     const flowerPageData = dataSetFarm?.flowerData || {};
     const expandPageData = dataSetFarm?.expandPageData || {};
     const tooltipItables = {
+        ...(dataSetFarm?.cropMachineData?.itables || {}),
         ...(dataSetFarm?.invData?.itables || {}),
         ...(dataSetFarm?.mapData?.itables || {}),
         ...(fishPageData?.itables || {}),
@@ -95,6 +96,7 @@ const Tooltip = ({ onClose, item, context, value, clickPosition, dataSet, dataSe
     const imgkeyrare = <img src="./icon/res/keyrare.png" style={{ width: "15px", height: "15px" }} />
     const imgkeyluxury = <img src="./icon/res/keyluxury.png" style={{ width: "15px", height: "15px" }} />
     const imglovecharm = <img src="./icon/res/lovecharm.webp" style={{ width: "20px", height: "15px" }} />
+    const imgcheer = <img src="./icon/res/cheer.webp" style={{ width: "20px", height: "15px" }} />
     const imgusdc = <img src="./usdc.png" style={{ width: "15px", height: "15px" }} />
     const imgmp = <img src="./icon/ui/exchange.png" style={{ width: "15px", height: "15px" }} />
     const imgexchng = './icon/ui/exchange.png';
@@ -1064,6 +1066,34 @@ const Tooltip = ({ onClose, item, context, value, clickPosition, dataSet, dataSe
                 );
             }
         }
+        if (context === "homecmdailyqueue") {
+            const itemImg = <img src={Item?.img ?? imgna} alt={item ?? "?"} style={{ width: "22px", height: "22px" }} />;
+            const v = (value && typeof value === "object") ? value : {};
+            const traces = Array.isArray(v.traces) ? v.traces : [];
+            const totalSeeds = traces.reduce((sum, trace) => sum + Number(trace?.seedsUsed || 0), 0);
+            const totalHarvest = traces.reduce((sum, trace) => sum + Number(trace?.harvest || 0), 0);
+            const totalCost = traces.reduce((sum, trace) => sum + Number(trace?.cost || 0), 0);
+            const totalProfit = traces.reduce((sum, trace) => sum + Number(trace?.profit || 0), 0);
+            txt = (
+                <>
+                    <div>{itemImg} {item} daily queue simulation</div>
+                    <div>24h fixed window, queue chained in order, then repeated from start if time remains.</div>
+                    <div>Target seeds/pack: {frmtNb(v.requestedSeeds || 0)} | Seed stock: {frmtNb(v.stockSeeds || 0)}</div>
+                    <div>Restock mode: {v.autoRefill ? "Auto refill by time" : `Max ${frmtNb(v.maxRestocks || 0)} restock(s)`}{v.restockCostEnabled ? "" : " | restock cost not counted"}</div>
+                    {/* <div>Total simulated: {frmtNb(totalSeeds)} seeds | {frmtNb(totalHarvest)} harvest | {frmtNb(totalCost)}{imgsfl} cost | {frmtNb(totalProfit)}{imgsfl} profit</div> */}
+                    {/* <div>Time used: {convTime(Number(v.totalTime || 0))}</div> */}
+                    {traces.length < 1 ? <div>No run simulated for this pack in the 24h window.</div> : null}
+                    {traces.map((trace, idx) => (
+                        <div key={`homecmdailyqueue-top-${idx}`} style={{ marginTop: 4, paddingTop: 4, borderTop: "1px solid rgba(255,255,255,0.15)" }}>
+                            <div>Pass {frmtNb(trace.cycle || (idx + 1))}: {convTime(Number(trace.startAt || 0))} - {convTime(Number(trace.endAt || 0))}</div>
+                            <div>Seeds: {frmtNb(trace.seedsUsed || 0)} / {frmtNb(trace.requestedSeeds || 0)}{trace.truncated ? " (truncated at 24h)" : trace.stockLimited ? " (reduced by stock/restock)" : ""}</div>
+                            <div>Harvest: {frmtNb(trace.harvest || 0)} | Cost: {frmtNb(trace.cost || 0)}{imgsfl} | Profit: {frmtNb(trace.profit || 0)}{imgsfl}</div>
+                            <div>Stock before: {frmtNb(trace.availableBeforeRestock || 0)} | Restocks added: {frmtNb(trace.restocksAdded || 0)}{Number(trace.restockCost || 0) > 0 ? ` | Restock cost: ${frmtNb(trace.restockCost || 0)} SFL` : ""}</div>
+                        </div>
+                    ))}
+                </>
+            );
+        }
         if (context === "costitem") {
             const itemBase = [it, fish, bounty, flower, craft, petit, crustacean, food, pfood].find(src => src?.[item]);
             const icost = (itemBase[item][key("cost")] / dataSet.options.coinsRatio) * value;
@@ -1338,6 +1368,7 @@ const Tooltip = ({ onClose, item, context, value, clickPosition, dataSet, dataSe
             const gemsSflValue = gemsCount * gemsRatio;
             const markCount = Number(balanceData?.mark || 0);
             const loveCharmCount = Number(balanceData?.lovecharm || 0);
+            const cheerCount = Number(balanceData?.cheer || 0);
             const usdPerSfl = Number(dataSet?.options?.usdSfl || 0);
             const balanceUsd = sflCount * usdPerSfl;
             const expandType = String(dataSetFarm?.expandData?.type || dataSetFarm?.frmData?.expandData?.type || "");
@@ -1354,7 +1385,7 @@ const Tooltip = ({ onClose, item, context, value, clickPosition, dataSet, dataSe
                 <>
                     <div>{frmtNb(gemsCount)}{imggem} : {frmtNb(gemsSflValue)}{imgsfl} {"("}{frmtNb(gemsRatio)}{imgsfl}/{imggem}{")"}</div>
                     <div>{frmtNb(markCount)}{imgmark}</div>
-                    <div>{frmtNb(loveCharmCount)}{imglovecharm}</div>
+                    <div>{frmtNb(loveCharmCount)}{imglovecharm} {frmtNb(cheerCount)}{imgcheer}</div>
                     <div>{frmtNb(potionTicketCount)}{imgpotionticket}</div>
                     <div>{frmtNb(keyTreasureCount)}{imgkeytreasure} {frmtNb(keyRareCount)}{imgkeyrare} {frmtNb(keyLuxuryCount)}{imgkeyluxury}</div>
                     <div>{frmtNb(sflCount)}{imgsfl} : {frmtNb(balanceUsd)}{imgusdc}</div>

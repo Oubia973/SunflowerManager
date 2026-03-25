@@ -50,11 +50,19 @@ const NFT_TOTAL_COST_OPTIONS = [
   { value: "opensea", label: "OpenSea", iconSrc: "./icon/ui/openseaico.png" },
   { value: "market", label: "Market", iconSrc: "./icon/ui/exchange.png" },
 ];
+const TRYSET_SEASON_OPTIONS = [
+  { value: "all", label: "All" },
+  { value: "spring", label: <img src="./icon/ui/spring.webp" alt="" className="seasonico" title="Spring" style={{ width: "18px", height: "18px" }} /> },
+  { value: "summer", label: <img src="./icon/ui/summer.webp" alt="" className="seasonico" title="Summer" style={{ width: "18px", height: "18px" }} /> },
+  { value: "autumn", label: <img src="./icon/ui/autumn.webp" alt="" className="seasonico" title="Autumn" style={{ width: "18px", height: "18px" }} /> },
+  { value: "winter", label: <img src="./icon/ui/winter.webp" alt="" className="seasonico" title="Winter" style={{ width: "18px", height: "18px" }} /> },
+];
 const TRY_REFRESH_BOOST_TABLES = ["nft", "nftw", "buildng", "skill", "skilllgc", "bud", "shrine"];
-function buildTryRefreshSignature(state) {
+function buildTryRefreshSignature(state, selectedSeason = "") {
   const boostables = state?.boostables || {};
   const it = state?.itables?.it || {};
   const parts = [];
+  parts.push(`season:${String(selectedSeason || "all").toLowerCase()}`);
   TRY_REFRESH_BOOST_TABLES.forEach((tableName) => {
     const table = boostables?.[tableName] || {};
     Object.keys(table)
@@ -80,6 +88,7 @@ function ModalTNFT({ onClose }) {
     data: { dataSet, dataSetFarm, priceData },
     ui: {
       TryChecked,
+      selectedTrySeason,
       tryProfileShareScope,
     },
     actions: {
@@ -112,7 +121,7 @@ function ModalTNFT({ onClose }) {
   const [nftPriceCols, setNftPriceCols] = useState(["market", "profiles", "share", "summary"]);
   const [nftPriceUnit, setNftPriceUnit] = useState("flower");
   const [summaryProfile, setSummaryProfile] = useState(null);
-  const currentRefreshSig = buildTryRefreshSignature(dataSetLocal);
+  const currentRefreshSig = buildTryRefreshSignature(dataSetLocal, selectedTrySeason);
   const deviceId = getOrCreateDeviceId();
   function key(name) {
     if (name === "active") { return TryChecked ? "tryit" : "isactive"; }
@@ -284,6 +293,7 @@ function ModalTNFT({ onClose }) {
         },
         username: dataSet?.options?.username || dataSet?.username || dataSetLocal?.username || "",
         tryitConfig,
+        simulatedSeason: selectedTrySeason,
       };
       const { restoredCurrent, summaryPayload } = await computeProfileSummaryPayload({
         ...commonReq,
@@ -326,6 +336,7 @@ function ModalTNFT({ onClose }) {
       },
       username: dataSet?.options?.username || dataSet?.username || dataSetLocal?.username || "",
       tryitConfig,
+      simulatedSeason: selectedTrySeason,
     };
     const { restoredCurrent, summaryPayload } = await computeProfileSummaryPayload({
       ...commonReq,
@@ -434,6 +445,7 @@ function ModalTNFT({ onClose }) {
           username: dataSet?.options?.username || dataSet?.username || dataSetLocal?.username || "",
         },
         username: dataSet?.options?.username || dataSet?.username || dataSetLocal?.username || "",
+        simulatedSeason: selectedTrySeason,
         tryitarrays: {},
         tryitpacked: tryItPacked,
         tryitMode: "delta",
@@ -465,7 +477,7 @@ function ModalTNFT({ onClose }) {
         // Delta baseline must follow what we sent, not what server returned partially.
         lastSentTryRef.current = deepClone(cur);
         handleRefreshfTNFT(dataSet, mergedData);
-        setRefreshBaselineSig(buildTryRefreshSignature(mergedData));
+        setRefreshBaselineSig(buildTryRefreshSignature(mergedData, selectedTrySeason));
         setShowTryRefreshHalo(false);
       } else {
         if (response.status === 429) {
@@ -643,7 +655,7 @@ function ModalTNFT({ onClose }) {
     justifyContent: 'flex-end',
     flexWrap: 'wrap',
     alignItems: 'center',
-    gap: 6,
+    gap: 3,
     flex: '1 1 320px',
     maxWidth: '100%',
     overflowX: 'visible',
@@ -659,7 +671,7 @@ function ModalTNFT({ onClose }) {
   };
   const viewBarStyle = {
     display: 'flex',
-    gap: 0,
+    gap: 1,
     justifyContent: 'center',
     alignItems: 'center',
     flexWrap: 'nowrap',
@@ -670,15 +682,15 @@ function ModalTNFT({ onClose }) {
     justifyContent: 'space-between',
     alignItems: 'center',
     flexWrap: 'wrap',
-    columnGap: 8,
-    rowGap: 6,
+    columnGap: 4,
+    rowGap: 3,
   };
   const categoryButtonStyle = (isActive) => ({
     opacity: 1,
     border: isActive ? "1px solid rgba(123, 193, 125, 0.9)" : "1px solid rgba(255, 255, 255, 0.12)",
     flex: '0 0 auto',
     borderRadius: 999,
-    padding: '4px 10px',
+    padding: '2px 6px',
     color: 'var(--text-color)',
     background: isActive
       ? 'linear-gradient(180deg, rgba(123, 193, 125, 0.25) 0%, rgba(123, 193, 125, 0.08) 100%)'
@@ -687,7 +699,8 @@ function ModalTNFT({ onClose }) {
       ? '0 0 0 1px rgba(123, 193, 125, 0.12), 0 6px 14px rgba(0, 0, 0, 0.2)'
       : '0 2px 8px rgba(0, 0, 0, 0.15)',
     fontWeight: isActive ? 600 : 500,
-    fontSize: 12,
+    fontSize: 11,
+    lineHeight: 1.05,
     transition: 'all 120ms ease',
     whiteSpace: 'nowrap',
   });
@@ -1396,6 +1409,7 @@ function ModalTNFT({ onClose }) {
             <button onClick={handleButtonHelpClick} title="Help" class="button"><img src="./icon/nft/na.png" alt="" className="itico" /></button>
             <div style={switchWrapStyle}>
               <FormControlLabel
+                labelPlacement="top"
                 control={
                   <Switch
                     name="TryChecked"
@@ -1412,13 +1426,25 @@ function ModalTNFT({ onClose }) {
                 }
                 label={TryChecked ? 'Tryset' : 'Activeset'}
                 sx={{
-                  marginRight: 0,
+                  margin: 0,
+                  alignItems: "center",
                   '& .MuiFormControlLabel-label': {
                     fontSize: '11px',
                     lineHeight: 1,
+                    marginBottom: '2px',
                   }
                 }}
               />
+              <div style={{ marginLeft: 8 }}>
+                <DList
+                  name="selectedTrySeason"
+                  title="Season"
+                  options={TRYSET_SEASON_OPTIONS}
+                  value={selectedTrySeason}
+                  onChange={handleUIChange}
+                  height={28}
+                />
+              </div>
             </div>
           </div>
           <div style={viewBarStyle}>

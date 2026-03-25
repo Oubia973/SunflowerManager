@@ -96,6 +96,7 @@ function ModalGraph({ onClose, graphtype, frmid, dataSetFarm, API_URL, username 
   const [graphMetaById, setGraphMetaById] = useState({});
   const [graphLoadingCount, setGraphLoadingCount] = useState(0);
   const isGraphLoading = graphLoadingCount > 0;
+  const visibleCategoryKeys = GRAPH_CATEGORY_KEYS.filter((category) => category !== "all");
   useEffect(() => {
     const localMeta = extractGraphMetaFromFarmState(dataSetFarm);
     if (!localMeta || Object.keys(localMeta).length < 1) return;
@@ -261,7 +262,7 @@ function ModalGraph({ onClose, graphtype, frmid, dataSetFarm, API_URL, username 
           <button type="button" className="graph-mode-btn graph-mode-btn-reset" onClick={() => setLegendResetToken((prev) => prev + 1)}>Reset</button>
         </div>
         <div className="modalgraph-header-right">
-          {GRAPH_CATEGORY_KEYS.map((category) => (
+          {visibleCategoryKeys.map((category) => (
             <button
               key={category}
               type="button"

@@ -3,12 +3,33 @@ import DropdownCheckbox from './listcol.js';
 import DList from "./dlist.jsx";
 import { FormControl, InputLabel, Select, MenuItem, Switch, FormControlLabel } from '@mui/material';
 import { frmtNb } from './fct.js';
-import { computeGemsRatio } from './gemsRatio.js';
+import { computeGemsRatio, getGemsPackUsd } from './gemsRatio.js';
+import { promptInfo } from './promptW';
 
 const imgna = "./icon/nft/na.png";
+const imgusdc = "./usdc.png";
 const imgsfl = <img src="./icon/res/flowertoken.webp" style={{ width: "15px", height: "15px" }} />
 const imgcoins = <img src="./icon/res/coins.png" style={{ width: "15px", height: "15px" }} />
 const imggems = <img src="./icon/res/gem.webp" style={{ width: "15px", height: "15px" }} />
+const imgusdcIcon = <img src={imgusdc} alt="USDC" style={{ width: "15px", height: "15px" }} />
+
+function formatUsdLabel(value) {
+    const num = Number(value) || 0;
+    return num.toFixed(2).replace(/\.00$/, "").replace(/(\.\d)0$/, "$1");
+}
+
+function renderGemPackOption(pack) {
+    const usd = getGemsPackUsd(pack);
+    const gemLabel = <span style={{ display: "inline-flex", alignItems: "center", gap: 4 }}>{pack}{imggems}</span>;
+    const usdLabel = <span style={{ display: "inline-flex", alignItems: "center", gap: 4 }}>{formatUsdLabel(usd)}{imgusdcIcon}</span>;
+    return {
+        value: pack,
+        searchText: `${pack} gems ${usd} usdc`,
+        label: gemLabel,
+        labelEnd: usdLabel,
+        triggerLabel: <span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>{gemLabel}{usdLabel}</span>,
+    };
+}
 
 function ModalOptions({ onClose, dataSet, onOptionChange, API_URL }) {
     const [isOpen, setIsOpen] = useState(false);
@@ -59,6 +80,15 @@ function ModalOptions({ onClose, dataSet, onOptionChange, API_URL }) {
     };
     const handleMouseUp = () => {
         setDragging(false);
+    };
+    const handleNotifHelpClick = async (e) => {
+        e?.preventDefault?.();
+        e?.stopPropagation?.();
+        await promptInfo(
+            "Browser notifications:\nWork from a normal browser tab and are the easiest to start, but they can be less reliable depending on the browser.\nPWA notifications:\nUsually work a bit better because the site is installed like an app while still using web push.\nNative app notifications:\nUsually the most reliable option on Android because they use native mobile notifications.\nAndroid app GitHub:\nhttps://github.com/Oubia973/SunflowerManager",
+            "Notifications",
+            "Got it"
+        );
     };
 
     const closeModal = () => {
@@ -261,16 +291,17 @@ function ModalOptions({ onClose, dataSet, onOptionChange, API_URL }) {
                     <DList
                         name="gemPack"
                         options={[
-                            { value: 100, label: (<span style={{ display: "inline-flex", alignItems: "center", gap: 4 }}>100{imggems}</span>) },
-                            { value: 650, label: (<span style={{ display: "inline-flex", alignItems: "center", gap: 4 }}>650{imggems}</span>) },
-                            { value: 1350, label: (<span style={{ display: "inline-flex", alignItems: "center", gap: 4 }}>1350{imggems}</span>) },
-                            { value: 2800, label: (<span style={{ display: "inline-flex", alignItems: "center", gap: 4 }}>2800{imggems}</span>) },
-                            { value: 7400, label: (<span style={{ display: "inline-flex", alignItems: "center", gap: 4 }}>7400{imggems}</span>) },
-                            { value: 15500, label: (<span style={{ display: "inline-flex", alignItems: "center", gap: 4 }}>15500{imggems}</span>) },
-                            { value: 200000, label: (<span style={{ display: "inline-flex", alignItems: "center", gap: 4 }}>200000{imggems}</span>) },
+                            renderGemPackOption(100),
+                            renderGemPackOption(650),
+                            renderGemPackOption(1350),
+                            renderGemPackOption(2800),
+                            renderGemPackOption(7400),
+                            renderGemPackOption(15500),
+                            renderGemPackOption(200000),
                         ]}
                         value={gemsPack}
                         onChange={handleChangeGemRatio}
+                        menuMinWidth={180}
                     />
                 </div>
                 <div style={{ display: "flex", alignItems: "center", gap: 2 }}><input type="number"
@@ -372,6 +403,15 @@ function ModalOptions({ onClose, dataSet, onOptionChange, API_URL }) {
                             emitEvent={false}
                         />
                     </div>
+                    <button
+                        type="button"
+                        onClick={handleNotifHelpClick}
+                        title="Notifications help"
+                        className="button small-btn"
+                        style={{ marginLeft: 2 }}
+                    >
+                        <img src={imgna} alt="?" className="itico" />
+                    </button>
                 </div>
                 <div><input type="checkbox" onChange={onOptionChange} checked={!!dataSet.oilFood}
                     name={"oilFood"} style={{ width: "18px", height: "18px", marginRight: 12 }} />use Oil for foods</div>

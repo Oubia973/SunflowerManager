@@ -113,6 +113,17 @@ function formatDateTime(value) {
   if (!Number.isFinite(ts)) return "-";
   return new Date(ts).toLocaleString();
 }
+function formatDateTimeWithYear(value, compact = false) {
+  const ts = toTs(value);
+  if (!Number.isFinite(ts)) return "-";
+  const d = new Date(ts);
+  const dd = String(d.getDate()).padStart(2, "0");
+  const mm = String(d.getMonth() + 1).padStart(2, "0");
+  const yyyy = String(d.getFullYear());
+  const hh = String(d.getHours()).padStart(2, "0");
+  const mi = String(d.getMinutes()).padStart(2, "0");
+  return compact ? `${dd}/${mm}/${yyyy} ${hh}:${mi}` : `${dd}/${mm}/${yyyy}, ${hh}:${mi}`;
+}
 function toTs(value) {
   const num = Number(value);
   const ts = Number.isFinite(num) ? (num > 1e12 ? num : num * 1000) : Date.parse(String(value || ""));
@@ -238,7 +249,7 @@ export default function AuctionsTable() {
   const today = useMemo(() => toYmd(new Date()), []);
   const [startDate, setStartDate] = useState(() => {
     const d = new Date();
-    d.setUTCDate(d.getUTCDate() + 7);
+    d.setUTCDate(d.getUTCDate() + 21);
     return toYmd(d);
   });
   const [endDate, setEndDate] = useState(() => {
@@ -671,7 +682,7 @@ export default function AuctionsTable() {
                                 toggleAuctionNotif(auction, !!e.target.checked);
                               }}
                               onClick={(e) => e.stopPropagation()}
-                              title="Notify 10 minutes before end"
+                              title="Notify 12 minutes before end"
                               style={{ width: 16, height: 16 }}
                             />
                           ) : null}
@@ -712,19 +723,8 @@ export default function AuctionsTable() {
               <div>Supply: {Number(auctionDetails?.supply || 0) || "-"}</div>
               <div style={{ whiteSpace: "nowrap" }}>
                 End: {isNarrow
-                  ? (() => {
-                    const v = auctionDetails?.endAt;
-                    const num = Number(v);
-                    const ts = Number.isFinite(num) ? (num > 1e12 ? num : num * 1000) : Date.parse(String(v || ""));
-                    if (!Number.isFinite(ts)) return "-";
-                    const d = new Date(ts);
-                    const dd = String(d.getDate()).padStart(2, "0");
-                    const mm = String(d.getMonth() + 1).padStart(2, "0");
-                    const hh = String(d.getHours()).padStart(2, "0");
-                    const mi = String(d.getMinutes()).padStart(2, "0");
-                    return `${dd}/${mm} ${hh}:${mi}`;
-                  })()
-                  : formatDateTime(auctionDetails?.endAt)}
+                  ? formatDateTimeWithYear(auctionDetails?.endAt, true)
+                  : formatDateTimeWithYear(auctionDetails?.endAt)}
               </div>
             </div>
 

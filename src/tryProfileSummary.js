@@ -175,12 +175,13 @@ function getSelectedItemProfileKeys(profilePayload, tryitConfig) {
   return Object.keys(tryitConfig?.itemTables || {});
 }
 
-function buildDeltaHeaders({ frmid, deviceId, options, username, targetState, tryitpacked }) {
+function buildDeltaHeaders({ frmid, deviceId, options, username, targetState, tryitpacked, simulatedSeason }) {
   return {
     frmid,
     deviceId,
     options,
     username,
+    simulatedSeason,
     tryitarrays: {},
     tryitpacked: tryitpacked || { mode: "idx-v1", tables: {} },
     tryitMode: "delta",
@@ -257,7 +258,7 @@ export function buildPackedDelta(curState, baseState, tryitConfig) {
 }
 
 export async function postPackedDelta(params) {
-  const { API_URL, frmid, deviceId, options, username, tryitConfig, targetState, baseState } = params || {};
+  const { API_URL, frmid, deviceId, options, username, tryitConfig, targetState, baseState, simulatedSeason } = params || {};
   const packed = buildPackedDelta(targetState || {}, baseState || {}, tryitConfig);
   const headers = buildDeltaHeaders({
     frmid,
@@ -266,6 +267,7 @@ export async function postPackedDelta(params) {
     username,
     targetState,
     tryitpacked: packed,
+    simulatedSeason,
   });
   const response = await fetch(API_URL + "/settry", {
     method: "POST",
@@ -286,6 +288,7 @@ async function postTrySummarySingle(params) {
     tryitConfig,
     baseState,
     targetState,
+    simulatedSeason,
   } = params || {};
   const buildStrictTryitArrays = (state, cfg) => {
     const src = (state && typeof state === "object") ? state : {};
@@ -322,6 +325,7 @@ async function postTrySummarySingle(params) {
     frmid,
     options,
     username,
+    simulatedSeason,
     include: ["inventory", "boosts"],
     page: "trynft",
     baseTryitarrays: buildStrictTryitArrays(baseState || {}, tryitConfig),
@@ -605,6 +609,7 @@ export async function computeProfileSummaryPayload(params = {}) {
     currentState,
     activeBaseState,
     profilePayload,
+    simulatedSeason,
     compareMode = "active",
     getScopeTablesFromPayload,
   } = params;
@@ -622,7 +627,7 @@ export async function computeProfileSummaryPayload(params = {}) {
   ];
   let profState = applyProfileToState(activeState, profilePayload || {}, getScopeTablesFromPayload);
   profState = applyItemProfileToState(profState, profilePayload || {}, tryitConfig);
-  const commonReq = { API_URL, frmid, deviceId, options, username, tryitConfig };
+  const commonReq = { API_URL, frmid, deviceId, options, username, tryitConfig, simulatedSeason };
   const baseCompareState = mode === "zero" ? scopedZeroState : activeState;
   let impacts = [];
   try {

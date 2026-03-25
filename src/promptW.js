@@ -101,9 +101,44 @@ export function promptInfo(message, title = "Please wait", buttonLabel = "Got it
     titleEl.style.marginBottom = "8px";
 
     const messageEl = document.createElement("div");
-    messageEl.textContent = String(message || "");
     messageEl.style.lineHeight = "1.35";
+    messageEl.style.whiteSpace = "pre-line";
+    messageEl.style.wordBreak = "break-word";
     messageEl.style.marginBottom = "12px";
+    const messageText = String(message || "");
+    const urlRegex = /(https?:\/\/[^\s]+)/g;
+    const lines = messageText.split("\n");
+    lines.forEach((line, lineIndex) => {
+      const lineEl = document.createElement("div");
+      let lastIndex = 0;
+      let matched = false;
+      line.replace(urlRegex, (url, _capture, offset) => {
+        matched = true;
+        if (offset > lastIndex) {
+          lineEl.appendChild(document.createTextNode(line.slice(lastIndex, offset)));
+        }
+        const linkEl = document.createElement("a");
+        linkEl.href = url;
+        linkEl.textContent = url;
+        linkEl.target = "_blank";
+        linkEl.rel = "noreferrer noopener";
+        linkEl.style.color = "#7db7ff";
+        linkEl.style.textDecoration = "underline";
+        lineEl.appendChild(linkEl);
+        lastIndex = offset + url.length;
+        return url;
+      });
+      if (lastIndex < line.length) {
+        lineEl.appendChild(document.createTextNode(line.slice(lastIndex)));
+      }
+      if (!matched && line.length === 0) {
+        lineEl.innerHTML = "&nbsp;";
+      }
+      messageEl.appendChild(lineEl);
+      if (lineIndex < lines.length - 1) {
+        lineEl.style.marginBottom = "4px";
+      }
+    });
 
     const actions = document.createElement("div");
     actions.style.display = "flex";
@@ -157,6 +192,7 @@ export function promptConfirm(message, title = "Confirm", confirmLabel = "OK", c
     const messageEl = document.createElement("div");
     messageEl.textContent = String(message || "");
     messageEl.style.lineHeight = "1.35";
+    messageEl.style.whiteSpace = "pre-line";
     messageEl.style.marginBottom = "12px";
 
     const actions = document.createElement("div");

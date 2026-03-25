@@ -5,6 +5,7 @@ import { Switch, FormControlLabel } from '@mui/material';
 import Tooltip from "./tooltip.js";
 import AutoRefreshProgress from "./components/AutoRefreshProgress";
 const imgno = './icon/ui/cancel.png';
+const imgalready = './icon/ui/already.png';
 const imgyes = './icon/ui/confirm.png';
 const imgrdy = './icon/ui/expression_alerted.png';
 const imgheart = './icon/ui/expression_love.png';
@@ -66,6 +67,7 @@ function ModalDlvr({
   const [tableBounties, settableBounties] = useState([]);
   const [tooltipData, setTooltipData] = useState(null);
   const ximgno = <img src={imgno} alt="" />;
+  const ximgalready = <img src={imgalready} alt="" />;
   const ximgyes = <img src={imgyes} alt="" />;
   const ximgrdy = <img src={imgrdy} alt="" />;
   const ximgheart = <img src={imgheart} alt="" style={{ width: '12px', height: '12px' }} />;
@@ -86,6 +88,16 @@ function ModalDlvr({
     .replace(/&lt;/g, "<")
     .replace(/&gt;/g, ">");
   const normalizeItemName = (txt) => decodeHtmlEntities(txt).replace(/\s+/g, " ").trim();
+  const isChoreProjectedComplete = (chore) => {
+    const requirement = Number(chore?.requirement);
+    if (!Number.isFinite(requirement) || requirement <= 0) return false;
+    const progress = Number(chore?.progress);
+    const progressStart = Number(chore?.progressstart);
+    const harvestLeft = Number(chore?.harvestleft);
+    const gained = Math.max(0, (Number.isFinite(progress) ? progress : 0) - (Number.isFinite(progressStart) ? progressStart : 0));
+    const yellow = Number.isFinite(harvestLeft) ? Math.max(0, harvestLeft) : 0;
+    return yellow > 0 && (gained + yellow) >= requirement;
+  };
   const getItemBase = (name) => (
     it?.[name] || food?.[name] || pfood?.[name] || fish?.[name] || bounty?.[name] || crustacean?.[name] || craft?.[name] || petit?.[name] || flower?.[name] || tool?.[name] || mutant?.[name] || compost?.[name] || null
   );
@@ -521,7 +533,7 @@ function ModalDlvr({
           <td className="tdleft">{item[1].description}</td>
           <td className="tdcenter">{itemImg}</td>
           <td className="tdcenter">{PBar(item[1].progress, item[1].progressstart, item[1].requirement, item[1]?.harvestleft, 80)}</td>
-          <td className="tdcenter">{item[1].completed ? item[1].completedAt === undefined ? ximgrdy : ximgyes : ximgno}</td>
+          <td className="tdcenter">{item[1].completed ? item[1].completedAt === undefined ? ximgrdy : ximgyes : (isChoreProjectedComplete(item[1]) ? ximgalready : ximgno)}</td>
           <td className="tdcenter">{item[1].reward}{imgRew}</td>
           <td className="tdcenter">{timeToDays(totTime)}</td>
           <td className="tdcenter tooltipcell" style={cellCompStyle} onClick={(e) => handleTooltip(item[1].item, "cookcost", item[1].requirement, e)}>{choreTotCompSpan}</td>
@@ -740,7 +752,7 @@ function ModalDlvr({
       }}>
         <h2 style={{ margin: 0 }}>Deliveries Chores Bounties</h2>
         {autoRefreshEnabled ? (
-          <div style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', minWidth: '98px' }}>
+          <div style={{ display: 'inline-flex', flexDirection: 'column', alignItems: 'center', gap: '3px', minWidth: '98px' }}>
             <span style={{ fontSize: '9px', whiteSpace: 'nowrap' }}>Refresh</span>
             <AutoRefreshProgress
               active={autoRefreshActive}
@@ -807,3 +819,7 @@ function ModalDlvr({
 }
 
 export default ModalDlvr;
+
+
+
+

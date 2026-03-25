@@ -12,42 +12,138 @@ const BOOST_PRICE_UNIT_OPTIONS = [
   { value: "usdc", label: "USDC", iconSrc: imgusdc },
 ];
 
+const SEASON_ORDER = ["spring", "summer", "autumn", "winter"];
+const SEASON_STYLES = {
+  spring: {
+    icon: "./icon/ui/spring.webp",
+    fillStart: "rgba(104, 179, 91, 0.18)",
+    fillEnd: "rgba(104, 179, 91, 0.04)",
+    line: "rgba(104, 179, 91, 0.34)",
+  },
+  summer: {
+    icon: "./icon/ui/summer.webp",
+    fillStart: "rgba(230, 185, 59, 0.18)",
+    fillEnd: "rgba(230, 185, 59, 0.04)",
+    line: "rgba(230, 185, 59, 0.34)",
+  },
+  autumn: {
+    icon: "./icon/ui/autumn.webp",
+    fillStart: "rgba(205, 120, 54, 0.18)",
+    fillEnd: "rgba(205, 120, 54, 0.04)",
+    line: "rgba(205, 120, 54, 0.34)",
+  },
+  winter: {
+    icon: "./icon/ui/winter.webp",
+    fillStart: "rgba(87, 168, 224, 0.18)",
+    fillEnd: "rgba(87, 168, 224, 0.04)",
+    line: "rgba(87, 168, 224, 0.34)",
+  },
+};
+const seasonImageCache = {};
+
+function getStartOfMonday(dateValue) {
+  const date = new Date(dateValue);
+  date.setHours(0, 0, 0, 0);
+  const day = date.getDay();
+  const offset = day === 0 ? -6 : 1 - day;
+  date.setDate(date.getDate() + offset);
+  return date;
+}
+
+function getSeasonAtMonday(cursorMs, currentSeason, currentMondayMs) {
+  const normalizedSeason = SEASON_ORDER.includes(currentSeason) ? currentSeason : "spring";
+  const baseIndex = SEASON_ORDER.indexOf(normalizedSeason);
+  const weekOffset = Math.round((cursorMs - currentMondayMs) / (7 * 24 * 60 * 60 * 1000));
+  const seasonIndex = ((baseIndex + weekOffset) % SEASON_ORDER.length + SEASON_ORDER.length) % SEASON_ORDER.length;
+  return SEASON_ORDER[seasonIndex];
+}
+
+function getSeasonImage(iconSrc) {
+  if (!iconSrc) return null;
+  if (!seasonImageCache[iconSrc]) {
+    const img = new Image();
+    img.src = iconSrc;
+    seasonImageCache[iconSrc] = img;
+  }
+  return seasonImageCache[iconSrc];
+}
+
 const mondayMidnightLinePlugin = {
   id: 'mondayMidnightLine',
   beforeDatasetsDraw(chart) {
     const xScale = chart?.scales?.x;
-    if (!xScale) return;
+    const chartArea = chart?.chartArea;
+    if (!xScale || !chartArea) return;
 
     const minMs = Number(xScale.min);
     const maxMs = Number(xScale.max);
     if (!Number.isFinite(minMs) || !Number.isFinite(maxMs) || maxMs <= minMs) return;
 
-    const first = new Date(minMs);
-    first.setHours(0, 0, 0, 0);
-    const day = first.getDay(); // 0 = Sunday, 1 = Monday
-    const daysToAdd = (1 - day + 7) % 7;
-    first.setDate(first.getDate() + daysToAdd);
-    let cursorMs = first.getTime();
+    const currentSeason = String(chart?.options?.plugins?.mondayMidnightLine?.currentSeason || "spring").toLowerCase();
+    const currentMondayMs = getStartOfMonday(Date.now()).getTime();
+    const firstVisibleMondayMs = getStartOfMonday(minMs).getTime();
+    let cursorMs = firstVisibleMondayMs;
+    const weekMs = 7 * 24 * 60 * 60 * 1000;
+    const { ctx } = chart;
+    ctx.save();
+    ctx.beginPath();
+    ctx.rect(chartArea.left, chartArea.top, chartArea.right - chartArea.left, chartArea.bottom - chartArea.top);
+    ctx.clip();
 
-    if (cursorMs < minMs) {
-      cursorMs += 7 * 24 * 60 * 60 * 1000;
+    while (cursorMs <= maxMs) {
+      const nextCursorMs = cursorMs + weekMs;
+      const segmentStartMs = Math.max(cursorMs, minMs);
+      const segmentEndMs = Math.min(nextCursorMs, maxMs);
+      const startX = xScale.getPixelForValue(segmentStartMs);
+      const endX = xScale.getPixelForValue(segmentEndMs);
+      const seasonKey = getSeasonAtMonday(cursorMs, currentSeason, currentMondayMs);
+      const seasonStyle = SEASON_STYLES[seasonKey] || SEASON_STYLES.spring;
+
+      if (Number.isFinite(startX) && Number.isFinite(endX) && endX > startX) {
+        const gradient = ctx.createLinearGradient(startX, chartArea.top, endX, chartArea.top);
+        gradient.addColorStop(0, seasonStyle.fillStart);
+        gradient.addColorStop(1, seasonStyle.fillEnd);
+        ctx.fillStyle = gradient;
+        ctx.fillRect(startX, chartArea.top, endX - startX, chartArea.bottom - chartArea.top);
+      }
+      cursorMs = nextCursorMs;
     }
 
-    const { ctx, chartArea } = chart;
-    ctx.save();
-    ctx.strokeStyle = 'rgba(0, 255, 255, 0.18)';
+    cursorMs = firstVisibleMondayMs;
+    ctx.strokeStyle = 'rgba(236, 253, 255, 0.24)';
     ctx.lineWidth = 1.5;
     ctx.setLineDash([]);
 
     while (cursorMs <= maxMs) {
       const x = xScale.getPixelForValue(cursorMs);
       if (Number.isFinite(x) && x >= chartArea.left && x <= chartArea.right) {
+        const seasonKey = getSeasonAtMonday(cursorMs, currentSeason, currentMondayMs);
+        const seasonStyle = SEASON_STYLES[seasonKey] || SEASON_STYLES.spring;
         ctx.beginPath();
+        ctx.strokeStyle = seasonStyle.line;
         ctx.moveTo(x, chartArea.top);
         ctx.lineTo(x, chartArea.bottom);
         ctx.stroke();
+
+        const seasonImage = getSeasonImage(seasonStyle.icon);
+        if (seasonImage && !seasonImage.complete && !seasonImage.__mondayRedrawBound) {
+          seasonImage.__mondayRedrawBound = true;
+          seasonImage.onload = () => {
+            chart.draw();
+          };
+        }
+        if (seasonImage?.complete) {
+          const iconSize = 18;
+          const iconX = x - (iconSize / 2);
+          const iconY = chartArea.bottom - iconSize - 4;
+          ctx.save();
+          ctx.shadowColor = 'rgba(0, 0, 0, 0.45)';
+          ctx.shadowBlur = 4;
+          ctx.drawImage(seasonImage, iconX, iconY, iconSize, iconSize);
+          ctx.restore();
+        }
       }
-      cursorMs += 7 * 24 * 60 * 60 * 1000;
+      cursorMs += weekMs;
     }
 
     ctx.restore();
@@ -415,6 +511,7 @@ function Graph({ data, vals, dataSetFarm, graphMeta = {}, selectedCategory = 'al
   }, [selectedCategory, hiddenLabels, selectedBoostNft, selectedBoostNftw, datasets]);
 
   const isLogarithmicScale = vals === 'price' && selectedCategory !== 'boost';
+  const currentSeason = String(dataSetFarm?.frmData?.curSeason || "spring").toLowerCase();
   const tooltipTitle = (context) => {
     const dateLabel = context[0].parsed.x;
     return format(dateLabel, 'yyyy-MM-dd HH:mm:ss');
@@ -486,6 +583,11 @@ function Graph({ data, vals, dataSetFarm, graphMeta = {}, selectedCategory = 'al
           responsive: true,
           maintainAspectRatio: false,
           normalized: true,
+          layout: {
+            padding: {
+              bottom: 4,
+            },
+          },
           animation: {
             duration: 680,
             easing: 'easeOutQuart',
@@ -526,6 +628,9 @@ function Graph({ data, vals, dataSetFarm, graphMeta = {}, selectedCategory = 'al
             intersect: false,
           },
           plugins: {
+            mondayMidnightLine: {
+              currentSeason,
+            },
             legend: {
               display: false,
             },
@@ -548,6 +653,7 @@ function Graph({ data, vals, dataSetFarm, graphMeta = {}, selectedCategory = 'al
     chartRef.current.options.scales.y.type = isLogarithmicScale ? 'logarithmic' : 'linear';
     chartRef.current.options.scales.y.min = undefined;
     chartRef.current.options.scales.y.max = undefined;
+    chartRef.current.options.plugins.mondayMidnightLine.currentSeason = currentSeason;
     chartRef.current.options.plugins.tooltip.callbacks.title = tooltipTitle;
     chartRef.current.options.plugins.tooltip.callbacks.label = tooltipLabel;
     chartRef.current.data.datasets.forEach((dataset, index) => {
@@ -555,7 +661,7 @@ function Graph({ data, vals, dataSetFarm, graphMeta = {}, selectedCategory = 'al
       chartRef.current.setDatasetVisibility(index, !effectiveHiddenLabels.has(visibilityKey));
     });
     chartRef.current.update();
-  }, [datasets, isLogarithmicScale, vals, effectiveHiddenLabels, selectedCategory]);
+  }, [datasets, isLogarithmicScale, vals, effectiveHiddenLabels, selectedCategory, currentSeason]);
 
   useEffect(() => {
     return () => {

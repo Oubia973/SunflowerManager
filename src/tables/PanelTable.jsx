@@ -5,6 +5,7 @@ import HomeTable from "./Home";
 import InvTable from "./Inv";
 import CookTable from "./Cook";
 import FishTable from "./Fish";
+import ChapterTable from "./Chapter";
 import FlowerTable from "./Flower";
 import DigTable from "./Dig";
 import AnimalsTable from "./Animals";
@@ -27,6 +28,7 @@ export default function PanelTable() {
   if (selectedInv === "inv") return <InvTable />;
   if (selectedInv === "cook") return <CookTable />;
   if (selectedInv === "fish") return <FishTable />;
+  if (selectedInv === "chapter") return <ChapterTable />;
   if (selectedInv === "flower") return <FlowerTable />;
   if (selectedInv === "bounty") return <DigTable />;
   if (selectedInv === "animal") return <AnimalsTable />;

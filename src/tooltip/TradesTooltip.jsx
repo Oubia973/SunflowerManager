@@ -4,14 +4,24 @@ const imgna = "./icon/nft/na.png";
 
 const EMPTY_TOTAL = { soldPrice: 0, price: 0, marketPrice: 0, count: 0 };
 
-function getTradeType(itemName, tables, boostables) {
+function normalizeTradeType(value) {
+    const safeValue = String(value || "").trim().toLowerCase();
+    if (safeValue === "resources" || safeValue === "nft" || safeValue === "bud" || safeValue === "pet") {
+        return safeValue;
+    }
+    return "other";
+}
+
+function getTradeType(itemName, tables, boostables, fallbackType) {
+    const normalizedFallback = normalizeTradeType(fallbackType);
+    if (normalizedFallback !== "other") return normalizedFallback;
     const safeName = String(itemName || "");
-    const { it, petit } = tables || {};
+    const { it, petit, fish, flower } = tables || {};
     const { nft, nftw } = boostables || {};
     if (/\bbud\b/i.test(safeName)) return "bud";
     if (/\bpet\b/i.test(safeName)) return "pet";
     if (nft?.[itemName] || nftw?.[itemName]) return "nft";
-    if (it?.[itemName] || petit?.[itemName]) return "resources";
+    if (it?.[itemName] || petit?.[itemName] || fish?.[itemName] || flower?.[itemName]) return "resources";
     return "other";
 }
 
@@ -59,6 +69,9 @@ const TradesTooltip = ({ trades, tradesHeader, itables, boostables }) => {
     );
     const headerFloorByName = Object.fromEntries(
         headerRows.map((row) => [String(row?.name || "").trim().toLowerCase(), Number(row?.floor || 0)])
+    );
+    const headerCategoryByName = Object.fromEntries(
+        headerRows.map((row) => [String(row?.name || "").trim().toLowerCase(), normalizeTradeType(row?.category)])
     );
     if (tradeRows.length === 0 && headerRows.length === 0) {
         return <div>No trades available.</div>;
@@ -113,7 +126,9 @@ const TradesTooltip = ({ trades, tradesHeader, itables, boostables }) => {
         });
 
         const price = traderow.sfl || 0;
-        const fallbackFloor = headerFloorByName[String(itemName || "").trim().toLowerCase()] || 0;
+        const normalizedName = String(itemName || "").trim().toLowerCase();
+        const fallbackFloor = headerFloorByName[normalizedName] || 0;
+        const fallbackCategory = headerCategoryByName[normalizedName];
         const { marketPrice, itemImg } = resolveMarketData(itemName, quantity, {
             nft,
             nftw,
@@ -122,12 +137,12 @@ const TradesTooltip = ({ trades, tradesHeader, itables, boostables }) => {
             flower,
             petit,
         }, fallbackFloor);
-        const fallbackImgSrc = headerImgByName[String(itemName || "").trim().toLowerCase()] || imgna;
+        const fallbackImgSrc = headerImgByName[normalizedName] || imgna;
         const safeItemImg = itemImg || <img src={fallbackImgSrc} className="resicon" alt="" />;
         const marketDiffPct = marketPrice ? ((price - marketPrice) / marketPrice) * 100 : null;
         const marketDiff = marketDiffPct !== null ? `${marketDiffPct.toFixed(2)}%` : "N/A";
         const marketDiffStyle = marketDiffPct !== null && marketDiffPct > 20 ? { color: "red" } : {};
-        const tradeType = getTradeType(itemName, { it, petit }, { nft, nftw });
+        const tradeType = getTradeType(itemName, { it, petit, fish, flower }, { nft, nftw }, fallbackCategory);
         const totalsTarget = totalsByType[tradeType];
         totalsTarget.count += 1;
         totalsTarget.price += price;

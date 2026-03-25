@@ -782,7 +782,15 @@ function App() {
     activityDisplay: "item",
     selectedDigCur: "sfl",
     selectedSeason: "all",
+    selectedTrySeason: "all",
     selectedPChange: "3d",
+    chapterCurrentTickets: 0,
+    chapterDaysRemaining: "",
+    chapterNpcSelection: {},
+    chapterBountySelection: {},
+    chapterBountyReplace: {},
+    chapterBountyOverride: {},
+    chapterVipDone: false,
     invSortBy: "none",
     invSortDir: "asc",
     cookSortBy: "none",
@@ -990,6 +998,13 @@ function App() {
       || next.buyNodesSplitStrategy === "short_time"
     ) ? next.buyNodesSplitStrategy : "short_time";
     next.buyNodesTimeFromStock = !!next.buyNodesTimeFromStock;
+    next.selectedTrySeason = (
+      next.selectedTrySeason === "spring"
+      || next.selectedTrySeason === "summer"
+      || next.selectedTrySeason === "autumn"
+      || next.selectedTrySeason === "winter"
+      || next.selectedTrySeason === "all"
+    ) ? next.selectedTrySeason : "all";
     const allowedTryProfileShareScope = new Set(["nodes", "buy", "collectibles", "wearables", "craft", "buds", "skills", "shrines"]);
     const normalizedTryProfileShareScope = (Array.isArray(next.tryProfileShareScope) ? next.tryProfileShareScope : [])
       .map((v) => {
@@ -1215,6 +1230,7 @@ function App() {
   const dataSetFarmRef = useRef({});
   const deviceIdRef = useRef(getOrCreateDeviceId());
   const headerRequestCountRef = useRef(0);
+  const hoveredTooltipCellRef = useRef(null);
   const [reqState, setReqState] = useState("");
   const [cdButton, setcdButton] = useState(false);
   const [iaLoading, setIaLoading] = useState(false);
@@ -1683,7 +1699,7 @@ function App() {
       .map(([key]) => key);
   }
   function buildAuctionWatchEntries(source = dataSet.options?.auctionNotifSelection) {
-    const farmKey = String(curID || dataSet.options?.farmId || "").trim();
+    const farmKey = String(dataSetFarm?.frmid || dataSet.options?.farmId || curID || "").trim();
     const allSelections = (source && typeof source === "object") ? source : {};
     const src = farmKey && allSelections?.[farmKey] && typeof allSelections[farmKey] === "object"
       ? allSelections[farmKey]
@@ -1838,7 +1854,7 @@ function App() {
   }
   async function UpdateNotifList() {
     const subfarm = {
-      farmId: curID,
+      farmId: dataSetFarm?.frmid || dataSet.options?.farmId || curID,
       deviceId: deviceIdRef.current,
       type: isNativeApp ? 'fcm' : 'web',
       notifOffItems: buildDisabledNotifItems(),
@@ -1853,7 +1869,7 @@ function App() {
   }
   async function UpdateAuctionNotifList(auctionWatchInput = null) {
     const subfarm = {
-      farmId: curID,
+      farmId: dataSetFarm?.frmid || dataSet.options?.farmId || curID,
       deviceId: deviceIdRef.current,
       type: isNativeApp ? 'fcm' : 'web',
       auctionWatch: Array.isArray(auctionWatchInput) ? auctionWatchInput : buildAuctionWatchEntries()
@@ -2666,6 +2682,13 @@ function App() {
   };
   const handleTooltip = async (item, context, value, event) => {
     try {
+      const currentCell = event?.currentTarget?.closest?.(".tooltipcell");
+      if (currentCell) {
+        currentCell.classList.remove("tooltipcell-hover");
+        if (hoveredTooltipCellRef.current === currentCell) {
+          hoveredTooltipCellRef.current = null;
+        }
+      }
       const { clientX, clientY } = event;
       let bdrag = true;
       if (context === "trades") { bdrag = false }
@@ -2684,6 +2707,34 @@ function App() {
       console.log(error)
     }
   }
+  const clearHoveredTooltipCell = () => {
+    if (!hoveredTooltipCellRef.current) return;
+    hoveredTooltipCellRef.current.classList.remove("tooltipcell-hover");
+    hoveredTooltipCellRef.current = null;
+  };
+  const setHoveredTooltipCell = (cell) => {
+    if (cell === hoveredTooltipCellRef.current) return;
+    clearHoveredTooltipCell();
+    if (!cell || !document.body.contains(cell)) return;
+    cell.classList.add("tooltipcell-hover");
+    hoveredTooltipCellRef.current = cell;
+  };
+  const handleTooltipCellMouseOver = (event) => {
+    const cell = event.target?.closest?.(".tooltipcell") || null;
+    if (!cell) return;
+    setHoveredTooltipCell(cell);
+  };
+  const handleTooltipCellMouseOut = (event) => {
+    const currentCell = event.target?.closest?.(".tooltipcell") || null;
+    if (!currentCell || hoveredTooltipCellRef.current !== currentCell) return;
+    const nextCell = event.relatedTarget?.closest?.(".tooltipcell") || null;
+    if (nextCell === currentCell) return;
+    if (nextCell) {
+      setHoveredTooltipCell(nextCell);
+      return;
+    }
+    clearHoveredTooltipCell();
+  };
   const handleDonClick = (address, element) => {
     const textarea = document.createElement('textarea');
     textarea.value = address;
@@ -2722,6 +2773,11 @@ function App() {
     priceData,
     tooltipData
   ]);
+  useEffect(() => {
+    return () => {
+      clearHoveredTooltipCell();
+    };
+  }, []);
   const config = useMemo(() => ({
     API_URL,
     tryitConfig,
@@ -2904,6 +2960,7 @@ function App() {
       frmid: requestFarmId,
       deviceId: deviceIdRef.current,
       options: dataSet.options,
+      selectedTrySeason: String(ui?.selectedTrySeason || "all").toLowerCase(),
       include: [...new Set(includeToRequest)],
       page: requestedPage,
       knownHashes,
@@ -3186,6 +3243,10 @@ function App() {
   const autoRefreshEnabled = options?.autoRefresh !== false;
   const autoRefreshActive = !!(autoRefreshEnabled && buttonClicked && dataSetFarm?.frmid && !showfTNFT && !showfGraph);
   const autoRefreshResetKey = `${dataSetFarm?.frmid || ""}|${autoRefreshNonce}|${showfTNFT ? 1 : 0}|${showfGraph ? 1 : 0}|${autoRefreshPulse}`;
+  const hasLoadedFarm = !!(
+    buttonClicked &&
+    String(dataSetFarm?.frmid || dataSet?.options?.farmId || "").trim()
+  );
   useEffect(() => {
     autoRefreshViewRef.current = {
       selectedInv: ui?.selectedInv || "home",
@@ -3439,11 +3500,14 @@ function App() {
     { value: "buynodes", label: "Buy nodes", iconSrc: "./icon/res/sunstone_rock_1.webp" },
     { value: "factions", label: "Factions", iconSrc: "./icon/ui/factions.webp" },
     { value: "market", label: "Market", iconSrc: imgexchng },
-    { value: "toplists", label: "Lists", iconSrc: "./icon/ui/trophy.png" },
+    ...(dataSet.options.isAbo
+      ? [{ value: "chapter", label: "Chapter", iconSrc: "./icon/ui/chapter.webp" }]
+      : []),
     { value: "auctions", label: "Auctions", iconSrc: "./icon/ui/calendar.webp" },
     ...(dataSet.options.isAbo
       ? [{ value: "activity", label: "Activity", iconSrc: "./icon/ui/stopwatch.png" }]
       : []),
+    { value: "toplists", label: "Lists", iconSrc: "./icon/ui/trophy.png" },
   ];
   const requiredSectionsForView = useMemo(
     () => computeRequiredSections(ui, pageSectionRequirements),
@@ -3461,7 +3525,12 @@ function App() {
 
   return (
     <>
-      <div className="App">
+      <div
+        className="App"
+        onMouseOver={handleTooltipCellMouseOver}
+        onMouseOut={handleTooltipCellMouseOut}
+        onMouseLeave={clearHoveredTooltipCell}
+      >
         <div className="top-frame">
           <h1 className="App-h1">
             <div className="vertical">
@@ -3514,7 +3583,7 @@ function App() {
                 fontSize: '9px',
                 color: 'gray',
               }}>{farmData?.updated ? (<UpdatedSince unixTime={farmData?.updated} />) : ""}</div>
-              {hasBalanceData(farmData.balance) ? (
+              {hasLoadedFarm ? (
                 <div className="vertical" style={{ transform: 'translate(105px, 0%)' }}>
                   <div className="horizontal">
                     <button onClick={handleButtonfTNFTClick} title="NFT" class="button coach-boosts-btn">
@@ -3522,6 +3591,7 @@ function App() {
                     </button>
                     <FormControlLabel
                       className="coach-tryset-switch"
+                      labelPlacement="top"
                       control={
                         <Switch
                           name="TryChecked"
@@ -3539,8 +3609,11 @@ function App() {
                       }
                       label={TryChecked ? 'Tryset' : 'Activeset'}
                       sx={{
+                        margin: 0,
+                        alignItems: 'center',
                         '& .MuiFormControlLabel-label': {
                           fontSize: '10px',
+                          marginBottom: '1px',
                         },
                       }}
                     />
@@ -3550,7 +3623,7 @@ function App() {
               ) : ""}
             </div>
             <div class="h1-container"><img src={logo} alt="" className="App-logo" />Sunflower Manager</div>
-            {hasBalanceData(farmData.balance) ? (
+            {hasLoadedFarm ? (
               <div className="currencies">
                 <div className="currency-controls">
                   {/* <div className="selectcurrback">
@@ -3608,7 +3681,7 @@ function App() {
           </h1>
           <div style={{ marginTop: 0, margin: 0, padding: 0 }}>
             <div class="horizontal" style={{ margin: "0", padding: "0" }}>
-              {hasBalanceData(farmData.balance) ? (<>
+              {hasLoadedFarm ? (<>
                 <div class="horizontal" onClick={(e) => handleTooltip("", "balance", "", e)} style={{ margin: "0", padding: "0" }}>
                   {imgSFL}{frmtNb(dataSet.balance)} {imgCoins}{parseFloat(dataSet.coins).toFixed(0)}{dataSet.isBanned ? dataSet.isBanned : null}
                 </div>
@@ -3621,7 +3694,7 @@ function App() {
                 </p>
               ) : null}
             </div>
-            {hasBalanceData(farmData.balance) ? (<>
+            {hasLoadedFarm ? (<>
               <HeaderTrades
                 API_URL={API_URL}
                 farmId={String(dataSetFarm?.frmid || "")}

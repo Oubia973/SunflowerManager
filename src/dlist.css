@@ -218,6 +218,26 @@
   min-width:0;
   flex:1;
 }
+.cd-labelCols{
+  display:grid;
+  grid-template-columns:minmax(0, 1fr) auto;
+  align-items:center;
+  gap:10px;
+}
+.cd-labelMain{
+  min-width:0;
+  overflow:hidden;
+  text-overflow:ellipsis;
+  white-space:nowrap;
+}
+.cd-labelEnd{
+  display:inline-flex;
+  align-items:center;
+  justify-content:flex-end;
+  gap:4px;
+  white-space:nowrap;
+  text-align:right;
+}
 .cd-title{
   font-size: 10px;
   opacity: 0.8;
