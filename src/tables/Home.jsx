@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useAppCtx } from "../context/AppCtx";
 import { frmtNb, ColorValue } from "../fct.js";
 
@@ -24,9 +24,21 @@ function readModeSet(row, mode, forTry) {
     return readSet(row, forTry);
 }
 
+function formatCooldownRemaining(ms) {
+    const totalSeconds = Math.max(0, Math.ceil(Number(ms || 0) / 1000));
+    if (totalSeconds <= 0) return "Ready";
+    const hours = Math.floor(totalSeconds / 3600);
+    const minutes = Math.floor((totalSeconds % 3600) / 60);
+    const seconds = totalSeconds % 60;
+    if (hours > 0) return `${hours}h ${minutes.toString().padStart(2, "0")}m`;
+    if (minutes > 0) return `${minutes}m ${seconds.toString().padStart(2, "0")}s`;
+    return `${seconds}s`;
+}
+
 export default function HomeTable() {
     const [isBumpkinCooldown, setIsBumpkinCooldown] = useState(false);
     const [isBumpkinRefreshing, setIsBumpkinRefreshing] = useState(false);
+    const [cooldownNow, setCooldownNow] = useState(() => Date.now());
     const {
         data: { dataSet, dataSetFarm, bumpkinLoading },
         ui: {
@@ -45,6 +57,13 @@ export default function HomeTable() {
         },
         config: { API_URL },
     } = useAppCtx();
+
+    useEffect(() => {
+        const timer = window.setInterval(() => {
+            setCooldownNow(Date.now());
+        }, 1000);
+        return () => window.clearInterval(timer);
+    }, []);
 
     if (selectedInv !== "home") return;
 
@@ -78,7 +97,7 @@ export default function HomeTable() {
     const imgSflSmall = <img src={"./icon/res/flowertoken.webp"} alt={""} className="seasonico" title={"Flower"} />;
     const imgFishSmall = <img src={"./icon/fish/anchovy.png"} alt={""} className="itico" title={"Fish casts"} />;
     const imgPetSmall = <img src={"./icon/pet/dog.webp"} alt={""} className="itico" title={"Pets"} />;
-    const imgDishSmall = <img src={"./icon/food/sunflower_crunch.png"} alt={""} className="itico" title={"Pet requests"} />;
+    const imgDishSmall = <img src={"./icon/food/sunflower_crunch.png"} alt={""} className="saisonico" title={"Pet requests"} />;
     const vipDate = homeData?.vipDate ? new Date(homeData.vipDate).toLocaleDateString("en-US", {
         day: "2-digit",
         month: "2-digit",
@@ -92,13 +111,55 @@ export default function HomeTable() {
     const fishCastsStatus = homeData?.fish?.done ? imgDone : imgCancel;
     const petRequestsStatus = homeData?.pets?.done ? imgDone : imgCancel;
     const bountyHasSfl = homeData?.bounties && ("sflDone" in homeData.bounties || "sflCount" in homeData.bounties);
-
     const blocks = Array.isArray(homeData?.blocks) ? homeData.blocks : [];
     const forTry = !!TryChecked;
     const homeMode = selectedHomeMode === "daily" ? "daily" : "current";
     const isDailyMode = homeMode === "daily";
     const curHrvst = isDailyMode ? "daily" : (forTry ? "average" : "current");
     let totalCost = 0;
+    const ownedSkillKey = forTry ? "tryit" : "isactive";
+    const cooldownKey = forTry ? "cooldowntry" : "cooldown";
+    const fallbackPowerSkills = Object.entries(dataSetFarm?.boostables?.skill || {})
+        .filter(([, skillCfg]) => Number(skillCfg?.cooldown || 0) > 0 || Number(skillCfg?.cooldowntry || 0) > 0)
+        .map(([name, skillCfg]) => ({
+            name,
+            img: skillCfg?.img || "./icon/nft/na.png",
+            isactive: Number(skillCfg?.isactive || 0),
+            tryit: Number(skillCfg?.tryit || 0),
+            cooldown: Number(skillCfg?.cooldown || 0),
+            cooldowntry: Number(skillCfg?.cooldowntry || 0),
+            lastUsedAt: Number(dataSetFarm?.frmData?.previousPowerUseAt?.[name] || 0),
+        }));
+    const sourcePowerSkills = (Array.isArray(homeData?.powerSkills) && homeData.powerSkills.length > 0)
+        ? homeData.powerSkills
+        : fallbackPowerSkills;
+    const powerSkillCards = sourcePowerSkills
+        .filter((skillCfg) => Number(skillCfg?.[ownedSkillKey] || 0) > 0 || Number(skillCfg?.lastUsedAt || 0) > 0)
+        .map((skillCfg) => {
+            const skillName = String(skillCfg?.name || "");
+            const cooldownHours = Number(skillCfg?.[cooldownKey] ?? skillCfg?.cooldown ?? 0);
+            if (!(cooldownHours > 0)) return null;
+            const cooldownMs = cooldownHours * 60 * 60 * 1000;
+            const lastUsedAt = Number(skillCfg?.lastUsedAt || 0);
+            const readyAt = lastUsedAt > 0 ? lastUsedAt + cooldownMs : 0;
+            const remainingMs = readyAt > cooldownNow ? (readyAt - cooldownNow) : 0;
+            const progressPct = cooldownMs > 0 ? Math.max(0, Math.min(100, ((cooldownMs - remainingMs) / cooldownMs) * 100)) : 100;
+            return {
+                name: skillName,
+                img: skillCfg?.img || "./icon/nft/na.png",
+                cooldownHours,
+                lastUsedAt,
+                remainingMs,
+                progressPct,
+                isCoolingDown: remainingMs > 0,
+            };
+        })
+        .filter(Boolean)
+        .sort((a, b) => {
+            if (a.isCoolingDown !== b.isCoolingDown) return a.isCoolingDown ? -1 : 1;
+            if (a.isCoolingDown && b.isCoolingDown) return b.remainingMs - a.remainingMs;
+            return a.name.localeCompare(b.name);
+        });
 
     const leftPanel = (
         <div className="home-left-panel">
@@ -130,8 +191,11 @@ export default function HomeTable() {
                 </button>
             </div>
             <div className="home-left-panel-text">
-                <p>{vipImg} {vipDate}</p>
-                <p>Daily chest: {dailyChest} {dailyChestStreak}</p>
+                <p style={{ fontSize: "12px" }}>{vipImg} {vipDate}</p>
+                <p className="home-status-line home-status-line-break" style={{ fontSize: "12px" }}>
+                    <span>Daily chest: {dailyChest}</span>
+                    {dailyChestStreak ? <><br />{dailyChestStreak}</> : null}
+                </p>
                 <p className="home-deliveries-bounties">
                     <span className="home-db-line">Deliveries: {homeData?.deliveries?.done || 0}/{homeData?.deliveries?.count || 0}</span>
                     <span className="home-reward-row">
@@ -147,7 +211,10 @@ export default function HomeTable() {
                         {bountyHasSfl ? <span className="home-reward-item">{imgSflSmall}{homeData?.bounties?.sflDone || 0}/{homeData?.bounties?.sflCount || 0}</span> : null}
                     </span>
                 </p>
-                <p>Daily dig: {dailyDig} {dailyDigStreak}</p>
+                <p className="home-status-line home-status-line-break" style={{ fontSize: "12px" }}>
+                    <span>Daily dig: {dailyDig}</span>
+                    {dailyDigStreak ? <><br />{dailyDigStreak}</> : null}
+                </p>
                 <p>
                     <span>Protections</span>
                     <br />
@@ -158,8 +225,26 @@ export default function HomeTable() {
                         <img src="./icon/ui/autumn.webp" alt={""} className="seasonico" title="Autumn" />{homeData?.protections?.autumn ? imgDoneSmall : imgCancelSmall}
                     </span>
                 </p>
-                <p>{imgFishSmall} {homeData?.fish?.casts || 0}/{homeData?.fish?.max || 0} {fishCastsStatus}</p>
-                <p>{imgPetSmall} {homeData?.pets?.fed || 0}/{homeData?.pets?.total || 0}{imgDishSmall} {petRequestsStatus}</p>
+                <p style={{ fontSize: "12px" }}>{imgFishSmall} {homeData?.fish?.casts || 0}/{homeData?.fish?.max || 0} {fishCastsStatus}</p>
+                <p style={{ fontSize: "12px" }}>{imgPetSmall} {homeData?.pets?.fed || 0}/{homeData?.pets?.total || 0}{imgDishSmall} {petRequestsStatus}</p>
+                {powerSkillCards.length > 0 && (
+                    <div className="home-power-skills">
+                        <div className="home-power-skills-grid">
+                            {powerSkillCards.map((skillCard) => (
+                                <div
+                                    key={skillCard.name}
+                                    className={`home-power-skill-card${skillCard.isCoolingDown ? " is-cooling" : " is-ready"}`}
+                                    title={`${skillCard.name}${skillCard.lastUsedAt ? `\nLast use: ${new Date(skillCard.lastUsedAt).toLocaleString("en-US")}` : "\nNo recent use"}${skillCard.isCoolingDown ? `\nRemaining: ${formatCooldownRemaining(skillCard.remainingMs)}` : "\nReady"}`}
+                                >
+                                    <img src={skillCard.img} alt={skillCard.name} className="home-power-skill-icon" />
+                                    <div className="home-power-skill-bar">
+                                        <span className="home-power-skill-bar-fill" style={{ width: `${skillCard.isCoolingDown ? skillCard.progressPct : 100}%` }} />
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+                )}
             </div>
         </div>
     );

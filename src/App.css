@@ -527,26 +527,68 @@ input[type="checkbox"].checkbox-disabled:checked {
 .home-container {
   display: flex;
   gap: 20px;
-  height: 100%;
+  height: calc(100vh - 155px);
+  max-height: calc(100vh - 155px);
   min-height: 0;
+  overflow: hidden;
+  align-items: stretch;
 }
 
 .home-left-panel {
-  position: sticky;
-  top: 0;
+  position: relative;
   align-self: flex-start;
   container-type: inline-size;
   width: 110px;
   flex: 0 0 110px;
+  height: 100%;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
   background-color: #1d1d1d;
-  padding: 5px;
+  padding: 0;
   border-radius: 8px;
   color: white;
   text-align: center;
+  overflow-y: auto;
+  overflow-x: hidden;
+  scrollbar-width: thin;
+  overscroll-behavior: contain;
+}
+
+.home-left-panel::-webkit-scrollbar {
+  width: 5px;
+}
+
+.home-left-panel::-webkit-scrollbar-track {
+  background: rgba(255, 255, 255, 0.06);
+  border-radius: 999px;
+}
+
+.home-left-panel::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.28);
+  border-radius: 999px;
 }
 
 .home-left-panel-image-wrap {
   position: relative;
+  position: sticky;
+  top: 0;
+  z-index: 5;
+  flex: 0 0 auto;
+  background-color: #1d1d1d;
+  width: 100%;
+  margin: 0;
+  padding: 0;
+  overflow: hidden;
+  border-top-left-radius: 8px;
+  border-top-right-radius: 8px;
+  box-shadow: 0 6px 0 #1d1d1d;
+}
+
+.home-left-panel-image-wrap > img {
+  display: block;
+  width: 100%;
+  height: auto;
 }
 .bumpkin-loading-badge {
   position: absolute;
@@ -583,8 +625,69 @@ input[type="checkbox"].checkbox-disabled:checked {
   height: 10px;
 }
 
+.home-left-panel-text {
+  flex: 0 0 auto;
+  padding: 5px 11px 5px 5px;
+}
+
 .home-left-panel-text p {
-  margin: 10px 0;
+  margin: 7px 0;
+}
+
+.home-power-skills {
+  margin-top: 6px;
+}
+
+.home-power-skills-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 4px;
+}
+
+.home-power-skill-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  padding: 3px 2px;
+  border-radius: 6px;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.home-power-skill-card.is-cooling {
+  background: rgba(255, 198, 84, 0.12);
+  border-color: rgba(255, 198, 84, 0.28);
+}
+
+.home-power-skill-card.is-ready {
+  background: rgba(105, 196, 122, 0.12);
+  border-color: rgba(105, 196, 122, 0.25);
+}
+
+.home-power-skill-icon {
+  width: 16px;
+  height: 16px;
+  object-fit: contain;
+}
+
+.home-power-skill-bar {
+  width: 100%;
+  height: 3px;
+  border-radius: 999px;
+  overflow: hidden;
+  background: rgba(255, 255, 255, 0.12);
+}
+
+.home-power-skill-bar-fill {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: linear-gradient(90deg, #f2b64a 0%, #ffd983 100%);
+}
+
+.home-power-skill-card.is-ready .home-power-skill-bar-fill {
+  background: linear-gradient(90deg, #57ba6f 0%, #8ce39a 100%);
 }
 
 .home-deliveries-bounties {
@@ -639,6 +742,25 @@ input[type="checkbox"].checkbox-disabled:checked {
   max-width: 600px;
   height: 100%;
   min-height: 0;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding-right: 4px;
+  scrollbar-width: thin;
+  overscroll-behavior: contain;
+}
+
+.home-collapsible-wrap::-webkit-scrollbar {
+  width: 6px;
+}
+
+.home-collapsible-wrap::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.28);
+  border-radius: 999px;
+}
+
+.home-collapsible-wrap::-webkit-scrollbar-track {
+  background: rgba(255, 255, 255, 0.06);
+  border-radius: 999px;
 }
 
 .home-collapsible-header {
@@ -668,10 +790,9 @@ input[type="checkbox"].checkbox-disabled:checked {
 }
 
 .home-collapsible-wrap .collapsible-container {
-  flex: 1;
-  overflow-y: auto;
-  overflow-x: hidden;
-  padding-right: 4px;
+  flex: 0 0 auto;
+  overflow: visible;
+  padding-right: 0;
 }
 
 .collapsible-block {
@@ -818,16 +939,54 @@ input[type="checkbox"].checkbox-disabled:checked {
   .home-left-panel {
     width: 95px;
     flex: 0 0 95px;
-    padding: 4px;
+    padding: 0;
   }
 
   .home-left-panel-text {
-    font-size: 0.9em;
-    line-height: 1.1;
+    font-size: 0.78em;
+    line-height: 1.05;
+    padding: 4px 10px 4px 4px;
   }
 
   .home-left-panel-text p {
-    margin: 7px 0;
+    margin: 5px 0;
+    white-space: nowrap;
+  }
+
+  .home-left-panel-text p.home-status-line-break {
+    white-space: normal;
+  }
+
+  .home-db-line,
+  .home-reward-row,
+  .home-reward-item {
+    white-space: nowrap;
+  }
+
+  .home-deliveries-bounties {
+    gap: 0;
+    font-size: 9px;
+  }
+
+  .home-reward-row {
+    gap: 2px;
+    font-size: 9px;
+  }
+
+  .home-reward-row .seasonico,
+  .home-left-panel .seasonico,
+  .home-left-panel .itico {
+    width: 10px;
+    height: 10px;
+  }
+
+  .home-power-skills-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 3px;
+  }
+
+  .home-power-skill-card {
+    padding: 2px;
   }
 }
 
@@ -1020,6 +1179,10 @@ input[type="checkbox"].checkbox-disabled:checked {
 .tooltip.tooltip-trades-mode {
   padding: 0;
 }
+.tooltip.tooltip-delivery-mode {
+  padding: 0;
+  cursor: default;
+}
 .tooltip-trades-table {
   border-collapse: collapse;
   width: 100%;
@@ -1135,6 +1298,53 @@ input[type="checkbox"].checkbox-disabled:checked {
 }
 .tooltip-compo-table img {
   vertical-align: middle;
+}
+.tooltip-delivery-table {
+  border-collapse: separate;
+  border-spacing: 0;
+  width: 100%;
+  color: white;
+}
+.tooltip-delivery-table thead {
+  position: static;
+  top: auto;
+  z-index: auto;
+  cursor: grab;
+  touch-action: none;
+  user-select: none;
+  -webkit-user-select: none;
+}
+.tooltip-delivery-table thead:active {
+  cursor: grabbing;
+}
+.tooltip-delivery-table thead tr {
+  position: static;
+}
+.tooltip-delivery-table .tooltip-delivery-head-row th,
+.tooltip-delivery-table .tooltip-delivery-head-row td {
+  position: sticky;
+  top: 0;
+  z-index: 42;
+  background-color: rgba(0, 0, 0, 0.98);
+  height: 24px;
+  box-sizing: border-box;
+}
+.tooltip-delivery-table .tooltip-delivery-total-row th,
+.tooltip-delivery-table .tooltip-delivery-total-row td {
+  position: sticky;
+  top: 24px;
+  z-index: 41;
+  background-color: rgba(0, 0, 0, 0.98);
+  height: 24px;
+  box-sizing: border-box;
+}
+.tooltip-delivery-table .tooltip-delivery-total-row th,
+.tooltip-delivery-table .tooltip-delivery-total-row td {
+  box-shadow: inset 0 -1px 0 rgb(83, 51, 51);
+}
+.tooltip-delivery-table tbody td {
+  position: relative;
+  z-index: 0;
 }
 .tooltip-compo-table .resicon,
 .tooltip-compo-table .itico {
@@ -1478,6 +1688,78 @@ th {
   background-color: rgb(0, 0, 0);
 }
 
+.table.chapter-table thead tr:nth-child(2) td,
+.table.chapter-table thead tr:nth-child(2) th {
+  position: sticky;
+  top: calc(var(--chapter-head-top, 0px) + var(--chapter-head-row-h, 0px));
+  z-index: 5;
+  background-color: rgb(0, 0, 0);
+}
+
+.table.chapter-table thead tr.chapter-total-row th {
+  position: sticky;
+  top: calc(var(--chapter-head-top, 0px) + var(--chapter-head-row-h, 0px) + var(--chapter-head-sub-row-h, 0px));
+  z-index: 4;
+  background-color: rgb(18, 8, 2);
+  box-shadow: 0 -1px 0 rgb(83, 51, 51);
+  padding-top: 0;
+  padding-bottom: 0;
+  line-height: 1;
+  font-size: 14px;
+  font-weight: 400;
+  height: 24px;
+  min-height: 24px;
+}
+
+.table.chapter-table thead tr.chapter-total-row .chapter-total-icon {
+  height: 24px;
+  min-height: 24px;
+  width: 20px;
+}
+
+.chapter-cost-mode-picker {
+  display: inline-flex;
+  align-items: center;
+  vertical-align: middle;
+}
+
+.chapter-cost-mode-picker .cd-btn {
+  width: 24px;
+  min-width: 24px;
+  height: 20px;
+  min-height: 20px;
+  padding: 0;
+  border-radius: 6px;
+}
+
+.chapter-cost-mode-picker .cd-icoWrap,
+.chapter-cost-mode-picker .cd-ico {
+  width: 16px;
+  height: 16px;
+}
+
+.table.chapter-table .chapter-check-sticky {
+  position: sticky;
+  left: 0;
+  z-index: 7;
+  background-color: rgba(18, 8, 2, 0.98);
+}
+
+.table.chapter-table .chapter-icon-sticky {
+  position: sticky;
+  left: 28px;
+  z-index: 6;
+  background-color: rgba(18, 8, 2, 0.98);
+}
+
+.table.chapter-table tbody .chapter-check-sticky {
+  z-index: 3;
+}
+
+.table.chapter-table tbody .chapter-icon-sticky {
+  z-index: 2;
+}
+
 .table.buynodes-table thead {
   position: static;
   top: auto;
@@ -1528,6 +1810,11 @@ th {
   left: 0;
   z-index: 4;
   background-color: rgba(0, 0, 0, 0.8);
+}
+
+.table.chapter-table #iccolumn.chapter-icon-sticky,
+.table.chapter-table .chapter-total-icon.chapter-icon-sticky {
+  left: 28px;
 }
 .table.crop-machine-table .cm-check-sticky {
   position: sticky;

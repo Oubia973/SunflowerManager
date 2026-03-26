@@ -39,13 +39,15 @@ function ModalDlvr({
       handleTooltip
     },
     img: {
+      imgSFL,
       imgrdy,
       imgexchng,
       imgExchng,
       imgna,
     }
   } = useAppCtx();
-  const hasDeliveryTables = !!dataSetFarm?.itables;
+  const deliveryTables = dataSetFarm?.deliveryData?.itables || dataSetFarm?.itables || {};
+  const hasDeliveryTables = !!deliveryTables?.it || !!Object.keys(deliveryTables || {}).length;
   const {
     it = {},
     food = {},
@@ -59,7 +61,7 @@ function ModalDlvr({
     tool = {},
     mutant = {},
     compost = {},
-  } = dataSetFarm?.itables || {};
+  } = deliveryTables || {};
   const [Delivery, setDelivery] = useState(tableData);
   const [selectedCost, setSelectedCost] = useState('trader');
   const [tableDeliveries, settableDeliveries] = useState([]);
@@ -72,6 +74,7 @@ function ModalDlvr({
   const ximgrdy = <img src={imgrdy} alt="" />;
   const ximgheart = <img src={imgheart} alt="" style={{ width: '12px', height: '12px' }} />;
   const imgtktname = imgtkt.split('/').pop();
+  const imgTKT = <img src={imgtkt} alt="" className="itico" />;
   const imgbtkt = <img src={imgtkt} alt="" title="TKT" style={{ width: '15px', height: '15px' }} />;
   const imgbsfl = <img src={imgsfl} alt="" title="SFL" style={{ width: '15px', height: '15px' }} />;
   const imgbcoins = <img src={imgcoins} alt="" title="Coins" style={{ width: '15px', height: '15px' }} />;
@@ -431,7 +434,7 @@ function ModalDlvr({
                 <img src={imgexchng} alt={''} title="Marketplace" style={{ width: '25px', height: '25px' }} />
               </th>
               <th className="thcenter">Ratio <div>{imgbcoins}/{imgbsfl}</div></th>
-              <th>Cost/tkt</th>
+              <th>{imgSFL}/{imgTKT}</th>
               <th>Since</th>
               <th>Completed</th>
               <th>Skipped</th>
@@ -668,6 +671,11 @@ function ModalDlvr({
       const categoryItems = groupedBounties[categoryName];
       let categoryDone = 0;
       const isPoppyCategory = categoryName === "Poppy";
+      let categoryProdCostDone = 0;
+      let categoryProdCostTotal = 0;
+      let categoryMarketCostDone = 0;
+      let categoryMarketCostTotal = 0;
+      const categoryCostItems = [];
       const rewardTotals = {};
       categoryItems.forEach(([bountyName, bountyItem]) => {
         const rewardKey = `${bountyItem.rewarditem || "Reward"}|${bountyItem.rewardimg || ""}`;
@@ -681,9 +689,27 @@ function ModalDlvr({
         }
         const rewardValue = Number(bountyItem[key("reward")] || 0);
         rewardTotals[rewardKey].total += rewardValue;
+        const baseItem = getItemBase(bountyItem?.item || bountyName);
+        const prodCost = Number(bountyItem?.[key("cost")] ?? bountyItem?.cost ?? baseItem?.[key("cost")] ?? baseItem?.cost ?? 0) / coinsRatio;
+        const marketCost = Number(bountyItem?.[key("costp2pt")] ?? bountyItem?.costp2pt ?? baseItem?.[key("costp2pt")] ?? baseItem?.costp2pt ?? 0);
+        if (isPoppyCategory) {
+          categoryProdCostTotal += prodCost;
+          categoryMarketCostTotal += marketCost;
+          categoryCostItems.push({
+            name: bountyItem?.item || bountyName,
+            img: bountyItem?.itemimg || baseItem?.img || imgna,
+            cost: prodCost,
+            market: marketCost,
+            done: !!bountyItem.completed,
+          });
+        }
         if (bountyItem.completed) {
           categoryDone += 1;
           rewardTotals[rewardKey].done += rewardValue;
+          if (isPoppyCategory) {
+            categoryProdCostDone += prodCost;
+            categoryMarketCostDone += marketCost;
+          }
         }
       });
       const categoryRewardTotals = Object.entries(rewardTotals).map(([rewardKey, rewardData]) => (
@@ -692,11 +718,38 @@ function ModalDlvr({
           <img src={rewardData.rewardimg} alt="" title={rewardData.rewarditem} style={{ width: '14px', height: '14px', marginLeft: '3px' }} />
         </span>
       ));
+      const displayProdDone = categoryProdCostDone;
+      const displayProdTotal = categoryProdCostTotal;
+      const displayMarketDone = categoryMarketCostDone;
+      const displayMarketTotal = categoryMarketCostTotal;
       const showPoppyBonusHint = isPoppyCategory && categoryItems.length > 0 && categoryDone < categoryItems.length;
       return (
         <div key={categoryName} style={{ marginBottom: '8px' }}>
           <div style={{ marginBottom: '4px' }}>
-            <b>{categoryName}</b> ({categoryDone}/{categoryItems.length}) - {categoryRewardTotals}{showPoppyBonusHint ? <span> (+50 when all done)</span> : null}
+            <b>{categoryName}</b> ({categoryDone}/{categoryItems.length}) - {categoryRewardTotals}
+            {isPoppyCategory ? (
+              <span
+                className="tooltipcell"
+                style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', cursor: 'pointer', marginRight: '10px', verticalAlign: 'middle' }}
+                onClick={(e) => handleTooltip("Poppy", "deliverybountycost", {
+                  items: categoryCostItems,
+                  costDone: displayProdDone,
+                  costTotal: displayProdTotal,
+                  marketDone: displayMarketDone,
+                  marketTotal: displayMarketTotal,
+                }, e)}
+              >
+                <span style={{ display: 'inline-flex', alignItems: 'center', gap: '3px', verticalAlign: 'middle' }}>
+                  {frmtNb(displayProdDone)}/{frmtNb(displayProdTotal)}
+                  {imgbsfl}
+                </span>
+                <span style={{ display: 'inline-flex', alignItems: 'center', gap: '3px', verticalAlign: 'middle' }}>
+                  {frmtNb(displayMarketDone)}/{frmtNb(displayMarketTotal)}
+                  {imgExchng}
+                </span>
+              </span>
+            ) : null}
+            {showPoppyBonusHint ? <span> (+50 when all done)</span> : null}
           </div>
           <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'flex-start' }}>
             {categoryItems.map(([bountyName, bountyItem], index) => renderBountyCard(bountyName, bountyItem, `${categoryName}-${bountyName}-${index}`))}

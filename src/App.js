@@ -791,6 +791,7 @@ function App() {
     chapterBountyReplace: {},
     chapterBountyOverride: {},
     chapterVipDone: false,
+    chapterCostMode: "prod",
     invSortBy: "none",
     invSortDir: "asc",
     cookSortBy: "none",
@@ -1530,7 +1531,7 @@ function App() {
       !!dataSetFarm?.orderstable?.orders &&
       !!dataSetFarm?.orderstable?.chores &&
       !!dataSetFarm?.orderstable?.bounties;
-    const hasDeliveryTables = !!dataSetFarm?.itables?.it;
+    const hasDeliveryTables = hasSectionData(dataSetFarm, "deliverypage", sectionPayloadKeys, sectionTablePaths);
     const currentFarmId = String(dataSetFarm?.frmid || dataSet?.options?.farmId || "");
     const lastSync = deliveryLastSyncRef.current || { farmId: "", pulse: -1 };
     const autoRefreshSinceLastOpen =
@@ -1540,7 +1541,7 @@ function App() {
     if (mustSync) {
       try {
         // Force NAV check only when needed (data missing or new auto-refresh since last open).
-        await getPrices(false, true, ["orders", "inventory", "deliverymeta"], false, "delivery", true);
+        await getPrices(false, true, ["orders", "deliverypage"], false, "delivery", true);
         deliveryLastSyncRef.current = {
           farmId: currentFarmId,
           pulse: Number(autoRefreshPulse),
@@ -2915,7 +2916,7 @@ function App() {
     }
     if (!onlyPrices && showfDlvr) {
       includeSet.add("orders");
-      includeSet.add("deliverymeta");
+      includeSet.add("deliverypage");
     }
     const include = [...includeSet];
     const includeMissingOnly = include.filter((section) =>
@@ -3281,7 +3282,7 @@ function App() {
         const includeSections = [...new Set([
           ...(Array.isArray(sections) ? sections : []),
           "trades",
-          ...(view.showfDlvr ? ["orders", "deliverymeta"] : []),
+          ...(view.showfDlvr ? ["orders", "deliverypage"] : []),
         ])];
         await getPrices(false, false, includeSections, true, view.selectedInv || "home");
         autoRefreshHasRunRef.current = true;

@@ -13,6 +13,7 @@ const Tooltip = ({ onClose, item, context, value, clickPosition, dataSet, dataSe
     const mapTooltipData = dataSetFarm?.mapData?.tooltipData || {};
     const fishPageData = dataSetFarm?.fishData || {};
     const bountyPageData = dataSetFarm?.bountyData || {};
+    const deliveryPageData = dataSetFarm?.deliveryData || {};
     const craftPageData = dataSetFarm?.craftData || {};
     const flowerPageData = dataSetFarm?.flowerData || {};
     const expandPageData = dataSetFarm?.expandPageData || {};
@@ -22,6 +23,7 @@ const Tooltip = ({ onClose, item, context, value, clickPosition, dataSet, dataSe
         ...(dataSetFarm?.mapData?.itables || {}),
         ...(fishPageData?.itables || {}),
         ...(bountyPageData?.itables || {}),
+        ...(deliveryPageData?.itables || {}),
         ...(craftPageData?.itables || {}),
         ...(flowerPageData?.itables || {}),
         ...(expandPageData?.itables || {}),
@@ -204,6 +206,17 @@ const Tooltip = ({ onClose, item, context, value, clickPosition, dataSet, dataSe
         setDragging(!!bdrag);
         offset.current = { x: x - pos.x, y: y - pos.y };
     };
+    const isDeliveryTooltip = context === "deliverycost" || context === "deliverybountycost";
+    const deliveryDragHandleProps = bdrag ? {
+        onMouseDown: (e) => {
+            e.stopPropagation();
+            handleMouseDown(e);
+        },
+        onTouchStart: (e) => {
+            e.stopPropagation();
+            handleMouseDown(e);
+        },
+    } : {};
     const handleMouseMove = (e) => {
         if (!dragging) return;
         const { x, y } = getClientPos(e);
@@ -1714,19 +1727,73 @@ const Tooltip = ({ onClose, item, context, value, clickPosition, dataSet, dataSe
                 );
             });
             txt = (
-                <table style={{ borderCollapse: "collapse" }}>
-                    <thead>
-                        <tr>
+                <table className="tooltip-delivery-table">
+                    <thead {...deliveryDragHandleProps} className="tooltip-delivery-drag-handle">
+                        <tr className="tooltip-delivery-head-row">
                             <th style={{ textAlign: "left", paddingRight: 8 }}>Item</th>
                             <th style={{ textAlign: "center", paddingRight: 8 }}>Qty</th>
                             <th style={{ textAlign: "center", paddingRight: 8 }}>Cost</th>
                             <th style={{ textAlign: "center" }}>{imgExchng}</th>
                         </tr>
-                        <tr>
+                        <tr className="tooltip-delivery-total-row">
                             <th style={{ textAlign: "left", paddingRight: 8 }}></th>
                             <th style={{ textAlign: "center", paddingRight: 8 }}></th>
                             <td style={{ textAlign: "center", paddingRight: 8 }}>{frmtNb(totCost)}</td>
                             <td style={{ textAlign: "center" }}>{frmtNb(totMarket)}</td>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {rows}
+                    </tbody>
+                </table>
+            );
+        }
+        if (context === "deliverybountycost") {
+            const costItems = Array.isArray(value?.items) ? value.items : [];
+            let totCost = 0;
+            let totMarket = 0;
+            let doneCost = 0;
+            let doneMarket = 0;
+            const rows = costItems.map((entry, index) => {
+                const name = entry?.name || `Item ${index + 1}`;
+                const img = entry?.img || (it?.[name]?.img ?? food?.[name]?.img ?? pfood?.[name]?.img ?? fish?.[name]?.img ?? bounty?.[name]?.img ?? crustacean?.[name]?.img ?? craft?.[name]?.img ?? petit?.[name]?.img ?? flower?.[name]?.img ?? tool?.[name]?.img ?? compost?.[name]?.img ?? mutant?.[name]?.img ?? imgna);
+                const lineCost = Number(entry?.cost || 0);
+                const lineMarket = Number(entry?.market || 0);
+                totCost += lineCost;
+                totMarket += lineMarket;
+                if (entry?.done) {
+                    doneCost += lineCost;
+                    doneMarket += lineMarket;
+                }
+                return (
+                    <tr key={`${name}-${index}`}>
+                        <td style={{ padding: "2px 8px 2px 0" }}>
+                            <span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
+                                <img src={img} alt="" title={name} style={{ width: 18, height: 18 }} />
+                                <span>{name}</span>
+                            </span>
+                        </td>
+                        <td style={{ textAlign: "center", paddingRight: 8 }}>{frmtNb(lineCost)}</td>
+                        <td style={{ textAlign: "center" }}>{frmtNb(lineMarket)}</td>
+                    </tr>
+                );
+            });
+            const headerDoneCost = Number.isFinite(Number(value?.costDone)) ? Number(value?.costDone) : doneCost;
+            const headerTotCost = Number.isFinite(Number(value?.costTotal)) ? Number(value?.costTotal) : totCost;
+            const headerDoneMarket = Number.isFinite(Number(value?.marketDone)) ? Number(value?.marketDone) : doneMarket;
+            const headerTotMarket = Number.isFinite(Number(value?.marketTotal)) ? Number(value?.marketTotal) : totMarket;
+            txt = (
+                <table className="tooltip-delivery-table">
+                    <thead {...deliveryDragHandleProps} className="tooltip-delivery-drag-handle">
+                        <tr className="tooltip-delivery-head-row">
+                            <th style={{ textAlign: "left", paddingRight: 8 }}>Item</th>
+                            <th style={{ textAlign: "center", paddingRight: 8 }}>Cost</th>
+                            <th style={{ textAlign: "center" }}>{imgExchng}</th>
+                        </tr>
+                        <tr className="tooltip-delivery-total-row">
+                            <th style={{ textAlign: "left", paddingRight: 8 }}></th>
+                            <td style={{ textAlign: "center", paddingRight: 8 }}>{frmtNb(headerDoneCost)}/{frmtNb(headerTotCost)}</td>
+                            <td style={{ textAlign: "center" }}>{frmtNb(headerDoneMarket)}/{frmtNb(headerTotMarket)}</td>
                         </tr>
                     </thead>
                     <tbody>
@@ -1798,7 +1865,7 @@ const Tooltip = ({ onClose, item, context, value, clickPosition, dataSet, dataSe
                 );
             })
             const choreTotCompTable = (
-                <table style={{ borderCollapse: "collapse" }}>
+                <table className="tooltip-delivery-table">
                     <thead>
                         <tr>
                             <th style={{ textAlign: "left", paddingRight: 8 }}>Item</th>
@@ -1893,15 +1960,15 @@ const Tooltip = ({ onClose, item, context, value, clickPosition, dataSet, dataSe
             onMouseUp={bdrag ? handleMouseUp : undefined}
             onTouchEnd={bdrag ? handleMouseUp : undefined}>
             <div ref={tooltipRef}
-                className={`tooltip ${!bdrag ? "scrollable" : ""} ${context === "trades" ? "tooltip-trades-mode" : ""}`}
+                className={`tooltip ${!bdrag ? "scrollable" : ""} ${context === "trades" ? "tooltip-trades-mode" : ""} ${(context === "deliverycost" || context === "deliverybountycost") ? "tooltip-delivery-mode" : ""}`}
                 onMouseDown={(e) => {
                     e.stopPropagation();
-                    if (!bdrag) return;
+                    if (!bdrag || isDeliveryTooltip) return;
                     handleMouseDown(e);
                 }}
                 onTouchStart={(e) => {
                     e.stopPropagation();
-                    if (!bdrag) return;
+                    if (!bdrag || isDeliveryTooltip) return;
                     handleMouseDown(e);
                 }}
                 onDragStart={(e) => e.preventDefault()}
