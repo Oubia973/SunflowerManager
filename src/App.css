@@ -210,18 +210,43 @@ input[disabled] {
   right: 0px;
   display: flex;
   flex-direction: row;
-  align-items: center;
+  align-items: flex-start;
   gap: 9px;
 }
 
 .currency-controls {
   display: flex;
   flex-direction: column;
+  align-items: flex-end;
+  gap: 6px;
+}
+
+.currency-top-row {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 6px;
 }
 
 .currency-pair {
   display: flex;
   flex-direction: column;
+  align-items: flex-end;
+}
+
+.currency-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 4px;
+  flex-wrap: nowrap;
+}
+
+.currency-secondary-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 4px;
 }
 
 .curr-icon {
@@ -1182,6 +1207,9 @@ input[type="checkbox"].checkbox-disabled:checked {
 .tooltip.tooltip-delivery-mode {
   padding: 0;
   cursor: default;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior: contain;
+  touch-action: pan-y;
 }
 .tooltip-trades-table {
   border-collapse: collapse;
@@ -1261,23 +1289,28 @@ input[type="checkbox"].checkbox-disabled:checked {
 }
 .tooltip-compo-table thead {
   position: static;
+  top: auto;
+  z-index: auto;
 }
-.tooltip-compo-table th {
+.tooltip-compo-table thead tr {
+  position: static;
+}
+.tooltip-compo-table .tooltip-compo-head-row th {
   position: sticky;
-  z-index: 24;
-}
-.tooltip-compo-table thead th {
+  top: 0;
+  z-index: 42;
   background-color: rgba(0, 0, 0, 0.98);
+  box-sizing: border-box;
+}
+.tooltip-compo-table .tooltip-compo-total-row th {
+  position: sticky;
+  top: 24px;
+  z-index: 41;
+  background-color: rgba(0, 0, 0, 0.98);
+  box-sizing: border-box;
 }
 .tooltip-compo-table thead tr:last-child th {
   box-shadow: inset 0 -1px 0 rgb(83, 51, 51);
-}
-.tooltip-compo-head-row th {
-  top: -15px;
-}
-.tooltip-compo-total-row th {
-  top: 9px;
-  z-index: 23;
 }
 .tooltip-compo-firstcol,
 .tooltip-compo-head-first {
@@ -1310,7 +1343,7 @@ input[type="checkbox"].checkbox-disabled:checked {
   top: auto;
   z-index: auto;
   cursor: grab;
-  touch-action: none;
+  touch-action: auto;
   user-select: none;
   -webkit-user-select: none;
 }
@@ -3192,3 +3225,4 @@ th {
     0 -1px 0 rgba(0, 0, 0, 0.24) inset,
     0 4px 10px rgba(6, 15, 33, 0.45);
 }
+

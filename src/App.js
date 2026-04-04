@@ -1,4 +1,4 @@
-﻿import React, { useEffect, useState, useRef, useMemo } from 'react';
+import React, { useEffect, useState, useRef, useMemo } from 'react';
 import logo from './gobcarry.gif';
 import './App.css';
 import ModalTNFT from './ftrynft.js';
@@ -14,7 +14,7 @@ import DList from "./dlist.jsx";
 import { FormControl, InputLabel, Select, MenuItem, Switch, FormControlLabel } from '@mui/material';
 import { frmtNb, filterTryit, formatUpdated, UpdatedSince, mergeFarmStateDeep, getOrCreateDeviceId } from './fct.js';
 import { computeGemsRatio } from './gemsRatio.js';
-import { promptPass, promptInfo, promptConfirm, promptChoice } from './promptW';
+import { promptPass, promptInfo, promptConfirm, promptChoice, promptInput } from './promptW';
 
 import { AppCtx } from "./context/AppCtx";
 import PanelTable from "./tables/PanelTable";
@@ -44,6 +44,7 @@ const LOAD_FARM_SPAM_WINDOW_MS = 2500;
 const LOAD_FARM_SPAM_THRESHOLD = 4;
 const AUCTION_NOTIF_SYNC_DEBOUNCE_MS = 4000;
 const NOTIF_PREFS_STORAGE_KEY = "SFLManNotifPrefs";
+const onDev = false;
 
 function normalizeNotifPrefs(raw) {
   const source = (raw && typeof raw === "object") ? raw : {};
@@ -244,6 +245,7 @@ const COOK_COLUMNS_TEMPLATE = [
   ['XP/H', 1],
   ['XP/H with components time', 0],
   ['XP/Flower', 1],
+  ['Oil', 1],
   ['Cost', 1],
   ['Marketplace price', 1],
   ['Components', 1],
@@ -258,9 +260,10 @@ const COOK_COLUMNS_PICKER = [
   { idx: 6, label: 'XP/H' },
   //{ idx: 7, label: 'XP/H with components time' },
   { idx: 8, label: 'XP/Flower' },
-  { idx: 9, label: 'Cost' },
-  { idx: 10, label: 'Marketplace price' },
-  { idx: 11, label: 'Components' },
+  { idx: 9, label: 'Oil' },
+  { idx: 10, label: 'Cost' },
+  { idx: 11, label: 'Marketplace price' },
+  { idx: 12, label: 'Components' },
 ];
 const COOK_SORT_OPTIONS_TEMPLATE = [
   { value: "none", label: "Default", idx: null },
@@ -271,9 +274,9 @@ const COOK_SORT_OPTIONS_TEMPLATE = [
   { value: "time", label: "Time", idx: 4 },
   { value: "xph", label: "XP/H", idx: 6 },
   { value: "xpsfl", label: "XP/Flower", idx: 8 },
-  { value: "cost", label: "Cost", idx: 9 },
-  { value: "market", label: "Marketplace", idx: 10 },
-  { value: "components", label: "Components", idx: 11 },
+  { value: "cost", label: "Cost", idx: 10 },
+  { value: "market", label: "Marketplace", idx: 11 },
+  { value: "components", label: "Components", idx: 12 },
 ];
 const FISH_COLUMNS_TEMPLATE = [
   ['Category', 1],
@@ -502,17 +505,20 @@ const ACTIVITY_COLUMNS_TEMPLATE = [
   ['From', 1],
   ['Total XP', 1],
   ['Tickets on daily chest', 1],
-  ['Tickets on crops', 1],
-  ['Tickets on tentacles', 1],
   ['Tickets from deliveries', 1],
   ['Tickets from chores', 1],
+  ['Bounty Chickens', 1],
+  ['Bounty Barn', 1],
+  ['Bounty Poppy', 1],
   ['Tickets max', 1],
   ['Deliveries cost', 1],
   ['Deliveries cost P2P', 1],
   ['Ticket cost', 1],
   ['SFL from deliveries', 1],
-  ['SFL balance', 1],
-  ['Ressources burned', 1],
+  ['Coins from deliveries', 1],
+  ['Poppy cost', 1],
+  ['Poppy cost P2P', 1],
+  ['Poppy ticket cost', 1],
 ];
 const ACTIVITY_ITEM_COLUMNS_TEMPLATE = [
   ['Item Name', 1],
@@ -757,6 +763,49 @@ async function formatHttpErrorMessage(response, endpointLabel = "") {
   const base = `HTTP ${response?.status || "?"}${endpointTxt}`;
   return details ? `${base}: ${details}` : base;
 }
+
+function formatVipRemaining(expiresAt) {
+  const ts = new Date(expiresAt).getTime();
+  if (!Number.isFinite(ts) || ts <= 0) return "";
+  const diffMs = ts - Date.now();
+  if (diffMs <= 0) return "Expired";
+  const totalMinutes = Math.ceil(diffMs / 60000);
+  const days = Math.floor(totalMinutes / (60 * 24));
+  const hours = Math.floor((totalMinutes % (60 * 24)) / 60);
+  const minutes = totalMinutes % 60;
+  const parts = [];
+  if (days > 0) parts.push(`${days}j`);
+  if (hours > 0 || days > 0) parts.push(`${hours}h`);
+  if (minutes > 0 && days < 1) parts.push(`${minutes}m`);
+  return parts.join(" ");
+}
+
+function formatVipPromptMessage({ farmId, username, isAbo, vipExpiresAt }) {
+  const lines = [
+    `Your contribution helps keep the server running`,
+    `your farm stays updated in real time, with no loading delays`,
+    `you will have access to your farm�s data history since the beginning of the chapter`,
+    `including harvests, marketplace trades, daily profits and losses, as well as tickets obtained and their price`,
+    `you get access to upcoming features, including an AI that analyzes your farm and provides personalized advice (in progress)`,
+    ``,
+    `Farm: ${String(username || "").trim() || "Unknown"} (${Number(farmId || 0) || 0})`,
+    `Subscribed: ${isAbo ? "Yes" : "No"}`,
+  ];
+  if (!isAbo) {
+    lines.push("All donations are on the Polygon chain.");
+  }
+  if (isAbo) {
+    const remaining = formatVipRemaining(vipExpiresAt);
+    const expiryDate = vipExpiresAt
+      ? new Date(vipExpiresAt).toLocaleString("en-US")
+      : "";
+    lines.push(`Time remaining: ${remaining || "Unknown"}`);
+    if (expiryDate) {
+      lines.push(`Expires at: ${expiryDate}`);
+    }
+  }
+  return lines.join("\n");
+}
 function App() {
   const [initialDataSet, setInitialDataSet] = useState(null);
   const [notifListInitial, setNotifListInitial] = useState(null);
@@ -780,6 +829,7 @@ function App() {
     selectedSeedsCM: "stock",
     selectedQuantFetch: "stock",
     activityDisplay: "item",
+    selectedActivityQuestCategory: "Delivery",
     selectedDigCur: "sfl",
     selectedSeason: "all",
     selectedTrySeason: "all",
@@ -787,11 +837,15 @@ function App() {
     chapterCurrentTickets: 0,
     chapterDaysRemaining: "",
     chapterNpcSelection: {},
+    chapterNpcCostOverride: {},
     chapterBountySelection: {},
+    chapterBountyCostOverride: {},
     chapterBountyReplace: {},
     chapterBountyOverride: {},
+    chapterBountyRewardType: "actual",
     chapterVipDone: false,
     chapterCostMode: "prod",
+    chapterCostType: "average",
     invSortBy: "none",
     invSortDir: "asc",
     cookSortBy: "none",
@@ -876,7 +930,16 @@ function App() {
       const enabled = cur && (cur[1] === 1 || cur[1] === 0) ? cur[1] : tpl[1];
       return [tpl[0], enabled];
     });
-    const currentCookCols = Array.isArray(next.xListeColCook) ? next.xListeColCook : [];
+    const currentCookColsRaw = Array.isArray(next.xListeColCook) ? next.xListeColCook : [];
+    const currentCookCols = currentCookColsRaw.length === 12
+      ? [
+        ...currentCookColsRaw.slice(0, 9),
+        ['Oil', 1],
+        currentCookColsRaw[9],
+        currentCookColsRaw[10],
+        currentCookColsRaw[11],
+      ]
+      : currentCookColsRaw;
     next.xListeColCook = COOK_COLUMNS_TEMPLATE.map((tpl, i) => {
       const cur = Array.isArray(currentCookCols[i]) ? currentCookCols[i] : null;
       const enabled = cur && (cur[1] === 1 || cur[1] === 0) ? cur[1] : tpl[1];
@@ -1189,6 +1252,7 @@ function App() {
   const [priceData, setpriceData] = useState([]);
   const [tooltipData, setTooltipData] = useState(null);
   const [adminLoading, setAdminLoading] = useState(false);
+  const [vipLoading, setVipLoading] = useState(false);
   const [expandLoading, setExpandLoading] = useState(false);
   const [sectionsLoading, setSectionsLoading] = useState(false);
   const [headerRequestLoading, setHeaderRequestLoading] = useState(false);
@@ -1287,13 +1351,13 @@ function App() {
         const rows = directBoostChanges.length > 0
           ? directBoostChanges
           : sharedRows.length > 0
-          ? sharedRows
-          : buildTryProfileSummaryRows(sharedProfile).map((row) => ({
-            ...row,
-            status: "added",
-            section: row?.section || "",
-            category: row?.category || "Other",
-          }));
+            ? sharedRows
+            : buildTryProfileSummaryRows(sharedProfile).map((row) => ({
+              ...row,
+              status: "added",
+              section: row?.section || "",
+              category: row?.category || "Other",
+            }));
         setSharedTryProfile({
           ...sharedProfile,
           compareMode: "shared",
@@ -1569,7 +1633,7 @@ function App() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          prompt: "Quelle est la meilleure stratÃƒÂ©gie aujourd'hui ?",
+          prompt: "Quelle est la meilleure stratÃ©gie aujourd'hui ?",
           farmId: curID,
           options: dataSet.options,
           tryitarrays: tryItArrays,
@@ -2533,7 +2597,7 @@ function App() {
             dataSet.updated = formatUpdated(frmData?.updated);
             if (dataSet.options.firstLoad) {
               dataSet.options.firstLoad = false
-              //handleButtonHelpClick();
+              handleButtonHelpClick();
             }
             if (context === "optionChanged") {
 
@@ -2644,6 +2708,115 @@ function App() {
       setReqState(msg);
     } finally {
       setAdminLoading(false);
+    }
+  };
+  const requestVipPayment = async ({ farmId, username, isAbo, vipExpiresAt, tokenSymbol }) => {
+    const response = await fetch(API_URL + "/request-payment", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      credentials: "include",
+      body: JSON.stringify({
+        farmId: Number(farmId || 0),
+        username: String(username || ""),
+        isAbo: !!isAbo,
+        vipExpiresAt: vipExpiresAt || null,
+        tokenSymbol: String(tokenSymbol || "USDC").toUpperCase(),
+      }),
+    });
+    if (!response.ok) {
+      const message = await formatHttpErrorMessage(response, "/request-payment");
+      throw new Error(message);
+    }
+    return await response.json();
+  };
+  const confirmVipPayment = async ({ paymentId, txHash }) => {
+    const response = await fetch(API_URL + "/confirm-payment", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      credentials: "include",
+      body: JSON.stringify({
+        paymentId: String(paymentId || ""),
+        txHash: String(txHash || ""),
+      }),
+    });
+    if (!response.ok) {
+      const message = await formatHttpErrorMessage(response, "/confirm-payment");
+      throw new Error(message);
+    }
+    return await response.json();
+  };
+  const handleVipClick = async () => {
+    const farmId = Number(dataSetFarm?.frmid || dataSet?.options?.farmId || 0);
+    if (!farmId || farmId === 1972) { return; }
+    const username = String(dataSet?.options?.username || dataSetFarm?.username || "");
+    const isAbo = !!dataSet?.options?.isAbo;
+    const vipExpiresAt = dataSet?.dateVip || dataSetFarm?.frmData?.datevip || 0;
+    const action = await promptChoice(
+      formatVipPromptMessage({ farmId, username, isAbo, vipExpiresAt }),
+      "VIP",
+      [
+        { value: "usdc", label: "Donate in USDC", primary: true, iconSrc: "./usdc.png" },
+        { value: "flower", label: "Donate in FLOWER", iconSrc: "./icon/res/flowertoken.webp" },
+        { value: "close", label: "Close" },
+      ]
+    );
+    if (action !== "usdc" && action !== "flower") return;
+    try {
+      setVipLoading(true);
+      const responseData = await requestVipPayment({
+        farmId,
+        username,
+        isAbo,
+        vipExpiresAt,
+        tokenSymbol: action === "flower" ? "FLOWER" : "USDC",
+      });
+      const paymentAction = await promptChoice(
+        String(responseData?.message || `Payment request sent for farm ${farmId}.`),
+        "VIP",
+        [
+          { value: "paid", label: "I donated on Polygon", primary: true },
+          { value: "close", label: "Close" },
+        ]
+      );
+      if (paymentAction !== "paid") {
+        setReqState("");
+        return;
+      }
+      const txHash = await promptInput(
+        "Paste the PolygonScan link or the transaction hash.",
+        "VIP",
+        "0x... or https://polygonscan.com/tx/...",
+        "",
+        "Validate",
+        "Cancel"
+      );
+      if (txHash === null) {
+        setReqState("");
+        return;
+      }
+      const confirmation = await confirmVipPayment({
+        paymentId: responseData?.paymentId,
+        txHash,
+      });
+      dataSet.options.isAbo = true;
+      setdataSetFarm((prev) => ({ ...(prev || {}), isabo: true }));
+      try {
+        await handleButtonClick("manualLoad");
+      } catch {
+        // Keep the confirmation visible even if the refresh fails.
+      }
+      await promptInfo(
+        String(confirmation?.message || `Payment confirmed for farm ${farmId}.`),
+        "VIP",
+        "Close"
+      );
+      setReqState("");
+    } catch (error) {
+      const msg = String(error?.message || "VIP error");
+      setReqState(msg);
+      await promptInfo(msg, "VIP", "Close");
+    } finally {
+      setVipLoading(false);
     }
   };
   const fetchAdminView = async (payload = {}, allowPrompt = true) => {
@@ -3002,100 +3175,100 @@ function App() {
         body: JSON.stringify(vHeaders),
       });
       if (response.ok) {
-      const responseData = await response.json();
-      const respData = responseData.allData;
-      let mergedFarmData = currentFarmState;
-      setpriceData(JSON.parse(JSON.stringify(responseData.priceData)));
-      if (respData !== "" && respData !== undefined) {
-        if (respData?.sectionHashes && typeof respData.sectionHashes === "object") {
-          farmSectionHashesRef.current = {
-            ...(farmSectionHashesRef.current || {}),
-            ...respData.sectionHashes,
-          };
+        const responseData = await response.json();
+        const respData = responseData.allData;
+        let mergedFarmData = currentFarmState;
+        setpriceData(JSON.parse(JSON.stringify(responseData.priceData)));
+        if (respData !== "" && respData !== undefined) {
+          if (respData?.sectionHashes && typeof respData.sectionHashes === "object") {
+            farmSectionHashesRef.current = {
+              ...(farmSectionHashesRef.current || {}),
+              ...respData.sectionHashes,
+            };
+          }
+          if (respData?.tableHashes && typeof respData.tableHashes === "object") {
+            const knownFromPayload = extractReceivedTableHashes(respData, respData.tableHashes);
+            farmTableHashesRef.current = {
+              ...(farmTableHashesRef.current || {}),
+              ...knownFromPayload,
+            };
+          }
+          mergedFarmData = mergeFarmStateDeep(currentFarmState, respData);
+          //setdataSetFarm(respData);
+          setFarmData(mergedFarmData.frmData || {});
+          dataSet.options.isAbo = mergedFarmData.isabo;
+          dataSet.isVip = mergedFarmData?.frmData?.vip;
+          dataSet.dateVip = mergedFarmData?.frmData?.datevip;
+          dataSet.dailychest = mergedFarmData?.frmData?.dailychest;
+          dataSet.taxFreeSFL = frmtNb(mergedFarmData?.frmData?.taxFreeSFL);
+          dataSet.bumpkin = mergedFarmData?.Bumpkin?.[0];
+          setBumpkinData(mergedFarmData?.Bumpkin || []);
+          const { frmData, expandData, Fish, taxFreeSFL } = mergedFarmData;
+          dataSet.balance = getBalanceValue(frmData.balance, "sfl");
+          dataSet.coins = getBalanceValue(frmData.balance, "coins");
+          const balance = getBalanceValue(frmData.balance, "sfl");
+          dataSet.updated = formatUpdated(frmData?.updated);
+          let refreshOptions = false;
+          if (dataSet?.options?.tradeTax !== frmData?.tradeTax && dataSet?.options?.tradeTax > 0 && dataSet.options.autoTradeTax) {
+            dataSet.options.tradeTax = frmData?.tradeTax;
+            refreshOptions = true;
+            //console.log("reset Tax");
+          }
+          if (dataSet?.options?.autoCoinRatio) {
+            dataSet.options.coinsRatio = responseData?.bestCoinRatio?.ratio || dataSet.options.coinsRatio;
+            refreshOptions = true;
+          }
+          const nextGemsRatio = computeGemsRatio(
+            dataSet?.options?.gemsPack || 7400,
+            dataSet?.options?.usdSfl
+          );
+          if (nextGemsRatio > 0 && Number(dataSet?.options?.gemsRatio || 0) !== nextGemsRatio) {
+            dataSet.options.gemsRatio = nextGemsRatio;
+            refreshOptions = true;
+          }
+          if (refreshOptions) {
+            const newOptions = { ...dataSet.options };
+            dataSet.options = newOptions;
+            setOptions(newOptions);
+          }
+          const withdrawreduc = (expandData?.type === "desert" || expandData?.type === "spring" || expandData?.type === "volcano") ? 2.5 : 0;
+          const withdrawtax = (balance < 10 ? 30 : balance < 100 ? 25 : balance < 1000 ? 20 : balance < 5000 ? 15 : 10) - withdrawreduc;
+          dataSet.withdrawtax = withdrawtax;
+          const withdrawSFLbeyondTaxFree = Number(taxFreeSFL) - Number(balance);
+          const withdrawsflFree = (withdrawSFLbeyondTaxFree < 0) ? Number(taxFreeSFL) : Number(balance);
+          const withdrawsflNotFree = (withdrawsflFree >= Number(balance)) ? 0 : (Number(balance) - withdrawsflFree);
+          const withdrawSflNotFreeTaxed = (withdrawsflNotFree > 0) ? (withdrawsflNotFree - (withdrawsflNotFree * (withdrawtax / 100))) : 0;
+          const sflwithdraw = frmtNb(withdrawsflFree + withdrawSflNotFreeTaxed);
+          dataSet.sflwithdraw = sflwithdraw;
+          const xfishcastmax = Fish && (!TryChecked ? Fish.CastMax : Fish.CastMaxtry);
+          const xfishcost = Fish && ((!TryChecked ? Fish.CastCost : Fish.CastCosttry) / dataSet.options.coinsRatio);
+          dataSet.fishcasts = Fish && (Fish.casts + "/" + xfishcastmax);
+          dataSet.fishcosts = Fish && (parseFloat(Fish.casts * xfishcost).toFixed(3) + "/" + parseFloat(xfishcastmax * xfishcost).toFixed(3));
+          setdataSetFarm((prevFarmState) => {
+            const mergedLatest = mergeFarmStateDeep(prevFarmState, respData);
+            dataSetFarmRef.current = mergedLatest;
+            return { ...mergedLatest };
+          });
+          setdeliveriesData(mergedFarmData?.orderstable || []);
         }
-        if (respData?.tableHashes && typeof respData.tableHashes === "object") {
-          const knownFromPayload = extractReceivedTableHashes(respData, respData.tableHashes);
-          farmTableHashesRef.current = {
-            ...(farmTableHashesRef.current || {}),
-            ...knownFromPayload,
-          };
-        }
-        mergedFarmData = mergeFarmStateDeep(currentFarmState, respData);
-        //setdataSetFarm(respData);
-        setFarmData(mergedFarmData.frmData || {});
-        dataSet.options.isAbo = mergedFarmData.isabo;
-        dataSet.isVip = mergedFarmData?.frmData?.vip;
-        dataSet.dateVip = mergedFarmData?.frmData?.datevip;
-        dataSet.dailychest = mergedFarmData?.frmData?.dailychest;
-        dataSet.taxFreeSFL = frmtNb(mergedFarmData?.frmData?.taxFreeSFL);
-        dataSet.bumpkin = mergedFarmData?.Bumpkin?.[0];
-        setBumpkinData(mergedFarmData?.Bumpkin || []);
-        const { frmData, expandData, Fish, taxFreeSFL } = mergedFarmData;
-        dataSet.balance = getBalanceValue(frmData.balance, "sfl");
-        dataSet.coins = getBalanceValue(frmData.balance, "coins");
-        const balance = getBalanceValue(frmData.balance, "sfl");
-        dataSet.updated = formatUpdated(frmData?.updated);
-        let refreshOptions = false;
-        if (dataSet?.options?.tradeTax !== frmData?.tradeTax && dataSet?.options?.tradeTax > 0 && dataSet.options.autoTradeTax) {
-          dataSet.options.tradeTax = frmData?.tradeTax;
-          refreshOptions = true;
-          //console.log("reset Tax");
-        }
-        if (dataSet?.options?.autoCoinRatio) {
-          dataSet.options.coinsRatio = responseData?.bestCoinRatio?.ratio || dataSet.options.coinsRatio;
-          refreshOptions = true;
-        }
+        const priceData = responseData.priceData;
+        const balanceUSD = frmtNb(Number(dataSet?.balance || 0) * Number(priceData[2]));
+        dataSet.balanceUSD = balanceUSD;
+        const usdwithdraw = frmtNb(Number(dataSet?.sflwithdraw || 0) * Number(priceData[2]));
+        dataSet.usdwithdraw = usdwithdraw;
+        dataSet.options.usdSfl = responseData.priceData[2];
         const nextGemsRatio = computeGemsRatio(
           dataSet?.options?.gemsPack || 7400,
           dataSet?.options?.usdSfl
         );
         if (nextGemsRatio > 0 && Number(dataSet?.options?.gemsRatio || 0) !== nextGemsRatio) {
-          dataSet.options.gemsRatio = nextGemsRatio;
-          refreshOptions = true;
-        }
-        if (refreshOptions) {
-          const newOptions = { ...dataSet.options };
+          const newOptions = { ...dataSet.options, gemsRatio: nextGemsRatio };
           dataSet.options = newOptions;
           setOptions(newOptions);
         }
-        const withdrawreduc = (expandData?.type === "desert" || expandData?.type === "spring" || expandData?.type === "volcano") ? 2.5 : 0;
-        const withdrawtax = (balance < 10 ? 30 : balance < 100 ? 25 : balance < 1000 ? 20 : balance < 5000 ? 15 : 10) - withdrawreduc;
-        dataSet.withdrawtax = withdrawtax;
-        const withdrawSFLbeyondTaxFree = Number(taxFreeSFL) - Number(balance);
-        const withdrawsflFree = (withdrawSFLbeyondTaxFree < 0) ? Number(taxFreeSFL) : Number(balance);
-        const withdrawsflNotFree = (withdrawsflFree >= Number(balance)) ? 0 : (Number(balance) - withdrawsflFree);
-        const withdrawSflNotFreeTaxed = (withdrawsflNotFree > 0) ? (withdrawsflNotFree - (withdrawsflNotFree * (withdrawtax / 100))) : 0;
-        const sflwithdraw = frmtNb(withdrawsflFree + withdrawSflNotFreeTaxed);
-        dataSet.sflwithdraw = sflwithdraw;
-        const xfishcastmax = Fish && (!TryChecked ? Fish.CastMax : Fish.CastMaxtry);
-        const xfishcost = Fish && ((!TryChecked ? Fish.CastCost : Fish.CastCosttry) / dataSet.options.coinsRatio);
-        dataSet.fishcasts = Fish && (Fish.casts + "/" + xfishcastmax);
-        dataSet.fishcosts = Fish && (parseFloat(Fish.casts * xfishcost).toFixed(3) + "/" + parseFloat(xfishcastmax * xfishcost).toFixed(3));
-        setdataSetFarm((prevFarmState) => {
-          const mergedLatest = mergeFarmStateDeep(prevFarmState, respData);
-          dataSetFarmRef.current = mergedLatest;
-          return { ...mergedLatest };
-        });
-        setdeliveriesData(mergedFarmData?.orderstable || []);
-      }
-      const priceData = responseData.priceData;
-      const balanceUSD = frmtNb(Number(dataSet?.balance || 0) * Number(priceData[2]));
-      dataSet.balanceUSD = balanceUSD;
-      const usdwithdraw = frmtNb(Number(dataSet?.sflwithdraw || 0) * Number(priceData[2]));
-      dataSet.usdwithdraw = usdwithdraw;
-      dataSet.options.usdSfl = responseData.priceData[2];
-      const nextGemsRatio = computeGemsRatio(
-        dataSet?.options?.gemsPack || 7400,
-        dataSet?.options?.usdSfl
-      );
-      if (nextGemsRatio > 0 && Number(dataSet?.options?.gemsRatio || 0) !== nextGemsRatio) {
-        const newOptions = { ...dataSet.options, gemsRatio: nextGemsRatio };
-        dataSet.options = newOptions;
-        setOptions(newOptions);
-      }
-      //NFTPrice();
-      //xinitprc = true;
-      setReqState('');
+        //NFTPrice();
+        //xinitprc = true;
+        setReqState('');
         if (respData?.mutantsHeader || respData?.mutantchickens) {
           setMutants(mergedFarmData);
           //setsTickets(respData.sTickets);
@@ -3227,7 +3400,7 @@ function App() {
     if ('serviceWorker' in navigator) {
       navigator.serviceWorker.register('/service-worker.js')
         .then(registration => {
-          //console.log('Service Worker enregistrÃƒÂ© avec succÃƒÂ¨s:', registration);
+          //console.log('Service Worker enregistrÃ© avec succÃ¨s:', registration);
         })
         .catch(error => {
           console.error('Erreur lors de l\'enregistrement du Service Worker:', error);
@@ -3501,9 +3674,7 @@ function App() {
     { value: "buynodes", label: "Buy nodes", iconSrc: "./icon/res/sunstone_rock_1.webp" },
     { value: "factions", label: "Factions", iconSrc: "./icon/ui/factions.webp" },
     { value: "market", label: "Market", iconSrc: imgexchng },
-    ...(dataSet.options.isAbo
-      ? [{ value: "chapter", label: "Chapter", iconSrc: "./icon/ui/chapter.webp" }]
-      : []),
+    { value: "chapter", label: "Chapter", iconSrc: "./icon/ui/chapter.webp" },
     { value: "auctions", label: "Auctions", iconSrc: "./icon/ui/calendar.webp" },
     ...(dataSet.options.isAbo
       ? [{ value: "activity", label: "Activity", iconSrc: "./icon/ui/stopwatch.png" }]
@@ -3643,34 +3814,47 @@ function App() {
                       </Select>
                     </FormControl>
                   </div> */}
-                  <DList
-                    name="selectedCurr"
-                    options={[
-                      { value: "SFL", label: "Flower", iconSrc: imgsfl },
-                      { value: "MATIC", label: "POL", iconSrc: "./matic.png" },
-                      { value: "USDC", label: "USDC", iconSrc: "./usdc.png" },
-                    ]}
-                    value={ui.selectedCurr}
-                    onChange={handleUIChange}
-                    iconOnly={true}
-                    height={38}
-                  />
-                  <div className="horizontal" style={{ margin: "0", padding: "0" }}>
-                    {isAdminFarm ? (
-                      <button
-                        onClick={handleAdminClick}
-                        title="Admin"
-                        className="button"
-                        disabled={adminLoading}
-                      >
-                        <img src={adminLoading ? "./icon/ui/syncing.gif" : imgadmin} alt="" className="itico" />
-                      </button>
-                    ) : null}
+                  <div className="currency-top-row">
+                    <div className="horizontal currency-actions" style={{ margin: "0", padding: "0" }}>
+                      {isAdminFarm ? (
+                        <button
+                          onClick={handleAdminClick}
+                          title="Admin"
+                          className="button"
+                          disabled={adminLoading}
+                        >
+                          <img src={adminLoading ? "./icon/ui/syncing.gif" : imgadmin} alt="" className="itico" />
+                        </button>
+                      ) : onDev && (
+                        <button
+                          onClick={handleVipClick}
+                          title="VIP"
+                          className="button"
+                          disabled={vipLoading}
+                        >
+                          <img src={vipLoading ? "./icon/ui/syncing.gif" : imgadmin} alt="" className="itico" />
+                        </button>
+                      )}
+                      {dataSet.options.isAbo ? <button onClick={(e) => handleButtonIAClick(e)} className="button" disabled={iaLoading} title={iaLoading ? "Loading" : "Ask IA"}>
+                        <img src={iaLoading ? "./icon/ui/syncing.gif" : "./icon/ui/bumpkin.png"} alt="" className="itico" />
+                      </button> : null}
+                    </div>
+                    <DList
+                      name="selectedCurr"
+                      options={[
+                        { value: "SFL", label: "Flower", iconSrc: imgsfl },
+                        { value: "MATIC", label: "POL", iconSrc: "./matic.png" },
+                        { value: "USDC", label: "USDC", iconSrc: "./usdc.png" },
+                      ]}
+                      value={ui.selectedCurr}
+                      onChange={handleUIChange}
+                      iconOnly={true}
+                      height={38}
+                    />
+                  </div>
+                  <div className="horizontal currency-secondary-actions" style={{ margin: "0", padding: "0" }}>
                     <button onClick={handleButtonOptionsClick} title="Options" class="button"><img src="./options.png" alt="" className="itico" /></button>
-                    {/* <button onClick={handleButtonHelpClick} title="Help" class="button"><img src="./icon/nft/na.png" alt="" className="itico" /></button> */}
-                    {dataSet.options.isAbo ? <button onClick={(e) => handleButtonIAClick(e)} className="button" disabled={iaLoading} title={iaLoading ? "Loading" : "Ask IA"}>
-                      <img src={iaLoading ? "./icon/ui/syncing.gif" : "./icon/ui/bumpkin.png"} alt="" className="itico" />
-                    </button> : null}
+                    <button onClick={handleButtonHelpClick} title="Help" className="button coach-help-btn"><img src="./icon/nft/na.png" alt="" className="itico" /></button>
                   </div>
                 </div>
                 <div className="currency-pair">
@@ -4360,3 +4544,7 @@ function App() {
 }
 
 export default App;
+
+
+
+

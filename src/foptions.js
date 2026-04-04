@@ -96,6 +96,7 @@ function ModalOptions({ onClose, dataSet, onOptionChange, API_URL }) {
         setTimeout(onClose, 300);
     };
     const handleDonClick = (address, element) => {
+        if (!address) return;
         const textarea = document.createElement('textarea');
         textarea.value = address;
         document.body.appendChild(textarea);
@@ -115,6 +116,9 @@ function ModalOptions({ onClose, dataSet, onOptionChange, API_URL }) {
             document.body.removeChild(textarea);
         };
     }
+    const paymentWalletAddress = "0xAc3c7f9f1f8492Cc10A4fdb8C738DD82013d61dA";
+    const paymentExplorerBaseUrl = "https://polygonscan.com";
+    const paymentToken = "USDC";
     const resetTax = async () => {
         try {
             const headers = {
@@ -430,8 +434,33 @@ function ModalOptions({ onClose, dataSet, onOptionChange, API_URL }) {
                 <div>
                     <p></p>
                     <div>if you liked this tool you can give me a coffee here : </div>
-                    <div><a id="copy-link" href="#" onClick={(event) => handleDonClick("0xAc3c7f9f1f8492Cc10A4fdb8C738DD82013d61dA", event.target)} title="Clic to copy">
-                        0xAc3c7f9f1f8492Cc10A4fdb8C738DD82013d61dA</a></div>
+                    <div>{paymentWalletAddress ? (
+                        <a
+                            id="copy-link"
+                            href="#"
+                            onClick={(event) => {
+                                event.preventDefault();
+                                handleDonClick(paymentWalletAddress, event.target);
+                            }}
+                            title={`Click to copy ${paymentToken} wallet`}
+                        >
+                            {paymentWalletAddress}
+                        </a>
+                    ) : (
+                        <span>Wallet unavailable</span>
+                    )}</div>
+                    {/* {paymentWalletAddress ? (
+                        <div>
+                            <a
+                                href={`${paymentExplorerBaseUrl}/address/${paymentWalletAddress}`}
+                                title="Open PolygonScan"
+                                target="_blank"
+                                rel="noopener noreferrer"
+                            >
+                                Open PolygonScan
+                            </a>
+                        </div>
+                    ) : null} */}
                     <div>and you can help my farm here :
                         <a id="visit-link" href="https://sunflower-land.com/play/#/visit/1972" title="Clic to visit my farm" target="_blank" rel="noopener noreferrer">
                             : Oubia</a></div>

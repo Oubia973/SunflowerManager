@@ -328,14 +328,16 @@ export default function HomeTable() {
                             const showCostCol = xListeColBounty[4][1] === 1;
                             const showMarketCol = !isDailyMode && xListeColBounty[5][1] === 1;
                             const showProfitCol = xListeColBounty[5][1] === 1;
+                            const showSeedsBeforeCycles = isDailyMode && block?.key === "cropmachine";
                             return (
                         <table className="table" style={{ width: "100%" }}>
                             <thead>
                                 <tr>
                                     {xListeColBounty[1][1] === 1 ? <th className="collapsible-content-th">Item</th> : null}
                                     {showNodesCol ? <th className="collapsible-content-th">Nodes</th> : null}
+                                    {showSeedsBeforeCycles && showSeedsCol ? <th className="collapsible-content-th">Seeds</th> : null}
                                     {showCyclesCol ? <th className="collapsible-content-th">Cycles</th> : null}
-                                    {showSeedsCol ? <th className="collapsible-content-th">Seeds</th> : null}
+                                    {!showSeedsBeforeCycles && showSeedsCol ? <th className="collapsible-content-th">Seeds</th> : null}
                                     {showHarvestCol ? <th className="collapsible-content-th">Harvest</th> : null}
                                     {showOilCol ? <th className="collapsible-content-th">Oil</th> : null}
                                     {showCostCol ? <th className="collapsible-content-th">Cost</th> : null}
@@ -400,8 +402,9 @@ export default function HomeTable() {
                                                 </td>
                                                 )}
                                             {showNodesCol && <td className="tdcenter">{frmtNb(planted)}</td>}
+                                            {showSeedsBeforeCycles && showSeedsCol && <td className={isCropMachineDailyRow ? "tdcenter tooltipcell" : "tdcenter"}>{frmtNb(planted)}</td>}
                                             {showCyclesCol && <td className={isCropMachineDailyRow ? "tdcenter tooltipcell" : "tdcenter"}>{frmtNb(cycles)}</td>}
-                                            {showSeedsCol && <td className={isCropMachineDailyRow ? "tdcenter tooltipcell" : "tdcenter"}>{frmtNb(planted)}</td>}
+                                            {!showSeedsBeforeCycles && showSeedsCol && <td className={isCropMachineDailyRow ? "tdcenter tooltipcell" : "tdcenter"}>{frmtNb(planted)}</td>}
                                             {showHarvestCol && <td className={isCropMachineDailyRow ? "tdcenter tooltipcell" : "tdcenter"}>{frmtNb(harvest)}</td>}
                                             {showOilCol && <td className={isCropMachineDailyRow ? "tdcenter tooltipcell" : "tdcenter"}>{frmtNb(oil)}</td>}
                                             {showCostCol && <td className={isCropMachineDailyRow ? "tdcenter tooltipcell" : "tdcenter"}>{frmtNb(cost)}</td>}

@@ -722,6 +722,9 @@ function ModalDlvr({
       const displayProdTotal = categoryProdCostTotal;
       const displayMarketDone = categoryMarketCostDone;
       const displayMarketTotal = categoryMarketCostTotal;
+      const poppyBaseRewardDone = Object.values(rewardTotals).reduce((acc, rewardData) => acc + Number(rewardData?.done || 0), 0);
+      const poppyBaseRewardTotal = Object.values(rewardTotals).reduce((acc, rewardData) => acc + Number(rewardData?.total || 0), 0);
+      const poppyBonusReward = isPoppyCategory && categoryItems.length > 0 && categoryDone === categoryItems.length ? 50 : 0;
       const showPoppyBonusHint = isPoppyCategory && categoryItems.length > 0 && categoryDone < categoryItems.length;
       return (
         <div key={categoryName} style={{ marginBottom: '8px' }}>
@@ -737,6 +740,9 @@ function ModalDlvr({
                   costTotal: displayProdTotal,
                   marketDone: displayMarketDone,
                   marketTotal: displayMarketTotal,
+                  rewardDone: poppyBaseRewardDone + poppyBonusReward,
+                  rewardTotal: poppyBaseRewardTotal + 50,
+                  bonusReward: poppyBonusReward,
                 }, e)}
               >
                 <span style={{ display: 'inline-flex', alignItems: 'center', gap: '3px', verticalAlign: 'middle' }}>

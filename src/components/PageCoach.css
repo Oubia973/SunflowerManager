@@ -174,3 +174,31 @@
     transition: none !important;
   }
 }
+.pagecoach-language-select {
+  display: inline-flex;
+  align-items: center;
+  margin-left: 6px;
+}
+
+.pagecoach-language-dlist {
+  display: inline-flex;
+  align-items: center;
+}
+
+.pagecoach-language-dlist .cd-title {
+  color: #ffe6c3;
+  font-size: 12px;
+  font-weight: 600;
+  margin-bottom: 0;
+}
+
+.pagecoach-language-dlist .cd-btn {
+  min-height: 22px;
+}
+
+.pagecoach-language-menu {
+  z-index: 3000000;
+  min-width: 72px;
+  overflow-y: auto;
+  overflow-x: hidden;
+}

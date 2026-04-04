@@ -64,6 +64,7 @@ const Tooltip = ({ onClose, item, context, value, clickPosition, dataSet, dataSe
         shrine = {},
     } = tooltipBoostables || {};
     const { coinsRatio } = dataSet.options;
+    const tktName = dataSetFarm?.constants?.tktName || dataSet?.tktName || 'Tickets';
     const ForTry = forTry;
     let activeortry = ForTry ? "tryit" : "isactive";
     let costortry = ForTry ? "costtry" : "cost";
@@ -209,10 +210,6 @@ const Tooltip = ({ onClose, item, context, value, clickPosition, dataSet, dataSe
     const isDeliveryTooltip = context === "deliverycost" || context === "deliverybountycost";
     const deliveryDragHandleProps = bdrag ? {
         onMouseDown: (e) => {
-            e.stopPropagation();
-            handleMouseDown(e);
-        },
-        onTouchStart: (e) => {
             e.stopPropagation();
             handleMouseDown(e);
         },
@@ -1409,9 +1406,11 @@ const Tooltip = ({ onClose, item, context, value, clickPosition, dataSet, dataSe
             );
         }
         if (context === "cookcost") {
+            const requestedQty = Number((value && typeof value === "object") ? (value.qty ?? 1) : value) || 1;
             const cookItems = (Array.isArray(item) ? item : [item]).filter((cookItem) => !!food?.[cookItem] || !!pfood?.[cookItem]);
             txt = <>
                 {cookItems.map((cookItem, idx) => {
+                    const cookEntry = food?.[cookItem] || pfood?.[cookItem] || {};
                     const seasonalCompoit = pfood?.[cookItem]?.seasonalCompoit;
                     const seasonalCompo = pfood?.[cookItem]?.seasonalCompo;
                     const seasonalSource = seasonalCompoit && Object.keys(seasonalCompoit).length ? seasonalCompoit : seasonalCompo;
@@ -1419,8 +1418,11 @@ const Tooltip = ({ onClose, item, context, value, clickPosition, dataSet, dataSe
                     if (hasSeasonButtons) {
                         const recipe = seasonalSource?.[tooltipSeason] || seasonalSource?.[initialTooltipSeason] || seasonalSource?.spring || {};
                         const itemImg = pfood?.[cookItem]?.img || imgna;
-                        const { table } = setCompoTable(cookItem, value, {
-                            compoit: recipe,
+                        const recipeWithOil = (Number(!ForTry ? cookEntry?.oil : cookEntry?.oiltry) || 0) > 0
+                            ? { ...recipe, Oil: { qty: Number(!ForTry ? cookEntry?.oil : cookEntry?.oiltry) || 0 } }
+                            : recipe;
+                        const { table } = setCompoTable(cookItem, requestedQty, {
+                            compoit: recipeWithOil,
                             img: itemImg,
                             label: `${cookItem} - ${tooltipSeason.charAt(0).toUpperCase()}${tooltipSeason.slice(1)}`,
                         });
@@ -1431,8 +1433,12 @@ const Tooltip = ({ onClose, item, context, value, clickPosition, dataSet, dataSe
                             </React.Fragment>
                         );
                     }
-                    const { table } = setCompoTable(cookItem, value);
-                    return <React.Fragment key={`${cookItem}-${idx}`}>{table}</React.Fragment>;
+                    const { table } = setCompoTable(cookItem, requestedQty);
+                    return (
+                        <React.Fragment key={`${cookItem}-${idx}`}>
+                            {table}
+                        </React.Fragment>
+                    );
                 })}
             </>;
         }
@@ -1754,6 +1760,13 @@ const Tooltip = ({ onClose, item, context, value, clickPosition, dataSet, dataSe
             let totMarket = 0;
             let doneCost = 0;
             let doneMarket = 0;
+            const rewardDone = Number(value?.rewardDone || 0);
+            const rewardTotal = Number(value?.rewardTotal || 0);
+            const bonusReward = Number(value?.bonusReward || 0);
+            const costPerTicketDone = rewardDone > 0 ? (Number(value?.costDone || 0) / rewardDone) : 0;
+            const costPerTicketTotal = rewardTotal > 0 ? (Number(value?.costTotal || 0) / rewardTotal) : 0;
+            const marketPerTicketDone = rewardDone > 0 ? (Number(value?.marketDone || 0) / rewardDone) : 0;
+            const marketPerTicketTotal = rewardTotal > 0 ? (Number(value?.marketTotal || 0) / rewardTotal) : 0;
             const rows = costItems.map((entry, index) => {
                 const name = entry?.name || `Item ${index + 1}`;
                 const img = entry?.img || (it?.[name]?.img ?? food?.[name]?.img ?? pfood?.[name]?.img ?? fish?.[name]?.img ?? bounty?.[name]?.img ?? crustacean?.[name]?.img ?? craft?.[name]?.img ?? petit?.[name]?.img ?? flower?.[name]?.img ?? tool?.[name]?.img ?? compost?.[name]?.img ?? mutant?.[name]?.img ?? imgna);
@@ -1782,6 +1795,8 @@ const Tooltip = ({ onClose, item, context, value, clickPosition, dataSet, dataSe
             const headerTotCost = Number.isFinite(Number(value?.costTotal)) ? Number(value?.costTotal) : totCost;
             const headerDoneMarket = Number.isFinite(Number(value?.marketDone)) ? Number(value?.marketDone) : doneMarket;
             const headerTotMarket = Number.isFinite(Number(value?.marketTotal)) ? Number(value?.marketTotal) : totMarket;
+            const stickyRowTop = 24;
+            const stickyCostTop = 72;
             txt = (
                 <table className="tooltip-delivery-table">
                     <thead {...deliveryDragHandleProps} className="tooltip-delivery-drag-handle">
@@ -1792,9 +1807,25 @@ const Tooltip = ({ onClose, item, context, value, clickPosition, dataSet, dataSe
                         </tr>
                         <tr className="tooltip-delivery-total-row">
                             <th style={{ textAlign: "left", paddingRight: 8 }}></th>
-                            <td style={{ textAlign: "center", paddingRight: 8 }}>{frmtNb(headerDoneCost)}/{frmtNb(headerTotCost)}</td>
-                            <td style={{ textAlign: "center" }}>{frmtNb(headerDoneMarket)}/{frmtNb(headerTotMarket)}</td>
+                            <th style={{ textAlign: "center", paddingRight: 8, top: stickyRowTop }}>{frmtNb(headerDoneCost)}/{frmtNb(headerTotCost)}</th>
+                            <th style={{ textAlign: "center", top: stickyRowTop }}>{frmtNb(headerDoneMarket)}/{frmtNb(headerTotMarket)}</th>
                         </tr>
+                        {rewardTotal > 0 ? (
+                            <>
+                                <tr className="tooltip-delivery-total-row">
+                                    <th style={{ textAlign: "left", paddingRight: 8, top: 48 }}>{tktName}</th>
+                                    <th style={{ textAlign: "center", paddingRight: 8, top: 48 }} colSpan={2}>
+                                        {frmtNb(rewardDone)}/{frmtNb(rewardTotal)}
+                                        {bonusReward > 0 ? ` (+${frmtNb(bonusReward)})` : ""}
+                                    </th>
+                                </tr>
+                                <tr className="tooltip-delivery-total-row">
+                                    <th style={{ textAlign: "left", paddingRight: 8, top: stickyCostTop }}>{`Cost/${tktName}`}</th>
+                                    <th style={{ textAlign: "center", paddingRight: 8, top: stickyCostTop }}>{frmtNb(rewardDone > 0 ? costPerTicketDone : costPerTicketTotal)}</th>
+                                    <th style={{ textAlign: "center", top: stickyCostTop }}>{frmtNb(rewardDone > 0 ? marketPerTicketDone : marketPerTicketTotal)}</th>
+                                </tr>
+                            </>
+                        ) : null}
                     </thead>
                     <tbody>
                         {rows}
@@ -1829,6 +1860,116 @@ const Tooltip = ({ onClose, item, context, value, clickPosition, dataSet, dataSe
             txt = <><div>{`User: ${username}`}</div>
                 <div>{`farm ID: ${farmId}`}</div></>;
         }
+        if (context === "activitymax") {
+            const v = (value && typeof value === "object") ? value : {};
+            const dateLabel = String(v?.date || item || "Day");
+            const got = Number(v?.got || 0);
+            const max = Number(v?.max || 0);
+            const gotChest = Number(v?.gotChest || 0);
+            const gotDeliveries = Number(v?.gotDeliveries || 0);
+            const gotChores = Number(v?.gotChores || 0);
+            const gotBounties = Number(v?.gotBounties || 0);
+            const chest = Number(v?.chest || 0);
+            const deliveries = Number(v?.deliveries || 0);
+            const choresValue = Number(v?.chores || 0);
+            const bountiesValue = Number(v?.bounties || 0);
+            const stickyRowTop = 24;
+            const stickyCostTop = 72;
+            const stickyMarketTop = 96;
+            txt = (
+                <table className="tooltip-delivery-table">
+                    <thead {...deliveryDragHandleProps} className="tooltip-delivery-drag-handle">
+                        <tr className="tooltip-delivery-head-row">
+                            <th style={{ textAlign: "left", paddingRight: 12 }}>{dateLabel}</th>
+                            <th style={{ textAlign: "center", paddingRight: 10 }}>Got</th>
+                            <th style={{ textAlign: "center" }}>Max</th>
+                        </tr>
+                        <tr className="tooltip-delivery-total-row">
+                            <th style={{ textAlign: "left", paddingRight: 12 }}>Got / Max</th>
+                            <td style={{ textAlign: "center", paddingRight: 10 }}>{frmtNb(got)}</td>
+                            <td style={{ textAlign: "center" }}>{frmtNb(max)}</td>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td style={{ padding: "2px 12px 2px 0" }}>Daily chest</td>
+                            <td style={{ textAlign: "center", paddingRight: 10 }}>{frmtNb(gotChest)}</td>
+                            <td style={{ textAlign: "center" }}>{frmtNb(chest)}</td>
+                        </tr>
+                        <tr>
+                            <td style={{ padding: "2px 12px 2px 0" }}>Deliveries</td>
+                            <td style={{ textAlign: "center", paddingRight: 10 }}>{frmtNb(gotDeliveries)}</td>
+                            <td style={{ textAlign: "center" }}>{frmtNb(deliveries)}</td>
+                        </tr>
+                        <tr>
+                            <td style={{ padding: "2px 12px 2px 0" }}>Chores</td>
+                            <td style={{ textAlign: "center", paddingRight: 10 }}>{frmtNb(gotChores)}</td>
+                            <td style={{ textAlign: "center" }}>{frmtNb(choresValue)}</td>
+                        </tr>
+                        <tr>
+                            <td style={{ padding: "2px 12px 2px 0" }}>Bounties</td>
+                            <td style={{ textAlign: "center", paddingRight: 10 }}>{frmtNb(gotBounties)}</td>
+                            <td style={{ textAlign: "center" }}>{frmtNb(bountiesValue)}</td>
+                        </tr>
+                    </tbody>
+                </table>
+            );
+        }
+        if (context === "activityxp") {
+            const v = (value && typeof value === "object") ? value : {};
+            const dateLabel = String(v?.date || item || "XP");
+            const totalXp = Number(v?.totalXp || 0);
+            const rows = Object.entries(v?.items || {})
+                .map(([dish, info]) => ({
+                    dish,
+                    qty: Number(info?.qty || 0),
+                    xpUnit: Number(info?.xpUnit || 0),
+                    xpTotal: Number(info?.xpTotal || 0),
+                    img: food?.[dish]?.img || imgna,
+                }))
+                .filter((row) => row.qty > 0 || row.xpTotal > 0)
+                .sort((a, b) => Number(b.xpTotal || 0) - Number(a.xpTotal || 0));
+            const stickyRowTop = 24;
+            const stickyCostTop = 72;
+            const stickyMarketTop = 96;
+            txt = (
+                <table className="tooltip-delivery-table">
+                    <thead {...deliveryDragHandleProps} className="tooltip-delivery-drag-handle">
+                        <tr className="tooltip-delivery-head-row">
+                            <th style={{ textAlign: "left", paddingRight: 8 }}>{dateLabel}</th>
+                            <th style={{ textAlign: "center", paddingRight: 8 }}>Qty</th>
+                            <th style={{ textAlign: "center", paddingRight: 8 }}>XP/u</th>
+                            <th style={{ textAlign: "center" }}>XP</th>
+                        </tr>
+                        <tr className="tooltip-delivery-total-row">
+                            <th style={{ textAlign: "left", paddingRight: 8 }}>Total</th>
+                            <td></td>
+                            <td></td>
+                            <td style={{ textAlign: "center" }}>{frmtNb(totalXp)}</td>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {rows.length > 0 ? rows.map((row) => (
+                            <tr key={`activityxp-${row.dish}`}>
+                                <td style={{ padding: "2px 8px 2px 0" }}>
+                                    <span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
+                                        <img src={row.img} alt="" title={row.dish} style={{ width: 18, height: 18 }} />
+                                        <span>{row.dish}</span>
+                                    </span>
+                                </td>
+                                <td style={{ textAlign: "center", paddingRight: 8 }}>{frmtNb(row.qty)}</td>
+                                <td style={{ textAlign: "center", paddingRight: 8 }}>{frmtNb(row.xpUnit)}</td>
+                                <td style={{ textAlign: "center" }}>{frmtNb(row.xpTotal)}</td>
+                            </tr>
+                        )) : (
+                            <tr>
+                                <td colSpan="4" style={{ textAlign: "center", paddingTop: 6 }}>No cooked dishes</td>
+                            </tr>
+                        )}
+                    </tbody>
+                </table>
+            );
+        }
         if (context === "totChoreComp") {
             const getItemImg = (name) => {
                 if (!name) return null;
@@ -1842,6 +1983,7 @@ const Tooltip = ({ onClose, item, context, value, clickPosition, dataSet, dataSe
                 if (it[name]) { baseTable = it; }
                 if (food[name]) { baseTable = food; }
                 if (fish[name]) { baseTable = fish; }
+                const displayQty = name === "Oil" ? Math.round(Number(qty || 0)) : qty;
                 const inStock = baseTable[name]?.instock ?? 0;
                 const needed = Math.ceil(qty - inStock);
                 const icost = Number(frmtNb(((baseTable[name]?.cost ?? 0) / coinsRatio) * needed));
@@ -1856,7 +1998,7 @@ const Tooltip = ({ onClose, item, context, value, clickPosition, dataSet, dataSe
                                 <span>{name}</span>
                             </span>
                         </td>
-                        <td style={{ textAlign: "center", paddingRight: 8 }}>{qty}</td>
+                        <td style={{ textAlign: "center", paddingRight: 8 }}>{displayQty}</td>
                         <td style={{ textAlign: "center" }}>{inStock ? Math.ceil(inStock) : ""}</td>
                         <td style={{ textAlign: "center" }}>{needed > 0 ? needed : ""}</td>
                         <td style={{ textAlign: "center" }}>{icost > 0 ? icost : ""}</td>
@@ -1867,7 +2009,7 @@ const Tooltip = ({ onClose, item, context, value, clickPosition, dataSet, dataSe
             const choreTotCompTable = (
                 <table className="tooltip-delivery-table">
                     <thead>
-                        <tr>
+                        <tr className="tooltip-delivery-head-row">
                             <th style={{ textAlign: "left", paddingRight: 8 }}>Item</th>
                             <th style={{ textAlign: "center", paddingRight: 8 }}>Qty</th>
                             <th style={{ textAlign: "center" }}>Stock</th>
@@ -1875,13 +2017,13 @@ const Tooltip = ({ onClose, item, context, value, clickPosition, dataSet, dataSe
                             <th style={{ textAlign: "center" }}>Cost</th>
                             <th style={{ textAlign: "center" }}>{imgExchng}</th>
                         </tr>
-                        <tr>
+                        <tr className="tooltip-delivery-total-row">
                             <th style={{ textAlign: "left", paddingRight: 8 }}></th>
                             <th style={{ textAlign: "center", paddingRight: 8 }}></th>
                             <th style={{ textAlign: "center" }}></th>
                             <th style={{ textAlign: "center", paddingRight: 8 }}></th>
-                            <td style={{ textAlign: "center", paddingRight: 8 }}>{frmtNb(totCost)}</td>
-                            <td style={{ textAlign: "center" }}>{frmtNb(totMarket)}</td>
+                            <th style={{ textAlign: "center", paddingRight: 8 }}>{frmtNb(totCost)}</th>
+                            <th style={{ textAlign: "center" }}>{frmtNb(totMarket)}</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -1991,12 +2133,3 @@ const Tooltip = ({ onClose, item, context, value, clickPosition, dataSet, dataSe
 };
 
 export default Tooltip;
-
-
-
-
-
-
-
-
-

@@ -162,7 +162,7 @@ export default function CookTable() {
             for (let compofood in cobjCompo) {
                 const compo = compofood;
                 const quant = cobjCompo[compofood];
-                if (it[compo] || fish[compo] || bounty[compo] || pfood[compo]) {
+                if (compo !== "Oil" && (it[compo] || fish[compo] || bounty[compo] || pfood[compo])) {
                     Compo[item] = Compo[item] || [];
                     Compo["total"][compo] = 0;
                     Compo[item][compo] = Compo[item][compo] || 0;
@@ -232,6 +232,7 @@ export default function CookTable() {
         //console.log(sortedCompo);
         const farmTime = dataSet.options.inputFarmTime / 24;
         var totXP = 0;
+        var totOil = 0;
         var totCost = 0;
         var totCostp2p = 0;
         var BldTime = [];
@@ -287,6 +288,8 @@ export default function CookTable() {
                 BldTime[ibld] += xquantd * timenbr;
             }
             const ixphcomp = cobj ? timecrpnbr > 0 ? parseFloat(ixp / (timecrpnbr * 24)).toFixed(1) : 0 : 0;
+            const oilUnitBase = Number(cobj ? (!TryChecked ? cobj.oil : cobj.oiltry) : 0) || 0;
+            const oilQty = selectedQuantCook === "unit" ? oilUnitBase : oilUnitBase * iQuant;
             var icost = cobj ? selectedQuantCook === "unit" ? ((!TryChecked ? cobj.cost : cobj.costtry) / dataSet.options.coinsRatio) : ((!TryChecked ? cobj.cost : cobj.costtry) / dataSet.options.coinsRatio) * iQuant : 0;
             const getMarketUnitWithFallback = (name) => {
                 const src = it[name] || fish[name] || bounty[name] || crustacean[name] || pfood[name] || food[name] || cookTables?.tool?.[name] || cookTables?.petit?.[name];
@@ -330,12 +333,13 @@ export default function CookTable() {
                 if (timecomp !== "" && timecomp !== 0) { timecomp = convTime(iQuant * timecrpnbr) }
             }
             if (((selectedQuantityCook === "daily" || selectedQuantityCook === "dailymax") && cookitValue === 1) || selectedQuantityCook === "farm") {
+                totOil += oilQty;
                 totCost += icost;
                 totCostp2p += icostp2p;
                 for (let compofood in cobjCompo) {
                     const compo = compofood;
                     const quant = cobjCompo[compofood];
-                    if (it[compo] || fish[compo] || bounty[compo] || pfood[compo]) { Compo["total"][compo] += quant * (selectedQuantCook === "unit" ? 1 : iQuant) }
+                    if (compo !== "Oil" && (it[compo] || fish[compo] || bounty[compo] || pfood[compo])) { Compo["total"][compo] += quant * (selectedQuantCook === "unit" ? 1 : iQuant) }
                 }
             }
             const CellXPSflStyle = {};
@@ -367,11 +371,12 @@ export default function CookTable() {
                     {xListeColCook[6][1] === 1 ? <td className="tdcenter" style={CellXPHStyle}>{ixph}</td> : null}
                     {xListeColCook[7][1] === 1 ? <td className="tdcenter">{ixphcomp}</td> : null}
                     {xListeColCook[8][1] === 1 ? <td className="tdcenter" style={CellXPSflStyle}>{frmtNb(ixpsfl)}</td> : null}
-                    {xListeColCook[9][1] === 1 ? <td className="tdcenter tooltipcell"
-                        onClick={(e) => handleTooltip(item, "cookcost", selectedQuantCook !== "unit" ? Math.max(1, iQuant) : 1, e)}>{frmtNb(icost)}</td> : null}
+                    {dataSet?.options?.oilFood && xListeColCook[9][1] === 1 ? <td className="tdcenter">{frmtNb(oilQty)}</td> : null}
                     {xListeColCook[10][1] === 1 ? <td className="tdcenter tooltipcell"
-                        onClick={(e) => handleTooltip(item, "cookcost", selectedQuantCook !== "unit" ? Math.max(1, iQuant) : 1, e)}>{frmtNb(icostp2p)}</td> : null}
-                    {xListeColCook[11][1] === 1 ? Object.values(sortedCompo).map((itemName, itIndex) => (
+                        onClick={(e) => handleTooltip(item, "cookcost", { qty: selectedQuantCook !== "unit" ? Math.max(1, iQuant) : 1 }, e)}>{frmtNb(icost)}</td> : null}
+                    {xListeColCook[11][1] === 1 ? <td className="tdcenter tooltipcell"
+                        onClick={(e) => handleTooltip(item, "cookcost", { qty: selectedQuantCook !== "unit" ? Math.max(1, iQuant) : 1 }, e)}>{frmtNb(icostp2p)}</td> : null}
+                    {xListeColCook[12][1] === 1 ? Object.values(sortedCompo).map((itemName, itIndex) => (
                         <td className="tdcenterbrd" style={{ fontSize: '12px' }} key={itemName}>
                             {cobjCompo[itemName] ? cobjCompo[itemName] * (selectedQuantCook === "unit" ? 1 : iQuant) : ""}
                         </td>
@@ -546,8 +551,9 @@ export default function CookTable() {
                             {xListeColCook[6][1] === 1 ? <th className="thcenter" >XP/H</th> : null}
                             {xListeColCook[7][1] === 1 ? <th className="thcenter" >XP/H comp</th> : null}
                             {xListeColCook[8][1] === 1 ? <th className="thcenter" >XP/{imgSFL}</th> : null}
-                            {xListeColCook[9][1] === 1 ? <th className="thcenter" >Cost</th> : null}
-                            {xListeColCook[10][1] === 1 ? <th className="thcenter" >
+                            {dataSet?.options?.oilFood && xListeColCook[9][1] === 1 ? <th className="thcenter" >Oil <i><img src={it?.Oil?.img || imgna} alt="Oil" className="itico" /></i></th> : null}
+                            {xListeColCook[10][1] === 1 ? <th className="thcenter" >Cost</th> : null}
+                            {xListeColCook[11][1] === 1 ? <th className="thcenter" >
                                 {/* <div className="selectquantback" style={{ top: `4px` }}><FormControl variant="standard" id="formselectquant" className="selectquant" size="small">
                     <InputLabel>Cost</InputLabel>
                     <Select value={selectedCostCook} onChange={handleChangeCostCook}>
@@ -556,7 +562,7 @@ export default function CookTable() {
                       <MenuItem value="nifty">Niftyswap</MenuItem>
                       <MenuItem value="opensea">OpenSea</MenuItem>
                     </Select></FormControl></div> */}Prod {imgbuyit}</th> : null}
-                            {xListeColCook[11][1] === 1 ? Object.values(sortedCompo).map((itemName, itIndex) => (
+                            {xListeColCook[12][1] === 1 ? Object.values(sortedCompo).map((itemName, itIndex) => (
                                 <th className="thcenter" key={itemName}><i><img src={(it[itemName] ? it[itemName].img : fish[itemName] ? fish[itemName].img : bounty[itemName] ? bounty[itemName].img : pfood[itemName] ? pfood[itemName].img : imgna)} alt={itemName} className="itico" /></i></th>
                             )) : null}
                         </tr>
@@ -581,9 +587,10 @@ export default function CookTable() {
                                 {xListeColCook[6][1] === 1 ? <td className="tdcenter"></td> : null}
                                 {xListeColCook[7][1] === 1 ? <td className="tdcenter"></td> : null}
                                 {xListeColCook[8][1] === 1 ? <td className="tdcenter"></td> : null}
-                                {xListeColCook[9][1] === 1 ? <td className="tdcenter">{selectedQuantCook !== "unit" ? frmtNb(totCost) : ""}</td> : null}
-                                {xListeColCook[10][1] === 1 ? <td className="tdcenter">{selectedQuantCook !== "unit" ? frmtNb(totCostp2p) : ""}</td> : null}
-                                {xListeColCook[11][1] === 1 ? Object.values(sortedCompo).map((itemName, itIndex) => (
+                                {dataSet?.options?.oilFood && xListeColCook[9][1] === 1 ? <td className="tdcenter">{selectedQuantCook !== "unit" ? frmtNb(totOil) : ""}</td> : null}
+                                {xListeColCook[10][1] === 1 ? <td className="tdcenter">{selectedQuantCook !== "unit" ? frmtNb(totCost) : ""}</td> : null}
+                                {xListeColCook[11][1] === 1 ? <td className="tdcenter">{selectedQuantCook !== "unit" ? frmtNb(totCostp2p) : ""}</td> : null}
+                                {xListeColCook[12][1] === 1 ? Object.values(sortedCompo).map((itemName, itIndex) => (
                                     <td className="tdcenterbrd" key={itemName}
                                         style={{
                                             fontSize: '12px', color: it[itemName] ? (Compo["total"][itemName] > (!TryChecked ? dProd[itemName] : dProdtry[itemName])
@@ -652,3 +659,14 @@ function getCookSortValue(sortBy, item, quantity, food, pfood, tryChecked, coins
             return 0;
     }
 }
+
+
+
+
+
+
+
+
+
+
+

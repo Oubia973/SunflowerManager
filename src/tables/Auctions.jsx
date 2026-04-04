@@ -269,6 +269,9 @@ export default function AuctionsTable() {
   const [, setTick] = useState(0);
   const [sourceCount, setSourceCount] = useState(0);
   const rootRef = useRef(null);
+  const listScrollRef = useRef(null);
+  const autoScrollRowRef = useRef(null);
+  const autoScrollKeyRef = useRef("");
   const [availableHeight, setAvailableHeight] = useState(520);
   const [viewportWidth, setViewportWidth] = useState(1024);
 
@@ -323,6 +326,21 @@ export default function AuctionsTable() {
     if (todayRows.length > 0) return null; // keep current "today" highlight rule
     if (futureRows.length < 1) return null;
     return Math.min(...futureRows);
+  }, [auctions]);
+  const autoScrollTargetId = useMemo(() => {
+    const nowMs = Date.now();
+    let bestAuctionId = "";
+    let bestDistance = Infinity;
+    auctions.forEach((auction, idx) => {
+      const ts = toTs(auction?.endAt ?? auction?.endedAt ?? auction?.date);
+      if (!Number.isFinite(ts)) return;
+      const distance = Math.abs(ts - nowMs);
+      if (distance < bestDistance) {
+        bestDistance = distance;
+        bestAuctionId = getAuctionId(auction) || `#${idx + 1}`;
+      }
+    });
+    return bestAuctionId;
   }, [auctions]);
   const now = Date.now();
   const isNarrow = viewportWidth < 560;
@@ -409,6 +427,30 @@ export default function AuctionsTable() {
       cancelled = true;
     };
   }, [selectedInv, API_URL, startDate, endDate]);
+  useEffect(() => {
+    if (selectedInv !== "auctions" || listLoading || listError || auctions.length < 1 || !autoScrollTargetId) return;
+    const runKey = `${startDate}|${endDate}|${autoScrollTargetId}|${auctions.length}`;
+    if (autoScrollKeyRef.current === runKey) return;
+    const scrollEl = listScrollRef.current;
+    const rowEl = autoScrollRowRef.current;
+    if (!scrollEl || !rowEl) return;
+
+    const frame = requestAnimationFrame(() => {
+      const containerRect = scrollEl.getBoundingClientRect();
+      const rowRect = rowEl.getBoundingClientRect();
+      const isVisible = rowRect.top >= containerRect.top && rowRect.bottom <= containerRect.bottom;
+      autoScrollKeyRef.current = runKey;
+      if (isVisible) return;
+
+      const targetScrollTop = rowEl.offsetTop - Math.max(0, (scrollEl.clientHeight / 2) - (rowEl.offsetHeight / 2));
+      scrollEl.scrollTo({
+        top: Math.max(0, targetScrollTop),
+        behavior: "smooth",
+      });
+    });
+
+    return () => cancelAnimationFrame(frame);
+  }, [selectedInv, listLoading, listError, auctions, autoScrollTargetId, startDate, endDate]);
   useEffect(() => {
     if (!farmId) return;
     const currentSelection = (auctionSelectionByFarm?.[farmId] && typeof auctionSelectionByFarm[farmId] === "object")
@@ -586,6 +628,8 @@ export default function AuctionsTable() {
         ) : null}
 
         <div
+          ref={listScrollRef}
+          className="table-container"
           style={{
             ...listScrollStyle,
             opacity: cooldownLeftMs > 0 ? 0.45 : 1,
@@ -634,6 +678,7 @@ export default function AuctionsTable() {
                   return (
                     <tr
                       key={`${auctionId}-${idx}`}
+                      ref={auctionId === autoScrollTargetId ? autoScrollRowRef : null}
                       onClick={() => onSelectAuction(auction)}
                       style={{
                         cursor: "pointer",
@@ -697,7 +742,7 @@ export default function AuctionsTable() {
         </div>
       </div>
 
-      <div style={detailsFrameStyle}>
+      <div className="table-container" style={detailsFrameStyle}>
         {getAuctionItemImg(selectedAuction)
           ? <img
             src={getAuctionItemImg(selectedAuction)}
@@ -786,3 +831,4 @@ export default function AuctionsTable() {
     </div>
   );
 }
+

@@ -26,12 +26,31 @@ function addDays(date, days) {
   return value;
 }
 
+function overlapDays(rangeStart, rangeEnd, blockStart, blockEnd) {
+  if (!rangeStart || !rangeEnd || !blockStart || !blockEnd) return 0;
+  const startMs = Math.max(startOfDay(rangeStart).getTime(), startOfDay(blockStart).getTime());
+  const endMs = Math.min(startOfDay(rangeEnd).getTime(), startOfDay(blockEnd).getTime());
+  if (endMs <= startMs) return 0;
+  return Math.round((endMs - startMs) / (1000 * 60 * 60 * 24));
+}
+
 function startOfWeek(date) {
   const value = startOfDay(date);
   const day = value.getDay();
   const diff = day === 0 ? -6 : 1 - day;
   value.setDate(value.getDate() + diff);
   return value;
+}
+
+function formatBadgeDate(date) {
+  if (!date) return "-";
+  const value = new Date(date);
+  if (Number.isNaN(value.getTime())) return "-";
+  return value.toLocaleDateString("en-US", {
+    weekday: "short",
+    month: "2-digit",
+    day: "2-digit",
+  });
 }
 
 function isTicketReward(entry, imgtkt, tktName) {
@@ -81,12 +100,16 @@ export default function ChapterTable() {
     },
     ui: {
       chapterNpcSelection,
+      chapterNpcCostOverride,
       chapterCurrentTickets,
       chapterBountySelection,
+      chapterBountyCostOverride,
       chapterBountyReplace,
       chapterBountyOverride,
+      chapterBountyRewardType,
       chapterVipDone,
       chapterCostMode,
+      chapterCostType,
       TryChecked,
     },
     actions: {
@@ -110,16 +133,29 @@ export default function ChapterTable() {
   const seasonStartRaw = dataSetFarm?.constants?.dateSeason || "";
   const seasonQuestStartRaw = dataSetFarm?.constants?.dateSeasonDailyStart || seasonStartRaw;
   const seasonEndRaw = dataSetFarm?.constants?.dateSeasonEnd || "";
+  const seasonAuctionTicketWeekStartRaw = dataSetFarm?.constants?.dateSeasonAuctionTicketWeekStart || "";
   const calendarDates = dataSetFarm?.frmData?.calendarDates || [];
   const isDoubleDeliveryActive = dataSetFarm?.frmData?.seasonEvent === "doubledelivery";
   const vipChapterTickets = 740;
   const isTryMode = !!TryChecked;
   const costMode = chapterCostMode === "market" ? "market" : "prod";
   const isMarketCostMode = costMode === "market";
+  const costType = chapterCostType === "custom" ? "custom" : "average";
+  const isCustomCostType = costType === "custom";
   const costModeIconSrc = isMarketCostMode ? marketIconSrc : flowerIconSrc;
   const costModeOptions = [
     { value: "prod", label: "Production", iconSrc: flowerIconSrc },
     { value: "market", label: "Market", iconSrc: marketIconSrc },
+  ];
+  const bountyRewardType = chapterBountyRewardType === "custom" ? "custom" : "actual";
+  const isCustomBountyRewardType = bountyRewardType === "custom";
+  const bountyRewardTypeOptions = [
+    { value: "actual", label: "Actual" },
+    { value: "custom", label: "Custom" },
+  ];
+  const costTypeOptions = [
+    { value: "average", label: "Average" },
+    { value: "custom", label: "Custom" },
   ];
   const handleCostHelpClick = (e) => {
     e?.preventDefault?.();
@@ -151,8 +187,8 @@ export default function ChapterTable() {
     messageEl.style.marginBottom = "12px";
 
     const lines = [
-      { icon: flowerIconSrc, text: "Flower: production prices." },
-      { icon: marketIconSrc, text: "Market: market prices." },
+      { icon: flowerIconSrc, text: ": production prices." },
+      { icon: marketIconSrc, text: ": market prices." },
       { text: "Cost per ticket values are based on the current delivery and bounty prices." },
       { text: "These prices can change from one day or week to the next." },
     ];
@@ -209,21 +245,30 @@ export default function ChapterTable() {
   const deliveryRows = useMemo(() => {
     return Object.entries(orderstable?.orders || {})
       .filter(([, item]) => isTicketReward(item, imgtkt, tktName))
-      .map(([name, item]) => ({
-        key: name,
-        name,
-        reward: Number(getDeliveryBaseReward(item, isDoubleDeliveryActive, isTryMode) || 0),
-        rewardDouble: Number(item?.[isTryMode ? "rewardqtytry" : "rewardqty"] || 0),
-        rewardBase: Number(getDeliveryBaseReward(item, false, isTryMode) || 0),
-        costTkt: Number(getDeliveryBaseReward(item, false, isTryMode) || 0) > 0
+      .map(([name, item]) => {
+        const rewardBase = Number(getDeliveryBaseReward(item, false, isTryMode) || 0);
+        const baseCostTkt = rewardBase > 0
           ? (((isMarketCostMode && (Number(item?.costt || 0) > 0))
             ? Number(item?.costt || 0)
-            : (Number(item?.[isTryMode ? "costtry" : "cost"] || 0) / coinsRatio)) / Number(getDeliveryBaseReward(item, false, isTryMode) || 0))
-          : 0,
-        completed: !!item?.completed,
-        icon: getNpcIcon(name),
-      }));
-  }, [orderstable?.orders, imgtkt, tktName, isDoubleDeliveryActive, coinsRatio, isMarketCostMode, isTryMode]);
+            : (Number(item?.[isTryMode ? "costtry" : "cost"] || 0) / coinsRatio)) / rewardBase)
+          : 0;
+        const overrideRaw = String(chapterNpcCostOverride?.[name] ?? "");
+        const parsedOverride = Number(overrideRaw);
+        const hasOverride = overrideRaw.trim() !== "" && Number.isFinite(parsedOverride) && parsedOverride >= 0;
+        return {
+          key: name,
+          name,
+          reward: Number(getDeliveryBaseReward(item, isDoubleDeliveryActive, isTryMode) || 0),
+          rewardDouble: Number(item?.[isTryMode ? "rewardqtytry" : "rewardqty"] || 0),
+          rewardBase,
+          baseCostTkt,
+          overrideRaw,
+          costTkt: isCustomCostType && hasOverride ? parsedOverride : baseCostTkt,
+          completed: !!item?.completed,
+          icon: getNpcIcon(name),
+        };
+      });
+  }, [orderstable?.orders, imgtkt, tktName, isDoubleDeliveryActive, coinsRatio, isMarketCostMode, isTryMode, chapterNpcCostOverride, isCustomCostType]);
 
   useEffect(() => {
     if (!deliveryRows.length) return;
@@ -233,6 +278,17 @@ export default function ChapterTable() {
       deliveryRows.forEach((row) => {
         if (typeof next[row.key] !== "boolean") {
           next[row.key] = true;
+          hasChanged = true;
+        }
+      });
+      return hasChanged ? next : (prev || next);
+    });
+    setUIField("chapterNpcCostOverride", (prev) => {
+      const next = { ...(prev || {}) };
+      let hasChanged = false;
+      deliveryRows.forEach((row) => {
+        if (typeof next[row.key] !== "string") {
+          next[row.key] = "";
           hasChanged = true;
         }
       });
@@ -277,7 +333,9 @@ export default function ChapterTable() {
       .filter((category) => Number(grouped?.[category]?.reward || 0) > 0)
       .map((category) => {
         const reward = Number(grouped?.[category]?.reward || 0);
-        const totalRewardWithBonus = reward + (category === "Poppy" ? 50 : 0);
+        const done = !!grouped?.[category]?.done;
+        const appliedBonusReward = category === "Poppy" && done ? 50 : 0;
+        const totalRewardWithBonus = reward + appliedBonusReward;
         const totalCost = isMarketCostMode
           ? Number(grouped?.[category]?.market || 0)
           : Number(grouped?.[category]?.cost || 0);
@@ -285,10 +343,11 @@ export default function ChapterTable() {
           key: category,
           label: `Bounty ${category}`,
           reward,
+          appliedBonusReward,
           costTkt: category === "Poppy" && totalRewardWithBonus > 0
             ? totalCost / totalRewardWithBonus
             : 0,
-          done: !!grouped?.[category]?.done,
+          done,
           icon: getCategoryIcon(category),
         });
       });
@@ -328,54 +387,57 @@ export default function ChapterTable() {
       });
       return hasChanged ? next : (prev || next);
     });
+    setUIField("chapterBountyCostOverride", (prev) => {
+      const next = { ...(prev || {}) };
+      let hasChanged = false;
+      rawBountyRows.forEach((row) => {
+        if (typeof next[row.key] !== "string") {
+          next[row.key] = "";
+          hasChanged = true;
+        }
+      });
+      return hasChanged ? next : (prev || next);
+    });
   }, [rawBountyRows, setUIField]);
   const bountyRows = useMemo(() => {
     return rawBountyRows.map((row) => {
       const selected = chapterBountySelection?.[row.key] ?? true;
-      const useOverride = chapterBountyReplace?.[row.key] ?? false;
       const overrideRaw = String(chapterBountyOverride?.[row.key] ?? "");
       const parsedOverride = Number(overrideRaw);
       const hasOverride = overrideRaw.trim() !== "" && Number.isFinite(parsedOverride) && parsedOverride >= 0;
       const baseReward = Number(row.reward || 0);
-      const effectiveReward = useOverride && hasOverride ? parsedOverride : baseReward;
+      const effectiveReward = isCustomBountyRewardType && hasOverride ? parsedOverride : baseReward;
+      const costOverrideRaw = String(chapterBountyCostOverride?.[row.key] ?? "");
+      const parsedCostOverride = Number(costOverrideRaw);
+      const hasCostOverride = costOverrideRaw.trim() !== "" && Number.isFinite(parsedCostOverride) && parsedCostOverride >= 0;
+      const baseCostTkt = Number(baseReward || 0) > 0
+        ? (Number(row.costTkt || 0) * Number(effectiveReward || 0)) / Number(baseReward || 0)
+        : Number(row.costTkt || 0);
+      const effectiveDisplayCostTkt = isCustomCostType && hasCostOverride ? parsedCostOverride : Number(row.costTkt || 0);
       return {
         ...row,
         selected,
-        useOverride,
         overrideRaw,
         baseReward,
         effectiveReward,
-        effectiveCostTkt: Number(baseReward || 0) > 0
-          ? (Number(row.costTkt || 0) * Number(effectiveReward || 0)) / Number(baseReward || 0)
-          : Number(row.costTkt || 0),
+        costOverrideRaw,
+        baseCostTkt,
+        effectiveDisplayCostTkt,
+        effectiveCostTkt: isCustomCostType && hasCostOverride ? parsedCostOverride : baseCostTkt,
       };
     });
-  }, [rawBountyRows, chapterBountySelection, chapterBountyReplace, chapterBountyOverride]);
+  }, [rawBountyRows, chapterBountySelection, chapterBountyOverride, chapterBountyCostOverride, isCustomCostType, isCustomBountyRewardType]);
   const hasPoppyBounties = bountyRows.some((row) => row.key === "Poppy" && row.selected);
+  const poppyBountyRows = useMemo(() => (
+    Object.values(orderstable?.bounties || {}).filter((item) => (
+      isTicketReward(item, imgtkt, tktName) && String(item?.category || "Poppy") === "Poppy"
+    ))
+  ), [orderstable?.bounties, imgtkt, tktName]);
+  const poppyBountiesCompletedCount = poppyBountyRows.filter((item) => !!item?.completed).length;
+  const poppyBountiesTotalCount = poppyBountyRows.length;
   const poppyBountiesDone = bountyRows.find((row) => row.key === "Poppy")?.done ?? false;
   const poppyBonusWeekly = hasPoppyBounties ? 50 : 0;
   const dailyChestDone = isToday(dataSet?.dailychest?.chest || dataSetFarm?.frmData?.dailychest?.chest);
-
-  const selectedNpcTickets = deliveryRows.reduce((sum, row) => {
-    return sum + ((chapterNpcSelection?.[row.key] ?? true) ? row.reward : 0);
-  }, 0);
-  const selectedNpcPendingToday = deliveryRows.reduce((sum, row) => {
-    if (!(chapterNpcSelection?.[row.key] ?? true) || row.completed) return sum;
-    return sum + row.reward;
-  }, 0);
-  const selectedNpcDoubleBonus = deliveryRows.reduce((sum, row) => {
-    if (!(chapterNpcSelection?.[row.key] ?? true)) return sum;
-    return sum + Math.max(0, Number(row.rewardDouble || 0) - Number(row.rewardBase || 0));
-  }, 0);
-  const selectedNpcDoubleBonusPending = deliveryRows.reduce((sum, row) => {
-    if (!(chapterNpcSelection?.[row.key] ?? true) || row.completed) return sum;
-    return sum + Number(row.rewardBase || 0);
-  }, 0);
-  const selectedNpcDoubleBonusBase = deliveryRows.reduce((sum, row) => {
-    if (!(chapterNpcSelection?.[row.key] ?? true)) return sum;
-    return sum + Number(row.rewardBase || 0);
-  }, 0);
-  const weeklyTickets = choresTickets + bountyRows.reduce((sum, row) => sum + (row.selected ? row.effectiveReward : 0), 0) + poppyBonusWeekly;
   const dailyChestTickets = 1;
 
   const autoDaysRemaining = useMemo(() => {
@@ -411,11 +473,71 @@ export default function ChapterTable() {
   const remainingWeeksValue = Math.ceil(Math.max(0, remainingDaysValue) / 7);
   const totalChapterWeeksValue = Math.ceil(Math.max(0, totalChapterDaysValue) / 7);
   const totalQuestWeeksValue = Math.ceil(Math.max(0, totalQuestDaysValue) / 7);
-  const futureExtraDays = Math.max(0, remainingDaysValue - 1);
-  const futureExtraWeeks = Math.max(0, remainingWeeksValue - 1);
   const todayStart = startOfDay(new Date());
+  const seasonQuestStartDate = seasonQuestStartRaw ? startOfDay(seasonQuestStartRaw) : null;
+  const seasonEndDate = seasonEndRaw ? startOfDay(seasonEndRaw) : null;
+  const auctionTicketWeekStart = seasonAuctionTicketWeekStartRaw ? startOfDay(seasonAuctionTicketWeekStartRaw) : null;
+  const auctionTicketWeekEnd = auctionTicketWeekStart ? addDays(auctionTicketWeekStart, 7) : null;
+  const totalQuestAuctionBlockedDays = overlapDays(seasonQuestStartDate, seasonEndDate, auctionTicketWeekStart, auctionTicketWeekEnd);
+  const futureQuestAuctionBlockedDays = overlapDays(addDays(todayStart, 1), seasonEndDate, auctionTicketWeekStart, auctionTicketWeekEnd);
+  const adjustedQuestDaysValue = Math.max(0, totalQuestDaysValue - totalQuestAuctionBlockedDays);
+  const todayInAuctionTicketWeek = !!(
+    auctionTicketWeekStart
+    && auctionTicketWeekEnd
+    && todayStart.getTime() >= auctionTicketWeekStart.getTime()
+    && todayStart.getTime() < auctionTicketWeekEnd.getTime()
+  );
+  const todayQuestEligible = !!(
+    seasonQuestStartDate
+    && seasonEndDate
+    && todayStart.getTime() >= seasonQuestStartDate.getTime()
+    && todayStart.getTime() < seasonEndDate.getTime()
+    && !todayInAuctionTicketWeek
+  );
+  const futureExtraDays = Math.max(0, remainingDaysValue - 1 - futureQuestAuctionBlockedDays);
   const currentWeekStart = startOfWeek(todayStart);
   const nextWeekBoundary = addDays(currentWeekStart, 7);
+  const auctionTicketWeekInQuestTotal = !!(
+    auctionTicketWeekStart
+    && auctionTicketWeekEnd
+    && seasonQuestStartDate
+    && seasonEndDate
+    && auctionTicketWeekEnd.getTime() > seasonQuestStartDate.getTime()
+    && auctionTicketWeekStart.getTime() < seasonEndDate.getTime()
+  );
+  const auctionTicketWeekFuture = !!(
+    auctionTicketWeekStart
+    && seasonEndDate
+    && auctionTicketWeekStart.getTime() > currentWeekStart.getTime()
+    && auctionTicketWeekStart.getTime() < seasonEndDate.getTime()
+  );
+  const adjustedQuestWeeksValue = Math.max(0, totalQuestWeeksValue - (auctionTicketWeekInQuestTotal ? 1 : 0));
+  const futureExtraWeeks = Math.max(0, remainingWeeksValue - 1 - (auctionTicketWeekFuture ? 1 : 0));
+  const currentWeekQuestEligible = !todayInAuctionTicketWeek;
+  const seasonStartLabel = formatBadgeDate(seasonStartRaw);
+  const seasonQuestStartLabel = formatBadgeDate(seasonQuestStartRaw);
+  const auctionTicketWeekStartLabel = formatBadgeDate(seasonAuctionTicketWeekStartRaw);
+  const selectedNpcTickets = deliveryRows.reduce((sum, row) => {
+    return sum + ((chapterNpcSelection?.[row.key] ?? true) ? row.reward : 0);
+  }, 0);
+  const selectedNpcPendingToday = deliveryRows.reduce((sum, row) => {
+    if (!todayQuestEligible || !(chapterNpcSelection?.[row.key] ?? true) || row.completed) return sum;
+    return sum + row.reward;
+  }, 0);
+  const selectedNpcDoubleBonus = deliveryRows.reduce((sum, row) => {
+    if (!(chapterNpcSelection?.[row.key] ?? true)) return sum;
+    return sum + Math.max(0, Number(row.rewardDouble || 0) - Number(row.rewardBase || 0));
+  }, 0);
+  const selectedNpcDoubleBonusPending = deliveryRows.reduce((sum, row) => {
+    if (!(chapterNpcSelection?.[row.key] ?? true) || row.completed) return sum;
+    return sum + Number(row.rewardBase || 0);
+  }, 0);
+  const selectedNpcDoubleBonusBase = deliveryRows.reduce((sum, row) => {
+    if (!(chapterNpcSelection?.[row.key] ?? true)) return sum;
+    return sum + Number(row.rewardBase || 0);
+  }, 0);
+  const baseWeeklyTickets = choresTickets + bountyRows.reduce((sum, row) => sum + (row.selected ? row.effectiveReward : 0), 0) + poppyBonusWeekly;
+  const weeklyTickets = currentWeekQuestEligible ? baseWeeklyTickets : 0;
   const doubleDeliveryDates = useMemo(() => {
     return (calendarDates || [])
       .filter((entry) => entry?.name === "doubleDelivery" && entry?.date)
@@ -435,16 +557,21 @@ export default function ChapterTable() {
   ));
   const doubleDeliveryDoneThisWeek = hasCalendarDoubleDeliveryInfo && !isDoubleDeliveryActive && !hasUpcomingDoubleDeliveryThisWeek;
   const remainingTodayDoubleDeliveryBonus = isDoubleDeliveryActive ? selectedNpcDoubleBonusPending : 0;
-  const currentWeekDoubleDeliveryBonus = isDoubleDeliveryActive || hasDoubleDeliveryToday
-    ? selectedNpcDoubleBonusPending
-    : (hasUpcomingDoubleDeliveryThisWeek ? selectedNpcDoubleBonusBase : 0);
+  const currentWeekDoubleDeliveryBonus = !currentWeekQuestEligible
+    ? 0
+    : isDoubleDeliveryActive || hasDoubleDeliveryToday
+      ? selectedNpcDoubleBonusPending
+      : (hasUpcomingDoubleDeliveryThisWeek ? selectedNpcDoubleBonusBase : 0);
   const chapterDoubleDeliveryBonus = currentWeekDoubleDeliveryBonus + (selectedNpcDoubleBonusBase * futureExtraWeeks);
-  const totalFromZeroDoubleDeliveryBonus = selectedNpcDoubleBonusBase * totalQuestWeeksValue;
-  const weekDoubleDeliveryBonus = selectedNpcDoubleBonusBase;
-  const currentWeekPendingTickets =
-    choresPendingTickets
-    + bountyRows.reduce((sum, row) => sum + ((row.selected && !row.done) ? row.effectiveReward : 0), 0)
-    + ((hasPoppyBounties && !poppyBountiesDone) ? poppyBonusWeekly : 0);
+  const totalFromZeroDoubleDeliveryBonus = selectedNpcDoubleBonusBase * adjustedQuestWeeksValue;
+  const weekDoubleDeliveryBonus = currentWeekQuestEligible ? selectedNpcDoubleBonusBase : 0;
+  const currentWeekPendingTickets = currentWeekQuestEligible
+    ? (
+      choresPendingTickets
+      + bountyRows.reduce((sum, row) => sum + ((row.selected && !row.done) ? row.effectiveReward : 0), 0)
+      + ((hasPoppyBounties && !poppyBountiesDone) ? poppyBonusWeekly : 0)
+    )
+    : 0;
   const projectedEndSeasonTickets =
     currentTicketsValue
     + selectedNpcPendingToday
@@ -471,37 +598,37 @@ export default function ChapterTable() {
     + chapterDoubleDeliveryBonus
     + vipChapterPendingTickets;
   const totalFromZeroTickets =
-    (selectedNpcTickets * totalQuestDaysValue)
+    (selectedNpcTickets * adjustedQuestDaysValue)
     + (dailyChestTickets * totalChapterDaysValue)
-    + (weeklyTickets * totalQuestWeeksValue)
+    + (baseWeeklyTickets * adjustedQuestWeeksValue)
     + totalFromZeroDoubleDeliveryBonus
     + vipChapterTickets;
   const dailyChestChapterLeft = (dailyChestDone ? 0 : dailyChestTickets) + (dailyChestTickets * futureExtraDays);
   const dailyChestChapterTotal = dailyChestTickets * totalChapterDaysValue;
-  const choresChapterLeft = choresPendingTickets + (choresTickets * futureExtraWeeks);
-  const choresChapterTotal = choresTickets * totalQuestWeeksValue;
-  const bountyChapterLeft = bountyRows.reduce((sum, row) => sum + (row.selected ? ((row.done ? 0 : row.effectiveReward) + (row.effectiveReward * futureExtraWeeks)) : 0), 0);
-  const bountyChapterTotal = bountyRows.reduce((sum, row) => sum + (row.selected ? (row.effectiveReward * totalQuestWeeksValue) : 0), 0);
-  const poppyChapterLeft = hasPoppyBounties ? ((poppyBountiesDone ? 0 : poppyBonusWeekly) + (poppyBonusWeekly * futureExtraWeeks)) : 0;
-  const poppyChapterTotal = hasPoppyBounties ? (poppyBonusWeekly * totalQuestWeeksValue) : 0;
+  const choresChapterLeft = (currentWeekQuestEligible ? choresPendingTickets : 0) + (choresTickets * futureExtraWeeks);
+  const choresChapterTotal = choresTickets * adjustedQuestWeeksValue;
+  const bountyChapterLeft = bountyRows.reduce((sum, row) => sum + (row.selected ? (((currentWeekQuestEligible && !row.done) ? row.effectiveReward : 0) + (row.effectiveReward * futureExtraWeeks)) : 0), 0);
+  const bountyChapterTotal = bountyRows.reduce((sum, row) => sum + (row.selected ? (row.effectiveReward * adjustedQuestWeeksValue) : 0), 0);
+  const poppyChapterLeft = hasPoppyBounties ? (((currentWeekQuestEligible && !poppyBountiesDone) ? poppyBonusWeekly : 0) + (poppyBonusWeekly * futureExtraWeeks)) : 0;
+  const poppyChapterTotal = hasPoppyBounties ? (poppyBonusWeekly * adjustedQuestWeeksValue) : 0;
   const totalNpcCostLeft = deliveryRows.reduce((sum, row) => {
     if (!(chapterNpcSelection?.[row.key] ?? true)) return sum;
-    const rowChapterLeft = (row.completed ? 0 : row.reward) + (row.reward * futureExtraDays);
+    const rowChapterLeft = (todayQuestEligible && !row.completed ? row.reward : 0) + (row.reward * futureExtraDays);
     return sum + (Number(row.costTkt || 0) * rowChapterLeft);
   }, 0);
   const totalNpcCostTotal = deliveryRows.reduce((sum, row) => {
     if (!(chapterNpcSelection?.[row.key] ?? true)) return sum;
-    const rowChapterTotal = row.reward * totalQuestDaysValue;
+    const rowChapterTotal = row.reward * adjustedQuestDaysValue;
     return sum + (Number(row.costTkt || 0) * rowChapterTotal);
   }, 0);
   const totalBountyCostLeft = bountyRows.reduce((sum, row) => {
     if (!row.selected || Number(row.effectiveCostTkt || 0) <= 0) return sum;
-    const rowChapterLeft = (row.done ? 0 : row.effectiveReward) + (row.effectiveReward * futureExtraWeeks);
+    const rowChapterLeft = ((currentWeekQuestEligible && !row.done) ? row.effectiveReward : 0) + (row.effectiveReward * futureExtraWeeks);
     return sum + (Number(row.effectiveCostTkt || 0) * rowChapterLeft);
   }, 0);
   const totalBountyCostTotal = bountyRows.reduce((sum, row) => {
     if (!row.selected || Number(row.effectiveCostTkt || 0) <= 0) return sum;
-    const rowChapterTotal = row.effectiveReward * totalQuestWeeksValue;
+    const rowChapterTotal = row.effectiveReward * adjustedQuestWeeksValue;
     return sum + (Number(row.effectiveCostTkt || 0) * rowChapterTotal);
   }, 0);
   const selectedAverageCostTickets = deliveryRows.reduce((sum, row) => {
@@ -509,7 +636,8 @@ export default function ChapterTable() {
     return sum + Number(row.reward || 0);
   }, 0) + bountyRows.reduce((sum, row) => {
     if (!row.selected || row.key !== "Poppy" || Number(row.effectiveReward || 0) <= 0) return sum;
-    return sum + Number(row.effectiveReward || 0);
+    const appliedBonusReward = row.done ? Number(row.appliedBonusReward || 0) : 0;
+    return sum + Number(row.effectiveReward || 0) + appliedBonusReward;
   }, 0);
   const selectedAverageCostTotal = deliveryRows.reduce((sum, row) => {
     if (!(chapterNpcSelection?.[row.key] ?? true) || Number(row.reward || 0) <= 0) return sum;
@@ -580,46 +708,18 @@ export default function ChapterTable() {
       <span style={{ fontSize: "12px", whiteSpace: "nowrap", display: "inline-flex", alignItems: "center", gap: "2px" }}>
         End season: {frmtNb(projectedEndSeasonTickets)}
       </span>
-      <span style={{ display: "block", flexBasis: "100%", height: 0 }} />
-      <span style={{ fontSize: "12px", display: "inline-flex", alignItems: "center", gap: "4px", flexWrap: "wrap" }}>
-        {bountyRows.map((row) => (
-          <span key={`badge-${row.key}`} style={{ display: "inline-flex", alignItems: "center", gap: "2px" }}>
-            <input
-              type="checkbox"
-              checked={!!row.useOverride}
-              onChange={(e) => {
-                setUIField("chapterBountyReplace", (prev) => ({
-                  ...(prev || {}),
-                  [row.key]: !!e.target.checked,
-                }));
-              }}
-              style={{ width: "14px", height: "14px" }}
-            />
-            <img src={row.icon} alt="" className="itico" />
-            <span>{row.key}</span>
-            <input
-              type="number"
-              min="0"
-              value={row.overrideRaw}
-              placeholder={String(row.baseReward)}
-              onChange={(e) => {
-                setUIField("chapterBountyOverride", (prev) => ({
-                  ...(prev || {}),
-                  [row.key]: e.target.value,
-                }));
-              }}
-              disabled={!row.useOverride}
-              style={{ width: "38px", height: "18px" }}
-            />
-          </span>
-        ))}
+      <span
+        style={{
+          fontSize: "11px",
+          width: "100%",
+          color: "rgba(255, 255, 255, 0.82)",
+          whiteSpace: "normal",
+        }}
+      >
+        Season start: {seasonStartLabel} | Tickets start: {seasonQuestStartLabel} | Auctions week: {auctionTicketWeekStartLabel}
       </span>
     </div>
   );
-
-  if (!dataSet?.options?.isAbo) {
-    return <div>Chapter is reserved to abo farms.</div>;
-  }
 
   return (
     <>
@@ -655,7 +755,7 @@ export default function ChapterTable() {
             <th className="thcenter" rowSpan="2">Source</th>
             <th className="thcenter" rowSpan="2">Done</th>
             <th className="thcenter" rowSpan="2">Daily</th>
-            <th className="thcenter" rowSpan="2">Week</th>
+            <th className="thcenter">Week</th>
             <th className="thcenter" colSpan="2"><span style={{ display: "inline-flex", alignItems: "center", gap: "4px" }}>Chapter<img src={imgtkt} alt="" className="itico" /></span></th>
             <th className="thcenter"><img src={costModeIconSrc} alt="" className="itico" />/{imgTKT}</th>
             <th className="thcenter" colSpan="2">
@@ -672,7 +772,7 @@ export default function ChapterTable() {
                     emitEvent={false}
                     iconOnly
                     menuIconOnly
-                    menuMinWidth={42}
+                    //menuMinWidth={42}
                   />
                 </span>
                 <button
@@ -688,9 +788,30 @@ export default function ChapterTable() {
             </th>
           </tr>
           <tr ref={chapterHeaderSubRowRef}>
+            <th className="thcenter">
+              <DList
+                name="chapterBountyRewardType"
+                options={bountyRewardTypeOptions}
+                value={bountyRewardType}
+                onChange={(value) => setUIField("chapterBountyRewardType", value)}
+                clearable={false}
+                emitEvent={false}
+                menuMinWidth={0}
+              />
+            </th>
             <th className="thcenter">Left</th>
             <th className="thcenter">Total</th>
-            <th className="thcenter">Average</th>
+            <th className="thcenter">
+              <DList
+                name="chapterCostType"
+                options={costTypeOptions}
+                value={costType}
+                onChange={(value) => setUIField("chapterCostType", value)}
+                clearable={false}
+                emitEvent={false}
+                width="auto"
+              />
+            </th>
             <th className="thcenter">Left</th>
             <th className="thcenter">Total</th>
           </tr>
@@ -711,8 +832,8 @@ export default function ChapterTable() {
         <tbody>
           {deliveryRows.map((row) => {
             const isChecked = chapterNpcSelection?.[row.key] ?? true;
-            const chapterTickets = (row.completed ? 0 : row.reward) + (row.reward * futureExtraDays);
-            const zeroTickets = row.reward * totalQuestDaysValue;
+            const chapterTickets = (todayQuestEligible && !row.completed ? row.reward : 0) + (row.reward * futureExtraDays);
+            const zeroTickets = row.reward * adjustedQuestDaysValue;
             return (
               <tr key={row.key} style={isChecked ? undefined : { opacity: 0.45 }}>
                 <td className="tdcenter chapter-check-sticky">
@@ -735,7 +856,24 @@ export default function ChapterTable() {
                 <td className="tdcenter">{frmtNb(row.reward * 7)}</td>
                 <td className="tdcenter">{frmtNb(chapterTickets)}</td>
                 <td className="tdcenter">{frmtNb(zeroTickets)}</td>
-                <td className="tdcenter">{frmtNb(row.costTkt)}</td>
+                <td className="tdcenter">
+                  {isCustomCostType ? (
+                    <input
+                      type="number"
+                      min="0"
+                      step="0.01"
+                      value={row.overrideRaw}
+                      placeholder={Number.isFinite(row.baseCostTkt) ? String(frmtNb(row.baseCostTkt)) : ""}
+                      onChange={(e) => {
+                        setUIField("chapterNpcCostOverride", (prev) => ({
+                          ...(prev || {}),
+                          [row.key]: e.target.value,
+                        }));
+                      }}
+                      style={{ width: "58px", height: "18px" }}
+                    />
+                  ) : frmtNb(row.costTkt)}
+                </td>
                 <td className="tdcenter">{frmtNb(row.costTkt * chapterTickets)}</td>
                 <td className="tdcenter">{frmtNb(row.costTkt * zeroTickets)}</td>
               </tr>
@@ -762,7 +900,7 @@ export default function ChapterTable() {
             <td className="tdcenter">{frmtNb(selectedNpcTickets)}</td>
             <td className="tdcenter">{frmtNb(selectedNpcTickets * 7)}</td>
             <td className="tdcenter">{frmtNb(selectedNpcPendingToday + (selectedNpcTickets * futureExtraDays))}</td>
-            <td className="tdcenter">{frmtNb(selectedNpcTickets * totalQuestDaysValue)}</td>
+            <td className="tdcenter">{frmtNb(selectedNpcTickets * adjustedQuestDaysValue)}</td>
             <td className="tdcenter"></td>
             <td className="tdcenter"></td>
             <td className="tdcenter"></td>
@@ -810,14 +948,52 @@ export default function ChapterTable() {
               </td>
               <td id="iccolumn" className="chapter-icon-sticky"><img src={row.icon} alt="" className="itico" /></td>
               <td className="tditem">{row.label}</td>
-              <td className="tdcenter">{row.done ? imgDone : imgCancel}</td>
+              <td className="tdcenter">
+                {row.key === "Poppy" && !row.done
+                  ? (poppyBountiesTotalCount > 0 ? `${poppyBountiesCompletedCount}/${poppyBountiesTotalCount}` : "-")
+                  : (row.done ? imgDone : imgCancel)}
+              </td>
               <td className="tdcenter"></td>
-              <td className="tdcenter">{frmtNb(row.effectiveReward)}</td>
-              <td className="tdcenter">{frmtNb((row.done ? 0 : row.effectiveReward) + (row.effectiveReward * futureExtraWeeks))}</td>
-              <td className="tdcenter">{frmtNb(row.effectiveReward * totalQuestWeeksValue)}</td>
-              <td className="tdcenter">{row.selected && row.effectiveCostTkt > 0 ? frmtNb(row.effectiveCostTkt) : ""}</td>
-              <td className="tdcenter">{row.selected && row.effectiveCostTkt > 0 ? frmtNb(row.effectiveCostTkt * ((row.done ? 0 : row.effectiveReward) + (row.effectiveReward * futureExtraWeeks))) : ""}</td>
-              <td className="tdcenter">{row.selected && row.effectiveCostTkt > 0 ? frmtNb(row.effectiveCostTkt * (row.effectiveReward * totalQuestWeeksValue)) : ""}</td>
+              <td className="tdcenter">
+                {isCustomBountyRewardType ? (
+                  <input
+                    type="number"
+                    min="0"
+                    step="1"
+                    value={row.overrideRaw}
+                    placeholder={Number.isFinite(row.baseReward) ? String(frmtNb(row.baseReward)) : ""}
+                    onChange={(e) => {
+                      setUIField("chapterBountyOverride", (prev) => ({
+                        ...(prev || {}),
+                        [row.key]: e.target.value,
+                      }));
+                    }}
+                    style={{ width: "44px", height: "18px" }}
+                  />
+                ) : frmtNb(row.effectiveReward)}
+              </td>
+              <td className="tdcenter">{frmtNb(((currentWeekQuestEligible && !row.done) ? row.effectiveReward : 0) + (row.effectiveReward * futureExtraWeeks))}</td>
+              <td className="tdcenter">{frmtNb(row.effectiveReward * adjustedQuestWeeksValue)}</td>
+              <td className="tdcenter">
+                {row.key === "Poppy" && isCustomCostType ? (
+                  <input
+                    type="number"
+                    min="0"
+                    step="0.01"
+                    value={row.costOverrideRaw}
+                    placeholder={Number.isFinite(row.baseCostTkt) ? String(frmtNb(row.baseCostTkt)) : ""}
+                onChange={(e) => {
+                      setUIField("chapterBountyCostOverride", (prev) => ({
+                        ...(prev || {}),
+                        [row.key]: e.target.value,
+                      }));
+                    }}
+                    style={{ width: "58px", height: "18px" }}
+                  />
+                ) : (row.selected && row.effectiveDisplayCostTkt > 0 ? frmtNb(row.effectiveDisplayCostTkt) : "")}
+              </td>
+              <td className="tdcenter">{row.selected && row.effectiveCostTkt > 0 ? frmtNb(row.effectiveCostTkt * (((currentWeekQuestEligible && !row.done) ? row.effectiveReward : 0) + (row.effectiveReward * futureExtraWeeks))) : ""}</td>
+              <td className="tdcenter">{row.selected && row.effectiveCostTkt > 0 ? frmtNb(row.effectiveCostTkt * (row.effectiveReward * adjustedQuestWeeksValue)) : ""}</td>
             </tr>
           ))}
           {poppyBonusWeekly > 0 ? (
