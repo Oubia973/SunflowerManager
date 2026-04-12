@@ -1364,6 +1364,7 @@ const Tooltip = ({ onClose, item, context, value, clickPosition, dataSet, dataSe
                 tradesHeader={tradesFromValue?.ftradesHeader ?? dataSetFarm?.ftradesHeader}
                 itables={{ it, fish, flower, petit }}
                 boostables={{ nft, nftw }}
+                tradeTax={dataSet?.options?.tradeTax || 0}
             />;
         }
         if (context === "balance") {

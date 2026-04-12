@@ -51,7 +51,7 @@ const NFT_TOTAL_COST_OPTIONS = [
   { value: "market", label: "Market", iconSrc: "./icon/ui/exchange.png" },
 ];
 const TRYSET_SEASON_OPTIONS = [
-  { value: "all", label: "All" },
+  { value: "all", label: "Current" },
   { value: "spring", label: <img src="./icon/ui/spring.webp" alt="" className="seasonico" title="Spring" style={{ width: "18px", height: "18px" }} /> },
   { value: "summer", label: <img src="./icon/ui/summer.webp" alt="" className="seasonico" title="Summer" style={{ width: "18px", height: "18px" }} /> },
   { value: "autumn", label: <img src="./icon/ui/autumn.webp" alt="" className="seasonico" title="Autumn" style={{ width: "18px", height: "18px" }} /> },
@@ -103,6 +103,7 @@ function ModalTNFT({ onClose }) {
   const activeBaselineRef = useRef(JSON.parse(JSON.stringify(dataSetFarm || {})));
   const deepClone = (obj) => JSON.parse(JSON.stringify(obj || {}));
   const lastSentTryRef = useRef(null);
+  const resetToActivePendingRef = useRef(false);
   const hasTryNftTables = !!dataSetLocal?.boostables && !!dataSetLocal?.itables?.it;
   const [tableNFT, settableNFT] = useState([]);
   const [tableContent, settableContent] = useState([]);
@@ -362,6 +363,7 @@ function ModalTNFT({ onClose }) {
       }
       const cur = dataSetLocal || {};
       const base = lastSentTryRef.current || dataSetLocal || {};
+      const forceActiveTryRefresh = resetToActivePendingRef.current === true;
       const tryItPacked = { mode: "idx-v1", tables: {} };
       const getByPath = (obj, path) => {
         return String(path || "").split(".").reduce((acc, key) => (acc ? acc[key] : undefined), obj);
@@ -447,8 +449,8 @@ function ModalTNFT({ onClose }) {
         username: dataSet?.options?.username || dataSet?.username || dataSetLocal?.username || "",
         simulatedSeason: selectedTrySeason,
         tryitarrays: {},
-        tryitpacked: tryItPacked,
-        tryitMode: "delta",
+        tryitpacked: forceActiveTryRefresh ? { mode: "idx-v1", tables: {} } : tryItPacked,
+        tryitMode: forceActiveTryRefresh ? "active" : "delta",
         include: ["core", "inventory", "boosts"],
         page: "trynft",
         knownHashes: (dataSetLocal?.sectionHashes && typeof dataSetLocal.sectionHashes === "object")
@@ -476,6 +478,7 @@ function ModalTNFT({ onClose }) {
         setdataSetLocal(mergedData);
         // Delta baseline must follow what we sent, not what server returned partially.
         lastSentTryRef.current = deepClone(cur);
+        resetToActivePendingRef.current = false;
         handleRefreshfTNFT(dataSet, mergedData);
         setRefreshBaselineSig(buildTryRefreshSignature(mergedData, selectedTrySeason));
         setShowTryRefreshHalo(false);
@@ -497,7 +500,35 @@ function ModalTNFT({ onClose }) {
   const Reset = () => {
     try {
       const baseline = activeBaselineRef.current || {};
-      const baselineIt = baseline?.itables?.it || {};
+      const resetItemTablesToActive = () => {
+        const nextItables = { ...(dataSetLocal.itables || {}) };
+        Object.entries(tryitConfig?.itemTables || {}).forEach(([, tableCfg]) => {
+          const field = tableCfg?.field;
+          const baseField = tableCfg?.baseField || field;
+          const sources = Array.isArray(tableCfg?.sources) ? tableCfg.sources : [];
+          if (!field || !baseField || sources.length < 1) return;
+          sources.forEach((sourcePath) => {
+            const [, tableName] = String(sourcePath || "").split(".");
+            if (!tableName || !nextItables?.[tableName]) return;
+            const currentTable = nextItables[tableName] || {};
+            const baselineTable = baseline?.itables?.[tableName] || {};
+            nextItables[tableName] = Object.fromEntries(
+              Object.entries(currentTable).map(([itemName, value]) => {
+                const baselineValue = baselineTable?.[itemName]?.[baseField];
+                const fallbackValue = value?.[baseField] ?? value?.[field] ?? 0;
+                return [
+                  itemName,
+                  {
+                    ...(value || {}),
+                    [field]: baselineValue ?? fallbackValue,
+                  },
+                ];
+              })
+            );
+          });
+        });
+        return nextItables;
+      };
       const newDataSet = {
         ...dataSetLocal,
         boostables: {
@@ -510,23 +541,9 @@ function ModalTNFT({ onClose }) {
           bud: Object.fromEntries(Object.entries(dataSetLocal.boostables.bud).map(([key, value]) => [key, { ...value, tryit: value.isactive }])),
           shrine: Object.fromEntries(Object.entries(dataSetLocal.boostables.shrine).map(([key, value]) => [key, { ...value, tryit: value.isactive }])),
         },
-        itables: {
-          ...dataSetLocal.itables,
-          //it: Object.fromEntries(Object.entries(dataSetLocal.it).map(([key, value]) => [key, { ...value, spottry: value.spot }])),
-          it: Object.fromEntries(
-            Object.entries(dataSetLocal.itables.it).map(([key, value]) => [
-              key,
-              {
-                ...value,
-                // Reset to active spots captured at modal load.
-                spottry: baselineIt?.[key]?.spot ?? value.spot ?? 0,
-                spot2try: baselineIt?.[key]?.spot2 ?? value.spot2 ?? 0,
-                spot3try: baselineIt?.[key]?.spot3 ?? value.spot3 ?? 0,
-              },
-            ])
-          ),
-        }
+        itables: resetItemTablesToActive(),
       };
+      resetToActivePendingRef.current = true;
       setdataSetLocal(newDataSet);
       handleRefreshfTNFT(dataSet, newDataSet);
     } catch (error) {
@@ -562,6 +579,7 @@ function ModalTNFT({ onClose }) {
           ),
         }
       };
+      resetToActivePendingRef.current = false;
       setdataSetLocal(newDataSet);
       handleRefreshfTNFT(dataSet, newDataSet);
       //setNFT(dataSetLocal);
@@ -748,6 +766,7 @@ function ModalTNFT({ onClose }) {
           [baseName]: newBase,
         },
       };
+      resetToActivePendingRef.current = false;
       setdataSetLocal(newDataSetLocal);
       handleRefreshfTNFT(dataSet, newDataSetLocal);
       setTotBuyCheck(true);
@@ -767,6 +786,7 @@ function ModalTNFT({ onClose }) {
     if (!Object.prototype.hasOwnProperty.call(it, item)) return;
     const newIt = { ...it, [item]: { ...it[item], buyit: it[item]?.buyit === 1 ? 0 : 1, }, };
     const newDataSetLocal = { ...dataSetLocal, itables: { ...itables, it: newIt, }, };
+    resetToActivePendingRef.current = false;
     setdataSetLocal(newDataSetLocal);
     handleRefreshfTNFT(dataSet, newDataSetLocal);
 
@@ -808,6 +828,7 @@ function ModalTNFT({ onClose }) {
       newIt = { ...it, [item]: { ...it[item], [keySpot]: xvalue }, };
     }
     const newDataSetLocal = { ...dataSetLocal, itables: { ...dataSetLocal.itables, it: newIt, }, };
+    resetToActivePendingRef.current = false;
     //const newbase = { ...it, [item]: { ...it[item], [keySpot]: xvalue } };
     //const newDataSetLocal = { ...dataSetLocal, ["it"]: newbase };
     setdataSetLocal(newDataSetLocal);

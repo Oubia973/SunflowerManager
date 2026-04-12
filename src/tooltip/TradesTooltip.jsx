@@ -13,16 +13,29 @@ function normalizeTradeType(value) {
 }
 
 function getTradeType(itemName, tables, boostables, fallbackType) {
-    const normalizedFallback = normalizeTradeType(fallbackType);
-    if (normalizedFallback !== "other") return normalizedFallback;
     const safeName = String(itemName || "");
     const { it, petit, fish, flower } = tables || {};
     const { nft, nftw } = boostables || {};
-    if (/\bbud\b/i.test(safeName)) return "bud";
+    if (petit?.[itemName]) return "resources";
+    if (boostables?.bud?.[itemName] || /\bbud\b/i.test(safeName)) return "bud";
     if (/\bpet\b/i.test(safeName)) return "pet";
     if (nft?.[itemName] || nftw?.[itemName]) return "nft";
-    if (it?.[itemName] || petit?.[itemName] || fish?.[itemName] || flower?.[itemName]) return "resources";
+    const normalizedFallback = normalizeTradeType(fallbackType);
+    if (normalizedFallback !== "other") return normalizedFallback;
+    if (it?.[itemName] || fish?.[itemName] || flower?.[itemName]) return "resources";
     return "other";
+}
+
+function applyCategoryTax(amount, tradeType, resourcesTaxRate) {
+    const numericAmount = Number(amount || 0);
+    if (!numericAmount) return 0;
+    if (tradeType === "resources") {
+        return numericAmount * (1 - resourcesTaxRate);
+    }
+    if (tradeType === "nft" || tradeType === "bud" || tradeType === "pet" || tradeType === "other") {
+        return numericAmount * 0.9;
+    }
+    return numericAmount;
 }
 
 function resolveMarketData(itemName, quantity, sources, fallbackUnitFloor = 0) {
@@ -61,7 +74,7 @@ function resolveMarketData(itemName, quantity, sources, fallbackUnitFloor = 0) {
     return { marketPrice, itemImg };
 }
 
-const TradesTooltip = ({ trades, tradesHeader, itables, boostables }) => {
+const TradesTooltip = ({ trades, tradesHeader, itables, boostables, tradeTax = 0 }) => {
     const tradeRows = trades && typeof trades === "object" ? Object.values(trades) : [];
     const headerRows = Array.isArray(tradesHeader) ? tradesHeader.filter((row) => row?.name) : [];
     const headerImgByName = Object.fromEntries(
@@ -79,6 +92,7 @@ const TradesTooltip = ({ trades, tradesHeader, itables, boostables }) => {
 
     const { nft, nftw } = boostables || {};
     const { it, fish, flower, petit } = itables || {};
+    const resourcesTaxRate = Number(tradeTax || 0) / 100;
     const totalsByType = {
         resources: { ...EMPTY_TOTAL, label: "Resources" },
         nft: { ...EMPTY_TOTAL, label: "Boosts" },
@@ -187,13 +201,17 @@ const TradesTooltip = ({ trades, tradesHeader, itables, boostables }) => {
             <tfoot>
                 {totalRows.map((totalsRow, rowIndex, allRows) => {
                     const bottomOffset = (allRows.length - 1 - rowIndex) * 22;
+                    const tradeType = Object.entries(totalsByType).find(([, value]) => value === totalsRow)?.[0] || "other";
+                    const soldPriceNet = applyCategoryTax(totalsRow.soldPrice, tradeType, resourcesTaxRate);
+                    const priceNet = applyCategoryTax(totalsRow.price, tradeType, resourcesTaxRate);
+                    const marketPriceNet = applyCategoryTax(totalsRow.marketPrice, tradeType, resourcesTaxRate);
                     return (
                         <tr key={`${totalsRow.label}-${rowIndex}`} className="tooltip-trades-total-row">
                             <td className="tdcenterbrd" style={{ bottom: `${bottomOffset}px` }}>{totalsRow.label}</td>
                             <td className="tdcenterbrd" style={{ bottom: `${bottomOffset}px` }}></td>
-                            <td className="tdcenterbrd" style={{ bottom: `${bottomOffset}px` }}>{frmtNb(totalsRow.soldPrice)}</td>
-                            <td className="tdcenterbrd" style={{ bottom: `${bottomOffset}px` }}>{frmtNb(totalsRow.price)}</td>
-                            <td className="tdcenterbrd" style={{ bottom: `${bottomOffset}px` }}>{frmtNb(totalsRow.marketPrice)}</td>
+                            <td className="tdcenterbrd" style={{ bottom: `${bottomOffset}px` }}>{frmtNb(soldPriceNet)}</td>
+                            <td className="tdcenterbrd" style={{ bottom: `${bottomOffset}px` }}>{frmtNb(priceNet)}</td>
+                            <td className="tdcenterbrd" style={{ bottom: `${bottomOffset}px` }}>{frmtNb(marketPriceNet)}</td>
                             <td className="tdcenterbrd" style={{ bottom: `${bottomOffset}px` }}></td>
                             <td className="tdcenterbrd" style={{ bottom: `${bottomOffset}px` }}></td>
                         </tr>
@@ -205,3 +223,4 @@ const TradesTooltip = ({ trades, tradesHeader, itables, boostables }) => {
 };
 
 export default TradesTooltip;
+

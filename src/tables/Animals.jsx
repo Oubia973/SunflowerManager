@@ -114,7 +114,7 @@ export default function AnimalTable() {
                 const xpprogress = cobj.xpProgress || 0;
                 const xptolvl = cobj.xpToLvl || 0;
                 const xlvl = cobj.lvl > 0 ? (xpprogress === xptolvl) ? cobj.lvl - 1 : cobj.lvl : 0;
-                const ignoreAnimal = dataSet.options?.ignoreAniLvl && (xlvl > dataSet.options.animalLvl[itemName]);
+                const ignoreAnimal = dataSet.options?.ignoreAniLvl && (cobj.lvl > dataSet.options.animalLvl[itemName]);
                 const food = Number(parseFloat(!TryChecked ? cobj.quantfood : cobj.quantfoodtry).toFixed(2));
                 const foodname = !TryChecked ? cobj.food : cobj.foodtry;
                 const xfoodimg = it[foodname] ? it[foodname].img : (foodname === "Mix" ? imgmix : (foodname === "Omnifeed" ? imgomni : imgna));
@@ -183,8 +183,8 @@ export default function AnimalTable() {
                     prod1costp2pTotal += Number(prod1costp2pRaw) * prod1;
                     prod2costTotal += Number(prod2cost);
                     prod2costp2pTotal += Number(prod2costp2pRaw) * prod2;
-                    foodcostTotal += Number(foodcost);
-                    foodcostp2pTotal += Number(foodcostp2p);
+                    foodcostTotal += Number(foodcostRaw);
+                    foodcostp2pTotal += Number(foodcostp2pRaw);
                     //love1Total += Number(love1);
                     //love2Total += Number(love2);
                 }

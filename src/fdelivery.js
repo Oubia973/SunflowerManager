@@ -14,6 +14,7 @@ const imgcoins = './icon/res/coins.png';
 const imggems = './icon/res/gem.webp';
 const imgexchng = './icon/ui/exchange.png';
 const imgna = './icon/nft/na.png';
+const EMPTY_DELIVERY_TABLES = {};
 //const imgtkt = './icon/res/' + imgtktname;
 
 function ModalDlvr({
@@ -46,7 +47,7 @@ function ModalDlvr({
       imgna,
     }
   } = useAppCtx();
-  const deliveryTables = dataSetFarm?.deliveryData?.itables || dataSetFarm?.itables || {};
+  const deliveryTables = dataSetFarm?.deliveryData?.itables || dataSetFarm?.itables || EMPTY_DELIVERY_TABLES;
   const hasDeliveryTables = !!deliveryTables?.it || !!Object.keys(deliveryTables || {}).length;
   const {
     it = {},
@@ -791,7 +792,7 @@ function ModalDlvr({
   }, []);
   useEffect(() => {
     setDeliveries();
-  }, [Delivery, selectedCost, tableData, TryChecked]);
+  }, [Delivery, selectedCost, tableData, TryChecked, deliveryTables, coinsRatio]);
   return (
     <div className="modal">
       <div style={{

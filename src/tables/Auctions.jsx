@@ -275,7 +275,7 @@ export default function AuctionsTable() {
   const [availableHeight, setAvailableHeight] = useState(520);
   const [viewportWidth, setViewportWidth] = useState(1024);
 
-  const farmId = String(dataSetFarm?.frmid || "").trim();
+  const farmId = String(dataSetFarm?.frmid || dataSet?.options?.farmId || "").trim();
   const auctionColumns = Array.isArray(xListeColAuctions) ? xListeColAuctions : AUCTIONS_COLUMNS_TEMPLATE;
   const isColOn = (idx) => auctionColumns?.[idx]?.[1] === 1;
   const auctionSelectionByFarm = (dataSet?.options?.auctionNotifSelection && typeof dataSet.options.auctionNotifSelection === "object")

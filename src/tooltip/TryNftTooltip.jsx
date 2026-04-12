@@ -19,6 +19,17 @@ const TryNftTooltip = ({
     const imtemimg = <img src={Item?.img ?? imgna} alt={item} style={{ width: "22px", height: "22px" }} />;
     const isCookItem = !!dataSetFarm?.itables?.food?.[item] || !!dataSetFarm?.itables?.pfood?.[item] || !!Item?.bld;
     const ingredientKeysNorm = Object.keys(Item?.compoit ?? {}).map((k) => String(k).toLowerCase());
+    const nativeBoostIcon = "./icon/tools/stone_pickaxe.png";
+
+    const getNativeBoost = () => {
+        const itemCatNorm = String(Item?.cat || "").toLowerCase();
+        if (itemCatNorm !== "wood" && itemCatNorm !== "mineral") { return null; }
+        return {
+            name: "Native",
+            img: nativeBoostIcon,
+            boost: "20% chance +1",
+        };
+    };
 
     const filterBoosts = (itemName, boosttype, tryset) => {
         return Object.keys(booststable).filter((nftitem) => {
@@ -122,6 +133,10 @@ const TryNftTooltip = ({
     }
     if (value === "yieldchg") {
         filteredBoosts = filterBoosts(item, "yield", ForTry);
+        const nativeBoost = getNativeBoost();
+        if (nativeBoost) {
+            extraBoosts.push(nativeBoost);
+        }
         txtItem = <div>Boosts for {imtemimg}{item} yield:</div>;
     }
     if (value === "costchg") {
@@ -130,6 +145,10 @@ const TryNftTooltip = ({
     }
     if (value === "yield") {
         filteredBoosts = [...filterBoosts(item, "yield", ForTry), ...filterBoosts(item, "time", ForTry), ...filterBoosts(item, "cost", ForTry)];
+        const nativeBoost = getNativeBoost();
+        if (nativeBoost) {
+            extraBoosts.push(nativeBoost);
+        }
         txtItem = (
             <>
                 <div>{imtemimg}{item} yield : {frmtNb(Item[myieldortry])}</div>

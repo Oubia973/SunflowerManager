@@ -45,10 +45,11 @@ function ModalAdmin({ onClose, value, onAdminFetch }) {
                     overflow: "auto",
                 }}
             >
-                <button onClick={closeModal} class="button" align="right" position='absolute'><img src="./icon/ui/cancel.png" alt="" className="resico" /></button>
+
                 <AdminTooltipContent
                     value={value}
                     onAdminFetch={onAdminFetch}
+                    onClose={closeModal}
                 />
             </div>
         </div>
@@ -56,3 +57,4 @@ function ModalAdmin({ onClose, value, onAdminFetch }) {
 }
 
 export default ModalAdmin;
+

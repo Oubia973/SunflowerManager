@@ -76,8 +76,9 @@ export default function CropMachineTable() {
             const itime = convTime(batchHours);
             const harvestTotal = Number(selectedProfile?.harvestPerPack ?? (harvestPerSeed * iseeds));
             const iseedCost = Number(selectedProfile?.seedCostPerPack ?? (seedCostPerSeed * iseeds));
-            const oilQuant = Number(selectedProfile?.oilPerPack ?? ((TryChecked ? CM.moiltry : CM.moil) * batchHours));
-            const oilCost = Number(selectedProfile?.oilCostPerPack ?? (oilCostPerHour * batchHours));
+            const batchHoursAsHours = batchHours * 24;
+            const oilQuant = Number(selectedProfile?.oilPerPack ?? ((TryChecked ? CM.moiltry : CM.moil) * batchHoursAsHours));
+            const oilCost = Number(selectedProfile?.oilCostPerPack ?? (oilCostPerHour * batchHoursAsHours));
             const iTotalCost = Number(selectedProfile?.packCost ?? (iseedCost + oilCost));
             const icostm = Number(selectedProfile?.packMarket ?? (marketPerUnitAfterTax * harvestTotal));
             const profit = Number(selectedProfile?.packProfit ?? (icostm - iTotalCost));

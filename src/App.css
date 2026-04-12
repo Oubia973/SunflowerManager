@@ -1520,6 +1520,117 @@ body.no-select, body.no-select * {
   max-height: calc(100vh - (155px));
 }
 
+.table-container-fill {
+  display: flex;
+  flex-direction: column;
+  height: calc(100vh - 155px);
+  max-height: calc(100vh - 155px);
+  min-height: 0;
+  overflow: hidden;
+}
+
+.activity-trades-layout {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.activity-trades-list-section {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.activity-trades-list-panel {
+  flex: 1;
+  min-height: 0;
+  width: auto;
+  max-width: 600px;
+  overflow-y: auto;
+  overflow-x: hidden;
+  border: 1px solid rgba(255,255,255,0.14);
+  border-radius: 10px;
+  padding: 0 6px 10px 10px;
+  background: rgba(255,255,255,0.03);
+  scrollbar-width: thin;
+  scrollbar-color: #7a7a7a #1d1d1d;
+}
+
+.activity-trades-table {
+  width: 100%;
+  border-collapse: collapse;
+  table-layout: auto;
+  white-space: nowrap;
+}
+
+.activity-trades-table thead th {
+  position: sticky;
+  top: 0;
+  z-index: 3;
+  background: rgba(34, 18, 10, 1);
+  font-size: 11px;
+  font-weight: 600;
+  opacity: 0.84;
+  padding: 10px 10px 8px 0;
+  text-align: left;
+  box-shadow: 0 1px 0 rgba(255,255,255,0.12);
+}
+
+.activity-trades-table tbody td {
+  padding: 6px 10px 6px 0;
+  font-size: 13px;
+}
+
+.activity-trades-item-cell {
+  width: 100%;
+  min-width: 0;
+}
+
+.activity-trades-metric-header,
+.activity-trades-metric-cell {
+  text-align: left;
+  padding-left: 10px;
+  border-left: 1px solid rgba(255,255,255,0.14);
+  white-space: nowrap;
+  width: 1%;
+}
+
+.activity-trades-list-panel::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+.activity-trades-list-panel::-webkit-scrollbar-thumb {
+  background-color: #7a7a7a;
+}
+
+.activity-trades-list-panel::-webkit-scrollbar-track {
+  background-color: #1d1d1d;
+}
+
+.activity-trades-graph-section {
+  flex: 1;
+  min-height: 0;
+  min-width: 0;
+  display: flex;
+}
+
+.activity-trades-chart-panel {
+  flex: 1;
+  height: 100%;
+  min-height: 0;
+  min-width: 0;
+  width: 100%;
+  max-width: 600px;
+  border: 1px solid rgba(255,255,255,0.14);
+  border-radius: 10px;
+  padding: 10px;
+  background: rgba(255,255,255,0.03);
+}
+
 .table {
   border-collapse: collapse;
   width: auto;

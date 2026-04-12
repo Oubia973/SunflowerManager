@@ -160,6 +160,31 @@ const categoryGroups = {
   "pets": ["pet"],
 };
 
+function parseGraphDate(value) {
+  if (value instanceof Date) {
+    return Number.isNaN(value.getTime()) ? null : value;
+  }
+  if (typeof value === "number") {
+    const d = new Date(value);
+    return Number.isNaN(d.getTime()) ? null : d;
+  }
+  const raw = String(value || "").trim();
+  if (!raw) return null;
+
+  const iso = parseISO(raw);
+  if (!Number.isNaN(iso.getTime())) return iso;
+
+  const shortUsMatch = raw.match(/^(\d{2})\/(\d{2})\/(\d{2})$/);
+  if (shortUsMatch) {
+    const [, mm, dd, yy] = shortUsMatch;
+    const d = new Date(Date.UTC(2000 + Number(yy), Number(mm) - 1, Number(dd), 12, 0, 0));
+    return Number.isNaN(d.getTime()) ? null : d;
+  }
+
+  const parsed = new Date(raw);
+  return Number.isNaN(parsed.getTime()) ? null : parsed;
+}
+
 function Graph({ data, vals, dataSetFarm, graphMeta = {}, selectedCategory = 'all', legendResetToken = 0, isLoading = false }) {
   const chartRef = useRef(null);
   const canvasRef = useRef(null);
@@ -324,9 +349,12 @@ function Graph({ data, vals, dataSetFarm, graphMeta = {}, selectedCategory = 'al
     }
 
     const grouped = {};
-    const sortedData = [...data].sort((a, b) => parseISO(a.date) - parseISO(b.date));
+    const sortedData = [...data]
+      .map((entry) => ({ entry, parsedDate: parseGraphDate(entry?.date) }))
+      .filter(({ parsedDate }) => !!parsedDate)
+      .sort((a, b) => a.parsedDate - b.parsedDate);
 
-    sortedData.forEach((entry) => {
+    sortedData.forEach(({ entry, parsedDate }) => {
       const rowBoostTable = String(entry?.boostTable || "").toLowerCase().trim();
       const rowName = String(entry?.name || "").trim();
       const rowImg = String(entry?.img || "").trim();
@@ -381,8 +409,7 @@ function Graph({ data, vals, dataSetFarm, graphMeta = {}, selectedCategory = 'al
         };
       }
 
-      const date = parseISO(entry.date);
-      const dateLabel = format(date, 'yyyy-MM-dd HH:mm:ss');
+      const dateLabel = format(parsedDate, 'yyyy-MM-dd HH:mm:ss');
 
       let unitValue = null;
       let pointActive = null;
@@ -427,6 +454,17 @@ function Graph({ data, vals, dataSetFarm, graphMeta = {}, selectedCategory = 'al
         inactive: pointInactive,
         listed: pointListed,
       });
+    });
+
+    Object.values(grouped).forEach((dataset) => {
+      const pointCount = Array.isArray(dataset?.data) ? dataset.data.length : 0;
+      if (pointCount <= 1) {
+        dataset.pointRadius = 4;
+        dataset.pointHoverRadius = 6;
+      } else if (pointCount <= 3) {
+        dataset.pointRadius = 2.4;
+        dataset.pointHoverRadius = 5;
+      }
     });
 
     return Object.values(grouped).sort((a, b) => a.label.localeCompare(b.label));

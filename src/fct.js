@@ -28,6 +28,10 @@ export function getOrCreateDeviceId() {
 
 export function frmtNb(nombre, decimal=2) {
   const nombreNumerique = parseFloat(nombre);
+  const stripTrailingZeroDecimals = (value) => {
+    const fixed = String(value);
+    return fixed.includes(".") ? fixed.replace(/\.0+$/, "") : fixed;
+  };
   var nombreStr = nombreNumerique.toString();
   const positionE = nombreStr.indexOf("e");
   if (positionE !== -1) {
@@ -46,12 +50,12 @@ export function frmtNb(nombre, decimal=2) {
         break;
       }
     }
-    if (chiffreSupZero === null) { return nombreNumerique.toFixed(decimal) }
+    if (chiffreSupZero === null) { return stripTrailingZeroDecimals(nombreNumerique.toFixed(decimal)) }
     if (Math.abs(Math.floor(nombre)) > 0) {
       if (Math.abs(Math.floor(nombre)) < 5) {
-        return nombreNumerique.toFixed(3);
+        return stripTrailingZeroDecimals(nombreNumerique.toFixed(3));
       } else {
-        return nombreNumerique.toFixed(decimal);
+        return stripTrailingZeroDecimals(nombreNumerique.toFixed(decimal));
       }
     } else {
       return nombreStr.slice(0, chiffreSupZero + 3);

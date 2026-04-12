@@ -3,6 +3,7 @@ import React, { useEffect, useState } from "react";
 export default function AdminTooltipContent({
     value,
     onAdminFetch = null,
+    onClose = null,
 }) {
     const MOBILE_TOKEN_BOOKMARKLET = `javascript:(async()=>{const k='sb_wiz.zpc.ng.sunflower-land.com-/play/';const v=localStorage.getItem(k)||'';try{await navigator.clipboard.writeText(v);alert(v?'Token copie dans le presse-papiers':'Token introuvable');}catch(e){prompt(k,v||'introuvable');}})();`;
     const [adminSectionError, setAdminSectionError] = useState({});
@@ -13,6 +14,8 @@ export default function AdminTooltipContent({
     const [adminActionResult, setAdminActionResult] = useState("");
     const [adminImportProgress, setAdminImportProgress] = useState(null);
     const [adminFarmValidation, setAdminFarmValidation] = useState(null);
+    const [adminVipFarmId, setAdminVipFarmId] = useState("");
+    const [adminVipValidation, setAdminVipValidation] = useState(null);
     const [adminViewOverride, setAdminViewOverride] = useState(null);
     const [adminCategoryGroupsOpen, setAdminCategoryGroupsOpen] = useState({});
     const [adminTokenDraft, setAdminTokenDraft] = useState("");
@@ -25,6 +28,7 @@ export default function AdminTooltipContent({
         setAdminActionResult("");
         setAdminImportProgress(null);
         setAdminFarmValidation(null);
+        setAdminVipValidation(null);
         setAdminViewOverride(null);
         setAdminCategoryGroupsOpen({});
         setAdminServerMessage("");
@@ -51,6 +55,7 @@ export default function AdminTooltipContent({
         ...adminRangeOptions,
         { value: "season", label: "Season" },
     ];
+    const headerActionMessage = String(adminActionResult || adminServerMessage || "");
 
     const toYmd = (dateObj) => {
         const d = dateObj instanceof Date ? dateObj : new Date();
@@ -126,6 +131,12 @@ export default function AdminTooltipContent({
         setAdminImportProgress(null);
         setAdminActionResult("");
         setAdminSectionError((prev) => ({ ...prev, __actions__: "" }));
+    };
+
+    const resetAdminVipValidation = () => {
+        setAdminVipValidation(null);
+        setAdminActionResult("");
+        setAdminSectionError((prev) => ({ ...prev, __vip__: "" }));
     };
 
     const validateAdminFarm = async () => {
@@ -217,6 +228,77 @@ export default function AdminTooltipContent({
         }
     };
 
+    const validateAdminVipFarm = async () => {
+        if (typeof onAdminFetch !== "function") return;
+        const farmId = String(adminVipFarmId || "").trim();
+        if (!farmId) {
+            setAdminSectionError((prev) => ({ ...prev, __vip__: "Farm ID required" }));
+            return;
+        }
+        setAdminActionLoading("checkvipfarm");
+        setAdminActionResult("");
+        setAdminSectionError((prev) => ({ ...prev, __vip__: "" }));
+        try {
+            const responseData = await onAdminFetch({
+                action: "checkvipfarm",
+                farmId,
+            }, true);
+            const result = (responseData?.result && typeof responseData.result === "object") ? responseData.result : null;
+            setAdminVipValidation({
+                farmId,
+                checked: true,
+                active: !!result?.active,
+                isLifetime: !!result?.isLifetime,
+                inAboFile: !!result?.inAboFile,
+                hasTempSubscription: !!result?.hasTempSubscription,
+                expiresAt: Number(result?.expiresAt || 0),
+            });
+            setAdminActionResult(String(responseData?.message || "VIP checked"));
+        } catch (error) {
+            setAdminVipValidation(null);
+            setAdminSectionError((prev) => ({ ...prev, __vip__: String(error?.message || "VIP validation failed") }));
+        } finally {
+            setAdminActionLoading("");
+        }
+    };
+
+    const runAdminVipAction = async (action) => {
+        if (typeof onAdminFetch !== "function") return;
+        const farmId = String(adminVipFarmId || "").trim();
+        if (!farmId) {
+            setAdminSectionError((prev) => ({ ...prev, __vip__: "Farm ID required" }));
+            return;
+        }
+        setAdminActionLoading(action);
+        setAdminActionResult("");
+        setAdminSectionError((prev) => ({ ...prev, __vip__: "" }));
+        try {
+            const confirmed = action === "removevipfarm"
+                ? window.confirm(`Remove VIP for farm ${farmId}?`)
+                : true;
+            if (!confirmed) return;
+            const responseData = await onAdminFetch({
+                action,
+                farmId,
+            }, true);
+            const result = (responseData?.result && typeof responseData.result === "object") ? responseData.result : null;
+            setAdminVipValidation({
+                farmId,
+                checked: true,
+                active: !!result?.active,
+                isLifetime: !!result?.isLifetime,
+                inAboFile: !!result?.inAboFile,
+                hasTempSubscription: !!result?.hasTempSubscription,
+                expiresAt: Number(result?.expiresAt || 0),
+            });
+            setAdminActionResult(String(responseData?.message || "VIP action completed"));
+        } catch (error) {
+            setAdminSectionError((prev) => ({ ...prev, __vip__: String(error?.message || "VIP action failed") }));
+        } finally {
+            setAdminActionLoading("");
+        }
+    };
+
     const updateAdminEnvToken = async () => {
         if (typeof onAdminFetch !== "function") return;
         const token = String(adminTokenDraft || "").trim();
@@ -298,27 +380,46 @@ export default function AdminTooltipContent({
 
     return (
         <>
-            <div><b>{String(view?.title || "Admin")}</b></div>
-            <div className="horizontal" style={{ gap: 6, height: "auto", marginTop: 4 }}>
-                <label style={{ display: "flex", flexDirection: "column", gap: 3 }}>
-                    <span style={{ fontSize: 10, opacity: 0.8 }}>Range</span>
-                    <select
-                        name="adminDaysRange"
-                        value={String(adminDaysRange)}
-                        onChange={(e) => {
-                            const nextVal = String(e?.target?.value || "30");
-                            setAdminDaysRange(nextVal);
-                            loadSummary(nextVal);
-                        }}
-                        style={{ height: 22 }}
-                    >
-                        {adminRangeOptions.map((option) => (
-                            <option key={String(option.value)} value={String(option.value)}>
-                                {String(option.label)}
-                            </option>
-                        ))}
-                    </select>
-                </label>
+            <div style={{
+                position: "sticky",
+                top: 0,
+                zIndex: 3,
+                margin: "-4px -4px 8px -4px",
+                padding: "6px 8px 8px 8px",
+                background: "rgba(24, 16, 12, 0.96)",
+                borderBottom: "1px solid rgba(255,255,255,0.12)",
+                backdropFilter: "blur(4px)",
+            }}>
+                <div className="horizontal" style={{ gap: 8, height: "auto", alignItems: "center", justifyContent: "space-between" }}>
+                    <div className="horizontal" style={{ gap: 8, height: "auto", alignItems: "center" }}>
+                        <div><b>{String(view?.title || "Admin")}</b></div>
+                        <label style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                            <span style={{ fontSize: 10, opacity: 0.8 }}>Range</span>
+                            <select
+                                name="adminDaysRange"
+                                value={String(adminDaysRange)}
+                                onChange={(e) => {
+                                    const nextVal = String(e?.target?.value || "30");
+                                    setAdminDaysRange(nextVal);
+                                    loadSummary(nextVal);
+                                }}
+                                style={{ height: 22 }}
+                            >
+                                {adminRangeOptions.map((option) => (
+                                    <option key={String(option.value)} value={String(option.value)}>
+                                        {String(option.label)}
+                                    </option>
+                                ))}
+                            </select>
+                        </label>
+                    </div>
+                    <button onClick={() => { if (typeof onClose === "function") onClose(); }} className="button">
+                        <img src="./icon/ui/cancel.png" alt="" className="resico" />
+                    </button>
+                </div>
+                <div style={{ minHeight: 18, marginTop: 6, color: "#9ee6a0", fontSize: 12 }}>
+                    {headerActionMessage || ""}
+                </div>
             </div>
             {String(view?.error || "") ? <div style={{ color: "#ff8e8e" }}>{String(view.error)}</div> : null}
             {String(adminSectionError?.__summary__ || "") ? <div style={{ color: "#ff8e8e" }}>{String(adminSectionError.__summary__)}</div> : null}
@@ -514,8 +615,68 @@ export default function AdminTooltipContent({
                     </div>
                 ) : null}
                 {String(adminSectionError?.__actions__ || "") ? <div style={{ color: "#ff8e8e", marginTop: 6 }}>{String(adminSectionError.__actions__)}</div> : null}
-                {String(adminActionResult || "") ? <div style={{ color: "#9ee6a0", marginTop: 6 }}>{String(adminActionResult)}</div> : null}
+
+            </div>
+            <div style={{
+                marginTop: 12,
+                padding: "8px 10px",
+                border: "1px solid rgba(255,255,255,0.18)",
+                borderRadius: 8,
+                background: "rgba(255,255,255,0.04)",
+            }}>
+                <div style={{ fontWeight: 700, marginBottom: 6 }}>VIP</div>
+                <div style={{ display: "flex", flexWrap: "wrap", gap: 8, alignItems: "end" }}>
+                    <label style={{ display: "flex", flexDirection: "column", gap: 3 }}>
+                        <span>Farm ID</span>
+                        <input
+                            type="number"
+                            min="1"
+                            step="1"
+                            value={adminVipFarmId}
+                            onChange={(e) => {
+                                setAdminVipFarmId(String(e?.target?.value || ""));
+                                resetAdminVipValidation();
+                            }}
+                            style={{ minWidth: 120 }}
+                        />
+                    </label>
+                    <button
+                        className="graph-tab-btn"
+                        onClick={validateAdminVipFarm}
+                        disabled={adminActionLoading !== ""}
+                    >
+                        {adminActionLoading === "checkvipfarm" ? "Check..." : "Validate"}
+                    </button>
+                    <button
+                        className="graph-tab-btn"
+                        onClick={() => runAdminVipAction("addvip30days")}
+                        disabled={adminActionLoading !== ""}
+                    >
+                        {adminActionLoading === "addvip30days" ? "Add..." : "Add 30 days"}
+                    </button>
+                    <button
+                        className="graph-tab-btn"
+                        onClick={() => runAdminVipAction("removevipfarm")}
+                        disabled={adminActionLoading !== ""}
+                    >
+                        {adminActionLoading === "removevipfarm" ? "Delete..." : "Supr VIP"}
+                    </button>
+                </div>
+                {adminVipValidation?.checked ? (
+                    <div style={{ marginTop: 6, fontSize: 12 }}>
+                        <div>Validated farm: {String(adminVipValidation.farmId)}</div>
+                        <div>VIP active: {adminVipValidation.active ? "Yes" : "No"}</div>
+                        <div>Lifetime: {adminVipValidation.isLifetime ? "Yes" : "No"}</div>
+                        <div>In `abofrm.json`: {adminVipValidation.inAboFile ? "Yes" : "No"}</div>
+                        <div>Temp subscription: {adminVipValidation.hasTempSubscription ? "Yes" : "No"}</div>
+                        {adminVipValidation.expiresAt > 0 ? (
+                            <div>Expires at: {new Date(adminVipValidation.expiresAt).toLocaleString("fr-FR")}</div>
+                        ) : null}
+                    </div>
+                ) : null}
+                {String(adminSectionError?.__vip__ || "") ? <div style={{ color: "#ff8e8e", marginTop: 6 }}>{String(adminSectionError.__vip__)}</div> : null}
             </div>
         </>
     );
 }
+
