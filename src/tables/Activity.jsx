@@ -52,6 +52,7 @@ function getCounterMap(dataContext, fieldName, prevActivity, xContext) {
         toolscrafted: "dailytoolscrafted",
         tottrades: "dailytottrades",
         tottradessfl: "dailytottradessfl",
+        tottradestax: "dailytottradestax",
     };
     const dailyField = dailyFieldMap[fieldName];
     if (dailyField) {
@@ -158,10 +159,99 @@ function formatTradeDayLabel(value) {
     });
 }
 
-function getNetTradePrice(value, tradeTax = 10) {
+function escapeCsvValue(value) {
+    const text = String(value ?? "");
+    if (/[;,"\r\n]/.test(text)) {
+        return `"${text.replace(/"/g, '""')}"`;
+    }
+    return text;
+}
+
+function getActivityRangeLabel(value) {
+    if (value === "today") return "today";
+    if (value === "1") return "24h";
+    if (value === "7") return "7days";
+    if (value === "31") return "1month";
+    if (value === "season") return "season";
+    return String(value || "range");
+}
+
+function getTradesExportFormat(value) {
+    const format = String(value || "").toLowerCase();
+    if (format === "csv-standard") {
+        return { extension: "csv", delimiter: "," };
+    }
+    if (format === "tsv") {
+        return { extension: "tsv", delimiter: "\t" };
+    }
+    return { extension: "csv", delimiter: ";" };
+}
+
+function downloadTradesCsv(summaryItems, dayRows, rangeValue, formatValue = "csv-excel") {
+    const summary = Array.isArray(summaryItems) ? summaryItems : [];
+    const days = Array.isArray(dayRows) ? dayRows : [];
+    const lines = [];
+    const { extension, delimiter } = getTradesExportFormat(formatValue);
+
+    lines.push(["Summary"]);
+    lines.push(["Item", "Qty", "Flower", "Avg", "Group"]);
+    summary.forEach((item) => {
+        lines.push([
+            item?.name || "",
+            Number(item?.qty || 0),
+            Number(item?.price || 0),
+            Number(item?.avgPrice || 0),
+            item?.tradeGroup || "",
+        ]);
+    });
+
+    lines.push([]);
+    lines.push(["Daily"]);
+    lines.push(["Date", "Item", "Qty", "Flower", "Group"]);
+    days.forEach((day) => {
+        Object.values(day?.items || {}).forEach((item) => {
+            lines.push([
+                day?.date || "",
+                item?.name || "",
+                Number(item?.qty || 0),
+                Number(item?.price || 0),
+                item?.tradeGroup || "",
+            ]);
+        });
+    });
+
+    const csv = "\uFEFF" + lines.map((row) => row.map(escapeCsvValue).join(delimiter)).join("\r\n");
+    const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+    const url = window.URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = `activity-trades-${getActivityRangeLabel(rangeValue)}.${extension}`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    window.URL.revokeObjectURL(url);
+}
+
+function getTradeTaxRate(tradeGroup, tradeTax = 10) {
+    if (String(tradeGroup || "other") === "resources") {
+        return Number.isFinite(Number(tradeTax)) ? Number(tradeTax) : 10;
+    }
+    return 10;
+}
+
+function getNetTradePrice(value, tradeGroup, tradeTax = 10, storedTaxRate = null) {
     const raw = Number(value || 0);
     if (!(raw > 0)) return 0;
-    const safeTax = Number.isFinite(Number(tradeTax)) ? Number(tradeTax) : 10;
+    const hasStoredTaxRate = storedTaxRate !== null && storedTaxRate !== undefined && storedTaxRate !== "";
+    const fixedTaxRate = Number(storedTaxRate);
+    if (String(tradeGroup || "other") === "resources" && hasStoredTaxRate && Number.isFinite(fixedTaxRate) && fixedTaxRate >= 0) {
+        // Backward compatibility: older temporary format stored tax amount instead of rate.
+        if (fixedTaxRate > 100) {
+            return Math.max(0, raw - fixedTaxRate);
+        }
+        return Math.max(0, raw - (raw * (fixedTaxRate / 100)));
+    }
+    const safeTax = getTradeTaxRate(tradeGroup, tradeTax);
     return raw - (raw * (safeTax / 100));
 }
 
@@ -173,16 +263,15 @@ function buildActivityTradesSummary(activityData, dataSetFarm, tradeTax) {
         const prevActivity = activityData[index - 1] || null;
         const tradesMap = getCounterMap(activityItem, "tottrades", prevActivity, "day");
         const tradesSflMap = getCounterMap(activityItem, "tottradessfl", prevActivity, "day");
+        const tradesTaxMap = getCounterMap(activityItem, "tottradestax", prevActivity, "day");
         const tradeNames = new Set([
             ...Object.keys(tradesMap || {}),
             ...Object.keys(tradesSflMap || {}),
+            ...Object.keys(tradesTaxMap || {}),
         ]);
 
         tradeNames.forEach((itemName) => {
             const quantity = Number(tradesMap?.[itemName] || 0);
-            const price = getNetTradePrice(tradesSflMap?.[itemName] || 0, tradeTax);
-            if (!(quantity > 0) && !(price > 0)) return;
-
             const itemMeta = metaByName[itemName] || {
                 id: getSyntheticTradeId(itemName),
                 name: itemName,
@@ -190,7 +279,10 @@ function buildActivityTradesSummary(activityData, dataSetFarm, tradeTax) {
                 cat: "",
                 img: "./icon/nft/na.png",
                 boostTable: "",
+                tradeGroup: "other",
             };
+            const price = getNetTradePrice(tradesSflMap?.[itemName] || 0, itemMeta.tradeGroup, tradeTax, tradesTaxMap?.[itemName]);
+            if (!(quantity > 0) && !(price > 0)) return;
 
             if (!totalsByName[itemMeta.name]) {
                 totalsByName[itemMeta.name] = {
@@ -198,9 +290,9 @@ function buildActivityTradesSummary(activityData, dataSetFarm, tradeTax) {
                     name: itemMeta.name,
                     color: itemMeta.color,
                     img: itemMeta.img,
-                qty: 0,
-                price: 0,
-                tradeGroup: itemMeta.tradeGroup || "other",
+                    qty: 0,
+                    price: 0,
+                    tradeGroup: itemMeta.tradeGroup || "other",
             };
         }
 
@@ -229,29 +321,32 @@ function buildActivityTradesDailySeries(activityData, dataSetFarm, tradeTax) {
         const prevActivity = activityData[index - 1] || null;
         const tradesMap = getCounterMap(activityItem, "tottrades", prevActivity, "day");
         const tradesSflMap = getCounterMap(activityItem, "tottradessfl", prevActivity, "day");
+        const tradesTaxMap = getCounterMap(activityItem, "tottradestax", prevActivity, "day");
         const tradeNames = new Set([
             ...Object.keys(tradesMap || {}),
             ...Object.keys(tradesSflMap || {}),
+            ...Object.keys(tradesTaxMap || {}),
         ]);
         const items = {};
 
         tradeNames.forEach((itemName) => {
             const qty = Number(tradesMap?.[itemName] || 0);
-            const price = getNetTradePrice(tradesSflMap?.[itemName] || 0, tradeTax);
-            if (!(qty > 0) && !(price > 0)) return;
             const itemMeta = metaByName[itemName] || {
                 id: getSyntheticTradeId(itemName),
                 name: itemName,
                 color: getFallbackTradeColor(itemName),
                 img: "./icon/nft/na.png",
+                tradeGroup: "other",
             };
+            const price = getNetTradePrice(tradesSflMap?.[itemName] || 0, itemMeta.tradeGroup, tradeTax, tradesTaxMap?.[itemName]);
+            if (!(qty > 0) && !(price > 0)) return;
             items[itemMeta.name] = {
                 name: itemMeta.name,
                 color: itemMeta.color,
                 img: itemMeta.img,
                 qty,
                 price,
-                tradeGroup: itemMeta.tradeGroup || "other",
+                    tradeGroup: itemMeta.tradeGroup || "other",
             };
         });
 
@@ -1008,12 +1103,11 @@ function setActivityItem(activityData, dataSetFarm, ui) {
         const foodBuild = ActTot.foodBuild;
         const delivBurn = ActTot.delivBurn;
         const tot = ActTot.tot;
-        const tradeTax = Number(dataSet?.options?.tradeTax ?? 10);
         var totCost = 0;
         var totCostt = 0;
         var totCostn = 0;
         var totCosto = 0;
-        var totTradedSfl = getNetTradePrice(tot.totTradedSfl, tradeTax);
+        var totTradedSfl = Object.values(compoTradedSfl || {}).reduce((sum, value) => sum + Number(value || 0), 0);
         const tableContent = allSortedItems.map(([element]) => {
             if (compoHarvested[element] > 0 || compoBurn[element] > 0 || compoTraded[element] > 0) {
                 const cobj = it[element] || fish[element] || flower[element] || nft[element] || nftw[element] || null;
@@ -1026,7 +1120,7 @@ function setActivityItem(activityData, dataSetFarm, ui) {
                     iquantmax = tot.tktMax;
                 }
                 const iquanttraded = compoTraded[element] ? compoTraded[element] : '';
-                const iquanttradedsfl = compoTradedSfl[element] ? getNetTradePrice(compoTradedSfl[element], tradeTax) : '';
+                const iquanttradedsfl = compoTradedSfl[element] ? compoTradedSfl[element] : '';
                 const iquantb = element !== "TKT" ? formatActivityItemCell(iquant - (BurnChecked ? iburn : 0)) : iquant;
                 const iharvestn = element === "SFL" ? frmtNb(tot.balSfl) : formatActivityItemCell(compoHarvestn[element] || ''); //tot.balSfl
                 const titlesfl = element === "SFL" ? "based on farm balance" : "";
@@ -1182,6 +1276,20 @@ function setActivityTrades(activityData, dataSetFarm, ui, tradeSummaryItems, tra
                         ]}
                         value={selectedFromActivity}
                         onChange={handleUIChange}
+                        height={28}
+                    />
+                    <DList
+                        title="Export"
+                        options={[
+                            { value: "csv-excel", label: "CSV Excel" },
+                            { value: "csv-standard", label: "CSV standard" },
+                            { value: "tsv", label: "TSV" },
+                        ]}
+                        value=""
+                        onChange={(value) => downloadTradesCsv(summaryItems, tradeDailySeries, selectedFromActivity, value)}
+                        emitEvent={false}
+                        closeOnSelect={true}
+                        placeholder="Export"
                         height={28}
                     />
                     <DList
@@ -1479,16 +1587,19 @@ function setActivityTot(activityData, xContext, dataSetFarm, dataSet, prevDayAct
             if (DataContext.data.tottrades) {
                 const tradesMap = getCounterMap(DataContext, "tottrades", prevContext, xContext);
                 const tradesSflMap = getCounterMap(DataContext, "tottradessfl", prevContext, xContext);
+                const tradesTaxMap = getCounterMap(DataContext, "tottradestax", prevContext, xContext);
                 const totTradesEntries = Object.entries(tradesMap);
                 totTradesEntries.map(([item]) => {
                     const tradeQty = Number(tradesMap[item] || 0);
                     const tradeSfl = Number(tradesSflMap[item] || 0);
+                    const tradeGroup = (it[item] || petit[item]) ? "resources" : ((nft[item] || nftw[item]) ? "collectibles" : "other");
+                    const tradeNetSfl = getNetTradePrice(tradeSfl, tradeGroup, Number(dataSet?.options?.tradeTax ?? 10), tradesTaxMap?.[item]);
                     if (!(tradeQty > 0) && !(tradeSfl > 0)) return;
                     compoTraded[item] = compoTraded[item] || 0;
                     compoTraded[item] += tradeQty;
                     compoTradedSfl[item] = compoTradedSfl[item] || 0;
-                    compoTradedSfl[item] += tradeSfl;
-                    tot.totTradedSfl += tradeSfl;
+                    compoTradedSfl[item] += tradeNetSfl;
+                    tot.totTradedSfl += tradeNetSfl;
                 });
             }
             const buildMap = getCounterMap(DataContext, "totbuild", prevContext, xContext);
